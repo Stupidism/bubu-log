@@ -1,26 +1,112 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fefbf6;
+  --foreground: #2d2d2d;
+  --primary: #ff9b9b;
+  --primary-dark: #ff7b7b;
+  --secondary: #a8d5ba;
+  --accent: #ffd93d;
+  --card: #ffffff;
+  --muted: #f5f0e8;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --font-sans: 'Noto Sans SC', system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #1a1a2e;
+    --foreground: #eaeaea;
+    --primary: #ff9b9b;
+    --primary-dark: #ff7b7b;
+    --secondary: #6bcb77;
+    --accent: #ffd93d;
+    --card: #2d2d44;
+    --muted: #3d3d5c;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  overscroll-behavior: none;
+}
+
+/* 大按钮样式 */
+.big-button {
+  @apply flex flex-col items-center justify-center p-4 rounded-2xl transition-all duration-200;
+  @apply active:scale-95 active:opacity-80;
+  min-height: 90px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.big-button:active {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 时间调整按钮 */
+.time-adjust-btn {
+  @apply px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150;
+  @apply active:scale-95;
+}
+
+/* 滚动条隐藏 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 动画 */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* 安全区域 */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 20px);
 }

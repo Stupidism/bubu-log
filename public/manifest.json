@@ -1,0 +1,23 @@
+{
+  "name": "宝宝日记",
+  "short_name": "宝宝日记",
+  "description": "记录宝宝的睡眠、喂奶、换尿布和日常活动",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fefbf6",
+  "theme_color": "#ff9b9b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+

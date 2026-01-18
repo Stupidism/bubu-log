@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// 活动类型枚举
+enum ActivityType {
+  SLEEP_START      // 入睡
+  SLEEP_END        // 睡醒
+  DIAPER           // 换尿布
+  BREASTFEED_START // 开始亲喂
+  BREASTFEED_END   // 结束亲喂
+  BOTTLE_START     // 开始瓶喂
+  BOTTLE_END       // 结束瓶喂
+  PASSIVE_EXERCISE // 被动操
+  GAS_EXERCISE     // 排气操
+  BATH             // 洗澡
+  OUTDOOR          // 户外晒太阳
+  EARLY_EDUCATION  // 早教
+}
+
+// 大便颜色枚举
+enum PoopColor {
+  YELLOW       // 黄色
+  GREEN        // 绿色
+  BROWN        // 棕色
+  BLACK        // 黑色
+  WHITE        // 白色
+  RED          // 红色（需要注意）
+}
+
+// 小便量枚举
+enum PeeAmount {
+  SMALL   // 少
+  MEDIUM  // 中
+  LARGE   // 多
+}
+
+// 活动记录模型
+model Activity {
+  id              String       @id @default(cuid())
+  type            ActivityType
+  recordTime      DateTime     @default(now()) // 活动发生时间
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // 尿布相关字段
+  hasPoop         Boolean?     // 是否有大便
+  hasPee          Boolean?     // 是否有小便
+  poopColor       PoopColor?   // 大便颜色
+  peeAmount       PeeAmount?   // 小便量
+
+  // 喂奶相关字段
+  burpSuccess     Boolean?     // 拍嗝是否成功
+  duration        Int?         // 持续时间（分钟）
+  milkAmount      Int?         // 奶量（毫升）- 瓶喂专用
+
+  // 关联的开始活动（用于结束活动关联开始活动）
+  startActivityId String?      @unique
+  startActivity   Activity?    @relation("ActivityPair", fields: [startActivityId], references: [id])
+  endActivity     Activity?    @relation("ActivityPair")
+
+  // 备注
+  notes           String?
+
+  @@index([type])
+  @@index([recordTime])
+  @@index([createdAt])
+}
