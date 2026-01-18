@@ -21,6 +21,7 @@ alwaysApply: false
 - `SleepEndForm` - 睡醒表单，支持自动计算或手动输入时长
 - `ActivityButton` - 入睡/睡醒按钮
 - `TimeAdjuster` - 时间滑块+微调组件
+- `SliderInput` - 通用滑块输入组件（用于补录时长）
 
 ## How It Works
 
@@ -34,14 +35,15 @@ alwaysApply: false
 
 ### 补录流程（直接点睡醒）
 1. 用户直接点击"睡醒"按钮（没有先点入睡）
-2. `SleepEndForm` 显示时长预设选项：30, 60, 90, 120, 180, 240 分钟
-3. 用户选择睡眠时长
-4. 支持微调选中的时长（±1分钟/±5分钟/±15分钟/±1小时）
+2. `SleepEndForm` 显示时长滑块（15-240分钟，15分钟间隔）
+3. 用户拖动滑块选择睡眠时长
+4. 可用微调按钮细调（±15分钟/±75分钟）
 5. 记录 `SLEEP_END`，`duration` 为用户选择的时长
 
-### 时间选择器
-- **滑块**: 范围从"1小时前"到"现在"
+### 时间选择器（TimeAdjuster）
+- **滑块**: 范围从"1小时前"到"现在"，5分钟间隔
 - **微调按钮**: -1小时、-15分钟、-5分钟、+1分钟
+- **不显示日期**: 只显示时间（HH:mm格式）
 - 不允许超过当前时间
 
 ### 状态管理
@@ -52,15 +54,16 @@ alwaysApply: false
 ## Key Files
 - `src/components/forms/SleepEndForm.tsx` - 睡醒表单组件
 - `src/components/TimeAdjuster.tsx` - 时间滑块+微调组件
+- `src/components/SliderInput.tsx` - 通用滑块输入组件
 - `src/lib/api/hooks.ts` - useSleepState hook
 - `src/app/page.tsx` - 主页面
 - `prisma/schema.prisma` - Activity 模型定义
 
 ## UI 设计要点
-- 字体加大：时间显示 `text-4xl`，时长显示 `text-5xl`
-- 滑块范围：1小时前 ~ 现在
+- 字体加大：时间显示 `text-5xl`，时长显示 `text-5xl`
+- 滑块范围：1小时前 ~ 现在，5分钟间隔
 - 微调按钮：4列布局，颜色区分（减少=蓝色，增加=绿色）
-- 预设时长按钮：3列布局，选中高亮
+- 补录时长：滑块输入（15-240分钟，15分钟间隔）
 
 ## Future Improvements
 - 睡眠质量评估（好/一般/差）
