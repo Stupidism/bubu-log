@@ -1,8 +1,8 @@
 ---
-description: 喂奶记录功能 - 追踪亲喂和瓶喂
+description: 喂奶记录功能 - 追踪亲喂和瓶喂（单条记录模式）
 globs:
-  - "src/components/forms/BreastfeedEndForm.tsx"
-  - "src/components/forms/BottleEndForm.tsx"
+  - "src/components/forms/BreastfeedForm.tsx"
+  - "src/components/forms/BottleForm.tsx"
 alwaysApply: false
 ---
 
@@ -13,45 +13,60 @@ alwaysApply: false
 ## Core Components
 
 **数据模型:**
-- `Activity` - type: `BREASTFEED_START` | `BREASTFEED_END` | `BOTTLE_START` | `BOTTLE_END`
+- `Activity` - type: `BREASTFEED` | `BOTTLE`（单条记录，非配对）
+- `recordTime` - 开始喂奶时间
 - `duration` - 喂奶时长（分钟）
 - `milkAmount` - 奶量（毫升，仅瓶喂）
 - `burpSuccess` - 拍嗝是否成功
 
 **组件:**
-- `BreastfeedEndForm` - 亲喂结束表单
-- `BottleEndForm` - 瓶喂结束表单
-- `ActivityDurationForm` - 通用时长表单
+- `BreastfeedForm` - 亲喂表单（含时间滑块、时长选择、拍嗝状态、记住选择）
+- `BottleForm` - 瓶喂表单（含时间滑块、奶量、时长、拍嗝状态、记住选择）
 
 ## How It Works
 
-### 亲喂流程
-1. 点击"开始亲喂"，记录 `BREASTFEED_START`
-2. 喂奶进行中...
-3. 点击"结束亲喂"，打开 `BreastfeedEndForm`
-4. 自动计算喂奶时长
+### 亲喂流程（单条记录）
+1. 点击"亲喂"按钮
+2. 打开 `BreastfeedForm`
+3. 调整开始时间（滑块 + 微调按钮）
+4. 选择喂奶时长预设（5/10/15/20/25/30分钟）或微调（±1分钟/±5分钟）
 5. 选择拍嗝状态（成功/未成功）
-6. 记录 `BREASTFEED_END`
+6. 可选：点击"保存"记住当前选择
+7. 确认记录
 
-### 瓶喂流程
-1. 点击"开始瓶喂"，记录 `BOTTLE_START`
-2. 喂奶进行中...
-3. 点击"结束瓶喂"，打开 `BottleEndForm`
-4. 自动计算喂奶时长
-5. 输入奶量（基准：50/100/150ml，微调：±10ml）
+### 瓶喂流程（单条记录）
+1. 点击"瓶喂"按钮
+2. 打开 `BottleForm`
+3. 调整开始时间
+4. 选择奶量预设（30/60/90/120/150/180ml）或微调（±10ml/±30ml）
+5. 选择喂奶时长
 6. 选择拍嗝状态
-7. 记录 `BOTTLE_END`
+7. 可选：点击"保存"记住当前选择
+8. 确认记录
 
-### 状态管理
-- `pairedState.breastfeed` - 亲喂状态
-- `pairedState.bottle` - 瓶喂状态
-- 开始后按钮切换为"结束"
+### 时间选择器
+- **滑块**: 范围从"1小时前"到"现在"
+- **微调按钮**: -1小时、-15分钟、-5分钟、+1分钟
+- +1分钟按钮在当前时间时禁用（不允许超过当前时间）
+- 点击时间显示可重置为现在
+
+### 记住选择功能
+- 保存在 localStorage: `breastfeed_form_preferences` / `bottle_form_preferences`
+- 记住内容: 默认时长、默认奶量（瓶喂）、默认拍嗝状态
+- 下次打开表单自动填充
 
 ## Key Files
-- `src/components/forms/BreastfeedEndForm.tsx` - 亲喂结束表单
-- `src/components/forms/BottleEndForm.tsx` - 瓶喂结束表单
+- `src/components/forms/BreastfeedForm.tsx` - 亲喂表单
+- `src/components/forms/BottleForm.tsx` - 瓶喂表单
+- `src/components/TimeAdjuster.tsx` - 时间滑块+微调组件
 - `src/app/page.tsx` - 主页面
 - `src/types/activity.ts` - 类型定义
+
+## UI 设计要点
+- 字体加大：适配老年看护者使用
+- 时间显示：`text-4xl` 大号字体
+- 按钮字体：`text-base` 便于点击
+- 颜色区分：亲喂粉色系、瓶喂蓝色系
 
 ## Future Improvements
 - 喂奶侧记录（左侧/右侧/两侧）

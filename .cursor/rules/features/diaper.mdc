@@ -1,13 +1,14 @@
 ---
-description: 换尿布功能 - 记录大小便情况
+description: 换尿布功能 - 记录大小便情况（含照片上传）
 globs:
   - "src/components/forms/DiaperForm.tsx"
+  - "src/app/api/activities/upload-photo/route.ts"
 alwaysApply: false
 ---
 
 # 换尿布
 
-记录宝宝的排泄情况，包括大便、小便、颜色和量。
+记录宝宝的排泄情况，包括大便、小便、颜色、量和照片。
 
 ## Core Components
 
@@ -17,6 +18,7 @@ alwaysApply: false
 - `hasPee` - 是否有小便
 - `poopColor` - 大便颜色（枚举）
 - `peeAmount` - 小便量（枚举）
+- `poopPhotoUrl` - 大便照片URL（可选，存储在 Vercel Blob）
 
 **枚举:**
 ```prisma
@@ -37,29 +39,53 @@ enum PeeAmount {
 ```
 
 **组件:**
-- `DiaperForm` - 换尿布表单
+- `DiaperForm` - 换尿布表单（含照片上传）
+
+**API Routes:**
+- `POST /api/activities/upload-photo` - 上传大便照片到 Vercel Blob
 
 ## How It Works
 
 ### 记录流程
 1. 点击"换尿布"按钮
 2. 打开 `DiaperForm`
-3. 选择大便/小便（可多选）
-4. 如有大便，选择颜色
-5. 如有小便，选择量
+3. 选择大便/小便（可多选，默认选中小便）
+4. 如有大便：
+   - 选择颜色（默认黄色）
+   - 可选：上传照片（异常情况记录）
+5. 如有小便：
+   - 选择量（默认多）
 6. 确认记录
 
+### 照片上传流程
+1. 点击"拍照记录"按钮
+2. 选择或拍摄照片（限制 5MB）
+3. 调用 `POST /api/activities/upload-photo`
+4. 上传到 Vercel Blob Storage
+5. 返回 URL，保存到 `poopPhotoUrl`
+
+### 默认值
+- `hasPee`: true（默认选中小便）
+- `peeAmount`: LARGE（默认多）
+- `poopColor`: YELLOW（默认黄色）
+
 ### UI 设计
-- 使用 Lucide 图标（Baby 图标表示大便，Droplet 表示小便）
+- 使用 Lucide 图标
 - 颜色选择使用色块按钮
 - 小便量使用水滴数量表示（1-3 个）
+- 照片预览显示缩略图
 
 ## Key Files
 - `src/components/forms/DiaperForm.tsx` - 换尿布表单
+- `src/app/api/activities/upload-photo/route.ts` - 照片上传 API
+- `src/lib/api/hooks.ts` - useUploadActivityPhoto hook
 - `prisma/schema.prisma` - PoopColor, PeeAmount 枚举
 
+## Environment Variables
+- `BLOB_READ_WRITE_TOKEN` - Vercel Blob 读写 token
+
 ## Future Improvements
-- 大便照片上传（异常情况记录）
 - 每日排便统计
 - 异常颜色提醒（红色/白色/黑色自动提示就医）
 - 便秘提醒（超过X小时未排便）
+- 记住选择功能

@@ -14,35 +14,53 @@ alwaysApply: false
 
 **数据模型:**
 - `Activity` - type: `SLEEP_START` | `SLEEP_END`
-- `startActivityId` - 关联入睡记录（用于计算时长）
+- `sleepStartId` - 关联入睡记录（用于计算时长，仅 SLEEP_END）
+- `duration` - 睡眠时长（分钟，补录时使用）
 
 **组件:**
 - `SleepEndForm` - 睡醒表单，支持自动计算或手动输入时长
 - `ActivityButton` - 入睡/睡醒按钮
+- `TimeAdjuster` - 时间滑块+微调组件
 
 ## How It Works
 
 ### 标准流程（先入睡后睡醒）
 1. 用户点击"入睡"按钮，记录 `SLEEP_START`
-2. 用户点击"睡醒"按钮
-3. 系统自动计算睡眠时长（睡醒时间 - 入睡时间）
-4. 记录 `SLEEP_END`，关联 `startActivityId`
+2. "入睡"按钮变为禁用状态
+3. 用户点击"睡醒"按钮
+4. 系统自动获取入睡时间，计算睡眠时长
+5. 显示睡眠时长，支持微调（-1小时/-15分/-5分/+1分）
+6. 记录 `SLEEP_END`，关联 `sleepStartId`
 
 ### 补录流程（直接点睡醒）
 1. 用户直接点击"睡醒"按钮（没有先点入睡）
 2. `SleepEndForm` 显示时长预设选项：30, 60, 90, 120, 180, 240 分钟
 3. 用户选择睡眠时长
-4. 记录 `SLEEP_END`，`duration` 为用户选择的时长
+4. 支持微调选中的时长（±1分钟/±5分钟/±15分钟/±1小时）
+5. 记录 `SLEEP_END`，`duration` 为用户选择的时长
+
+### 时间选择器
+- **滑块**: 范围从"1小时前"到"现在"
+- **微调按钮**: -1小时、-15分钟、-5分钟、+1分钟
+- 不允许超过当前时间
 
 ### 状态管理
-- `pairedState.sleep` 追踪当前状态：`'start'` | `'end'`
+- `sleepState` 追踪当前状态：`'start'` | `'end'`
+- 使用 `useSleepState()` hook 获取状态
 - 当宝宝已入睡时，"入睡"按钮 disabled
 
 ## Key Files
 - `src/components/forms/SleepEndForm.tsx` - 睡醒表单组件
-- `src/app/page.tsx` - 主页面，管理 pairedState
-- `src/app/api/activities/route.ts` - API 路由
+- `src/components/TimeAdjuster.tsx` - 时间滑块+微调组件
+- `src/lib/api/hooks.ts` - useSleepState hook
+- `src/app/page.tsx` - 主页面
 - `prisma/schema.prisma` - Activity 模型定义
+
+## UI 设计要点
+- 字体加大：时间显示 `text-4xl`，时长显示 `text-5xl`
+- 滑块范围：1小时前 ~ 现在
+- 微调按钮：4列布局，颜色区分（减少=蓝色，增加=绿色）
+- 预设时长按钮：3列布局，选中高亮
 
 ## Future Improvements
 - 睡眠质量评估（好/一般/差）

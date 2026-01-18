@@ -1,5 +1,5 @@
 ---
-description: 其他活动功能 - 被动操、排气操、洗澡、户外、早教
+description: 其他活动功能 - 抬头、被动操、排气操、洗澡、户外、早教
 globs:
   - "src/components/forms/SimpleActivityForm.tsx"
   - "src/components/forms/ActivityDurationForm.tsx"
@@ -13,47 +13,60 @@ alwaysApply: false
 ## Core Components
 
 **数据模型:**
-- `Activity` - type: `PASSIVE_EXERCISE` | `GAS_EXERCISE` | `BATH` | `OUTDOOR` | `EARLY_EDUCATION`
+- `Activity` - type: `HEAD_LIFT` | `PASSIVE_EXERCISE` | `GAS_EXERCISE` | `BATH` | `OUTDOOR` | `EARLY_EDUCATION`
 - `duration` - 活动时长（分钟，可选）
 - `notes` - 备注（可选）
 
 **活动类型:**
-| Type | 名称 | 图标 | 说明 |
-|------|------|------|------|
-| `PASSIVE_EXERCISE` | 被动操 | Activity | 帮助宝宝活动四肢 |
-| `GAS_EXERCISE` | 排气操 | Wind | 帮助排出肠道气体 |
-| `BATH` | 洗澡 | Bath | 沐浴清洁 |
-| `OUTDOOR` | 户外晒太阳 | SunMedium | 户外活动，补充维生素D |
-| `EARLY_EDUCATION` | 早教 | BookOpen | 早期教育活动 |
+| Type | 名称 | 图标 | 说明 | 默认时长 |
+|------|------|------|------|---------|
+| `HEAD_LIFT` | 抬头 | ArrowUp | 锻炼颈部力量 | 5分钟 |
+| `PASSIVE_EXERCISE` | 被动操 | Activity | 帮助宝宝活动四肢 | 10分钟 |
+| `GAS_EXERCISE` | 排气操 | Wind | 帮助排出肠道气体 | 10分钟 |
+| `BATH` | 洗澡 | Bath | 沐浴清洁 | 15分钟 |
+| `OUTDOOR` | 户外晒太阳 | SunMedium | 户外活动，补充维生素D | 30分钟 |
+| `EARLY_EDUCATION` | 早教 | BookOpen | 早期教育活动 | 20分钟 |
 
 **组件:**
-- `SimpleActivityForm` - 简单活动表单（只记录时间）
-- `ActivityDurationForm` - 带时长的活动表单
+- `ActivityDurationForm` - 带时长的活动表单（所有活动都使用此表单）
+- `SimpleActivityForm` - 简单活动表单（备用）
 
 ## How It Works
 
-### 简单记录
-1. 点击活动按钮（如"洗澡"）
-2. 打开 `SimpleActivityForm`
-3. 确认或调整时间
-4. 记录活动
-
-### 带时长记录
-1. 点击活动按钮（如"被动操"）
+### 记录流程
+1. 点击活动按钮（如"抬头"）
 2. 打开 `ActivityDurationForm`
-3. 确认或调整时间
-4. 输入活动时长
-5. 记录活动
+3. 调整活动时间（滑块 + 微调按钮）
+4. 选择活动时长预设（1/5/15/30/45/60/90/120分钟）
+5. 可选：微调时长（±1分钟/±5分钟）
+6. 确认记录
+
+### 时间选择器
+- **滑块**: 范围从"1小时前"到"现在"
+- **微调按钮**: -1小时、-15分钟、-5分钟、+1分钟
+- 点击时间显示可重置为现在
+
+### 按钮排列
+- "其他活动"区域使用 3列网格布局
+- "抬头"排在第一位（新增）
+- 顺序：抬头 → 被动操 → 排气操 → 洗澡 → 户外晒太阳 → 早教
 
 ## Key Files
-- `src/components/forms/SimpleActivityForm.tsx` - 简单活动表单
 - `src/components/forms/ActivityDurationForm.tsx` - 时长活动表单
+- `src/components/forms/SimpleActivityForm.tsx` - 简单活动表单
 - `src/components/ActivityButton.tsx` - 活动按钮
 - `src/components/ActivityIcon.tsx` - 活动图标映射
+- `src/components/TimeAdjuster.tsx` - 时间滑块组件
 - `src/types/activity.ts` - ActivityType 枚举
+
+## UI 设计要点
+- 橙色系配色（与睡眠/喂奶区分）
+- 3列网格布局
+- 图标 + 文字标签
 
 ## Future Improvements
 - 活动模板（常用活动组合）
 - 活动提醒（每日必做活动清单）
 - 活动统计（每周运动时长等）
 - 自定义活动类型
+- 记住选择功能（各活动独立默认时长）
