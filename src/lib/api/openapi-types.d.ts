@@ -58,6 +58,24 @@ export interface paths {
         patch: operations["updateActivity"];
         trace?: never;
     };
+    "/activities/upload-photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload activity photo */
+        post: operations["uploadActivityPhoto"];
+        /** Delete activity photo */
+        delete: operations["deleteActivityPhoto"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/baby-profile": {
         parameters: {
             query?: never;
@@ -99,7 +117,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        ActivityType: "SLEEP_START" | "SLEEP_END" | "DIAPER" | "BREASTFEED_START" | "BREASTFEED_END" | "BOTTLE_START" | "BOTTLE_END" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION";
+        ActivityType: "SLEEP_START" | "SLEEP_END" | "DIAPER" | "BREASTFEED" | "BOTTLE" | "BREASTFEED_START" | "BREASTFEED_END" | "BOTTLE_START" | "BOTTLE_END" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION";
         /** @enum {string} */
         PoopColor: "YELLOW" | "GREEN" | "BROWN" | "BLACK" | "WHITE" | "RED";
         /** @enum {string} */
@@ -137,6 +155,7 @@ export interface components {
             duration?: number;
             milkAmount?: number;
             startActivityId?: string;
+            sleepStartId?: string;
             notes?: string;
         };
         UpdateActivityInput: {
@@ -146,11 +165,13 @@ export interface components {
             hasPoop?: boolean;
             hasPee?: boolean;
             poopColor?: components["schemas"]["PoopColor"];
+            poopPhotoUrl?: string;
             peeAmount?: components["schemas"]["PeeAmount"];
             burpSuccess?: boolean;
             duration?: number;
             milkAmount?: number;
             startActivityId?: string;
+            sleepStartId?: string;
             notes?: string;
         };
         BabyProfile: {
@@ -197,6 +218,8 @@ export interface operations {
             query?: {
                 limit?: number;
                 type?: components["schemas"]["ActivityType"];
+                /** @description Comma-separated list of activity types to filter */
+                types?: string;
                 /** @description Date in YYYY-MM-DD format */
                 date?: string;
             };
@@ -355,6 +378,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Activity"];
+                };
+            };
+            500: components["responses"]["ServerError"];
+        };
+    };
+    uploadActivityPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    category?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Upload success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        url?: string;
+                    };
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            500: components["responses"]["ServerError"];
+        };
+    };
+    deleteActivityPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    url: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Deletion success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success?: boolean;
+                    };
                 };
             };
             500: components["responses"]["ServerError"];

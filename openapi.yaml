@@ -23,6 +23,11 @@ paths:
           in: query
           schema:
             $ref: '#/components/schemas/ActivityType'
+        - name: types
+          in: query
+          description: Comma-separated list of activity types to filter
+          schema:
+            type: string
         - name: date
           in: query
           description: Date in YYYY-MM-DD format
@@ -162,6 +167,70 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+  /activities/upload-photo:
+    post:
+      operationId: uploadActivityPhoto
+      summary: Upload activity photo
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                category:
+                  type: string
+              required:
+                - file
+      responses:
+        '200':
+          description: Upload success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      operationId: deleteActivityPhoto
+      summary: Delete activity photo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+              required:
+                - url
+      responses:
+        '200':
+          description: Deletion success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '500':
+          $ref: '#/components/responses/ServerError'
+
   /baby-profile:
     get:
       operationId: getBabyProfile
@@ -256,6 +325,8 @@ components:
         - SLEEP_START
         - SLEEP_END
         - DIAPER
+        - BREASTFEED
+        - BOTTLE
         - BREASTFEED_START
         - BREASTFEED_END
         - BOTTLE_START
@@ -364,6 +435,8 @@ components:
           type: integer
         startActivityId:
           type: string
+        sleepStartId:
+          type: string
         notes:
           type: string
 
@@ -381,6 +454,8 @@ components:
           type: boolean
         poopColor:
           $ref: '#/components/schemas/PoopColor'
+        poopPhotoUrl:
+          type: string
         peeAmount:
           $ref: '#/components/schemas/PeeAmount'
         burpSuccess:
@@ -390,6 +465,8 @@ components:
         milkAmount:
           type: integer
         startActivityId:
+          type: string
+        sleepStartId:
           type: string
         notes:
           type: string
@@ -446,4 +523,3 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-

@@ -1,7 +1,6 @@
 export { DiaperForm } from './DiaperForm'
-export { BreastfeedEndForm } from './BreastfeedEndForm'
-export { BottleEndForm } from './BottleEndForm'
+export { BreastfeedForm } from './BreastfeedForm'
+export { BottleForm } from './BottleForm'
 export { ActivityDurationForm } from './ActivityDurationForm'
 export { SimpleActivityForm } from './SimpleActivityForm'
 export { SleepEndForm } from './SleepEndForm'
-

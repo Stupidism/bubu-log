@@ -2,10 +2,15 @@ export enum ActivityType {
   SLEEP_START = 'SLEEP_START',
   SLEEP_END = 'SLEEP_END',
   DIAPER = 'DIAPER',
+  // 新的单条记录类型
+  BREASTFEED = 'BREASTFEED',
+  BOTTLE = 'BOTTLE',
+  // 旧的配对类型（保留用于向后兼容）
   BREASTFEED_START = 'BREASTFEED_START',
   BREASTFEED_END = 'BREASTFEED_END',
   BOTTLE_START = 'BOTTLE_START',
   BOTTLE_END = 'BOTTLE_END',
+  // 其他活动
   HEAD_LIFT = 'HEAD_LIFT',
   PASSIVE_EXERCISE = 'PASSIVE_EXERCISE',
   GAS_EXERCISE = 'GAS_EXERCISE',
@@ -51,6 +56,8 @@ export const ActivityTypeLabels: Record<ActivityType, string> = {
   [ActivityType.SLEEP_START]: '入睡',
   [ActivityType.SLEEP_END]: '睡醒',
   [ActivityType.DIAPER]: '换尿布',
+  [ActivityType.BREASTFEED]: '亲喂',
+  [ActivityType.BOTTLE]: '瓶喂',
   [ActivityType.BREASTFEED_START]: '开始亲喂',
   [ActivityType.BREASTFEED_END]: '结束亲喂',
   [ActivityType.BOTTLE_START]: '开始瓶喂',
@@ -92,6 +99,8 @@ export const ActivityIconNames: Record<ActivityType, string> = {
   [ActivityType.SLEEP_START]: 'Moon',
   [ActivityType.SLEEP_END]: 'Sun',
   [ActivityType.DIAPER]: 'Baby',
+  [ActivityType.BREASTFEED]: 'Heart',
+  [ActivityType.BOTTLE]: 'Milk',
   [ActivityType.BREASTFEED_START]: 'Heart',
   [ActivityType.BREASTFEED_END]: 'Heart',
   [ActivityType.BOTTLE_START]: 'Milk',
@@ -104,3 +113,24 @@ export const ActivityIconNames: Record<ActivityType, string> = {
   [ActivityType.EARLY_EDUCATION]: 'BookOpen',
 }
 
+// 活动分类（用于过滤）
+export const ActivityCategories = {
+  sleep: [ActivityType.SLEEP_START, ActivityType.SLEEP_END],
+  feeding: [
+    ActivityType.BREASTFEED,
+    ActivityType.BOTTLE,
+    ActivityType.BREASTFEED_START,
+    ActivityType.BREASTFEED_END,
+    ActivityType.BOTTLE_START,
+    ActivityType.BOTTLE_END,
+  ],
+  diaper: [ActivityType.DIAPER],
+  activities: [
+    ActivityType.HEAD_LIFT,
+    ActivityType.PASSIVE_EXERCISE,
+    ActivityType.GAS_EXERCISE,
+    ActivityType.BATH,
+    ActivityType.OUTDOOR,
+    ActivityType.EARLY_EDUCATION,
+  ],
+}

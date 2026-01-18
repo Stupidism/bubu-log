@@ -17,16 +17,12 @@ interface SleepEndFormProps {
 
 const DURATION_PRESETS = [30, 60, 90, 120, 180, 240]
 
-// 时长调整按钮配置（统一使用四种间隔）
+// 时长调整按钮配置（只保留四种间隔）
 const durationAdjustments = [
   { label: '-1小时', minutes: -60 },
-  { label: '-15分', minutes: -15 },
-  { label: '-5分', minutes: -5 },
-  { label: '-1分', minutes: -1 },
-  { label: '+1分', minutes: 1 },
-  { label: '+5分', minutes: 5 },
-  { label: '+15分', minutes: 15 },
-  { label: '+1小时', minutes: 60 },
+  { label: '-15分钟', minutes: -15 },
+  { label: '-5分钟', minutes: -5 },
+  { label: '+1分钟', minutes: 1 },
 ]
 
 export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProps) {
@@ -62,6 +58,19 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
 
   const canSubmit = hasStartTime || (manualDuration && manualDuration > 0)
 
+  // 格式化时长显示
+  const formatDuration = (mins: number) => {
+    const hours = Math.floor(mins / 60)
+    const minutes = mins % 60
+    if (hours > 0 && minutes > 0) {
+      return `${hours}小时${minutes}分钟`
+    } else if (hours > 0) {
+      return `${hours}小时`
+    } else {
+      return `${minutes}分钟`
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* 活动图标和名称 */}
@@ -76,26 +85,23 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
 
       {hasStartTime ? (
         <>
-          {/* 睡眠时长显示（有开始时间时） */}
-          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 text-center">
-            <p className="text-sm text-amber-600 dark:text-amber-400 mb-1">睡眠时长</p>
-            <p className="text-4xl font-bold text-amber-700 dark:text-amber-300">
-              {Math.floor(actualDuration / 60) > 0 && (
-                <>{Math.floor(actualDuration / 60)} <span className="text-lg">小时</span> </>
-              )}
-              {actualDuration % 60} <span className="text-lg">分钟</span>
+          {/* 睡眠时长显示（有开始时间时）- 放大字体 */}
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-6 text-center">
+            <p className="text-lg text-amber-600 dark:text-amber-400 mb-2">睡眠时长</p>
+            <p className="text-5xl font-bold text-amber-700 dark:text-amber-300">
+              {formatDuration(actualDuration)}
             </p>
           </div>
 
-          {/* 时长调整（使用统一的四种间隔） */}
+          {/* 时长调整 */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-base font-medium text-gray-600 dark:text-gray-400">
                 调整睡眠时长
               </p>
               <button
                 onClick={() => setDurationAdjustment(0)}
-                className="text-xs px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+                className="text-sm px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
               >
                 重置
               </button>
@@ -105,7 +111,7 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
                 <button
                   key={label}
                   onClick={() => handleDurationAdjust(minutes)}
-                  className={`p-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  className={`p-3 rounded-xl text-base font-semibold transition-all ${
                     minutes < 0
                       ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200'
                       : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200'
@@ -121,7 +127,7 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
         <>
           {/* 手动输入睡眠时长（没有开始时间时） */}
           <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4">
-            <p className="text-sm text-amber-600 dark:text-amber-400 mb-3 text-center">
+            <p className="text-lg text-amber-600 dark:text-amber-400 mb-3 text-center">
               请选择宝宝睡了多久
             </p>
             <div className="grid grid-cols-3 gap-2">
@@ -129,7 +135,7 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
                 <button
                   key={d}
                   onClick={() => setManualDuration(manualDuration === d ? undefined : d)}
-                  className={`p-3 rounded-xl font-semibold transition-all ${
+                  className={`p-3 rounded-xl text-lg font-semibold transition-all ${
                     manualDuration === d
                       ? 'bg-amber-500 text-white shadow-lg scale-105'
                       : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
@@ -141,18 +147,18 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
             </div>
             {manualDuration && (
               <>
-                <p className="text-center mt-3 text-lg font-bold text-amber-700 dark:text-amber-300">
-                  已选择: {manualDuration >= 60 ? `${Math.floor(manualDuration / 60)}小时${manualDuration % 60 > 0 ? ` ${manualDuration % 60}分钟` : ''}` : `${manualDuration}分钟`}
+                <p className="text-center mt-4 text-3xl font-bold text-amber-700 dark:text-amber-300">
+                  已选择: {formatDuration(manualDuration)}
                 </p>
                 {/* 微调时长 */}
-                <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800">
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mb-2 text-center">微调时长</p>
-                  <div className="grid grid-cols-4 gap-1.5">
+                <div className="mt-4 pt-4 border-t border-amber-200 dark:border-amber-800">
+                  <p className="text-base text-amber-600 dark:text-amber-400 mb-2 text-center">微调时长</p>
+                  <div className="grid grid-cols-4 gap-2">
                     {durationAdjustments.map(({ label, minutes }) => (
                       <button
                         key={label}
                         onClick={() => handleDurationAdjust(minutes)}
-                        className={`p-2 rounded-lg text-xs font-semibold transition-all ${
+                        className={`p-2.5 rounded-xl text-sm font-semibold transition-all ${
                           minutes < 0
                             ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                             : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'

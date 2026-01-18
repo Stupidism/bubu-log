@@ -14,6 +14,7 @@ export type UpdateActivityInput = components["schemas"]["UpdateActivityInput"];
 export function useActivities(params?: {
   limit?: number;
   type?: ActivityType;
+  types?: string;
   date?: string;
 }) {
   return $api.useQuery("get", "/activities", {
@@ -82,49 +83,29 @@ export function useUpdateBabyProfile() {
   });
 }
 
-// Custom hook for managing paired activity states
-export function usePairedActivityStates() {
-  const sleepQuery = useLatestActivity("SLEEP_START,SLEEP_END");
-  const breastfeedQuery = useLatestActivity("BREASTFEED_START,BREASTFEED_END");
-  const bottleQuery = useLatestActivity("BOTTLE_START,BOTTLE_END");
-  
-  const isLoading = sleepQuery.isLoading || breastfeedQuery.isLoading || bottleQuery.isLoading;
-  const isFetching = sleepQuery.isFetching || breastfeedQuery.isFetching || bottleQuery.isFetching;
-  
-  const pairedState = {
-    sleep: sleepQuery.data?.type === "SLEEP_START" ? "end" : "start",
-    breastfeed: breastfeedQuery.data?.type === "BREASTFEED_START" ? "end" : "start",
-    bottle: bottleQuery.data?.type === "BOTTLE_START" ? "end" : "start",
-  } as const;
-
-  // Loading states for individual pairs
-  const pairFetching = {
-    sleep: sleepQuery.isFetching,
-    breastfeed: breastfeedQuery.isFetching,
-    bottle: bottleQuery.isFetching,
-  };
-  
-  // Get the start activity for a paired end activity
-  const getStartActivity = useCallback((type: "sleep" | "breastfeed" | "bottle") => {
-    switch (type) {
-      case "sleep":
-        return sleepQuery.data?.type === "SLEEP_START" ? sleepQuery.data : null;
-      case "breastfeed":
-        return breastfeedQuery.data?.type === "BREASTFEED_START" ? breastfeedQuery.data : null;
-      case "bottle":
-        return bottleQuery.data?.type === "BOTTLE_START" ? bottleQuery.data : null;
-    }
-  }, [sleepQuery.data, breastfeedQuery.data, bottleQuery.data]);
-  
-  return {
-    pairedState,
-    isLoading,
-    isFetching,
-    pairFetching,
-    getStartActivity,
-    sleepData: sleepQuery.data,
-    breastfeedData: breastfeedQuery.data,
-    bottleData: bottleQuery.data,
-  };
+// Photo upload hook
+export function useUploadActivityPhoto() {
+  return $api.useMutation("post", "/activities/upload-photo");
 }
 
+// Sleep state hook - only sleep needs paired state tracking
+export function useSleepState() {
+  const sleepQuery = useLatestActivity("SLEEP_START,SLEEP_END");
+  
+  // If the latest activity is SLEEP_START, baby is sleeping (show "end" state)
+  // Otherwise, show "start" state
+  const sleepState = sleepQuery.data?.type === "SLEEP_START" ? "end" : "start";
+  
+  // Get the start activity for sleep end
+  const getSleepStartActivity = useCallback(() => {
+    return sleepQuery.data?.type === "SLEEP_START" ? sleepQuery.data : null;
+  }, [sleepQuery.data]);
+  
+  return {
+    sleepState,
+    isLoading: sleepQuery.isLoading,
+    isFetching: sleepQuery.isFetching,
+    getSleepStartActivity,
+    sleepData: sleepQuery.data,
+  };
+}

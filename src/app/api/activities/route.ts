@@ -8,12 +8,16 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const limit = parseInt(searchParams.get('limit') || '50')
     const type = searchParams.get('type') as ActivityType | null
+    const types = searchParams.get('types') // 逗号分隔的多类型
     const date = searchParams.get('date') // YYYY-MM-DD 格式
 
     const where: Record<string, unknown> = {}
 
     if (type) {
       where.type = type
+    } else if (types) {
+      const typeList = types.split(',').map(t => t.trim()) as ActivityType[]
+      where.type = { in: typeList }
     }
 
     if (date) {
@@ -60,8 +64,12 @@ export async function POST(request: NextRequest) {
       duration,
       milkAmount,
       startActivityId,
+      sleepStartId,
       notes,
     } = body
+
+    // 使用 sleepStartId 或 startActivityId（兼容两种字段名）
+    const activityLinkId = sleepStartId || startActivityId
 
     const activity = await prisma.activity.create({
       data: {
@@ -75,7 +83,7 @@ export async function POST(request: NextRequest) {
         burpSuccess,
         duration,
         milkAmount,
-        startActivityId,
+        startActivityId: activityLinkId,
         notes,
       },
     })
@@ -89,4 +97,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

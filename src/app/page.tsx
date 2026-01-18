@@ -7,8 +7,8 @@ import { Toast } from '@/components/Toast'
 import { AvatarUpload } from '@/components/AvatarUpload'
 import {
   DiaperForm,
-  BreastfeedEndForm,
-  BottleEndForm,
+  BreastfeedForm,
+  BottleForm,
   ActivityDurationForm,
   SimpleActivityForm,
   SleepEndForm,
@@ -16,13 +16,13 @@ import {
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import Link from 'next/link'
 import { Moon, Milk, Baby as DiaperIcon, Target, BarChart3 } from 'lucide-react'
-import { usePairedActivityStates, useCreateActivity } from '@/lib/api/hooks'
+import { useSleepState, useCreateActivity } from '@/lib/api/hooks'
 import type { components } from '@/lib/api/openapi-types'
 
 type FormType = 
   | 'diaper'
-  | 'breastfeed_end'
-  | 'bottle_end'
+  | 'breastfeed'
+  | 'bottle'
   | 'activity_duration'
   | 'simple'
   | 'sleep_end'
@@ -40,8 +40,8 @@ export default function Home() {
   const [startActivity, setStartActivity] = useState<StartActivityData | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
-  // Use new hooks for paired activity states
-  const { pairedState, pairFetching, getStartActivity } = usePairedActivityStates()
+  // 只保留睡眠的配对状态
+  const { sleepState, isFetching: sleepFetching, getSleepStartActivity } = useSleepState()
   
   // Mutation for creating activities
   const createActivity = useCreateActivity()
@@ -56,23 +56,19 @@ export default function Home() {
         break
       case ActivityType.SLEEP_END:
         // 获取入睡时间（如果有的话）
-        if (pairedState.sleep === 'end') {
-          const sleepData = getStartActivity('sleep')
+        if (sleepState === 'end') {
+          const sleepData = getSleepStartActivity()
           setStartActivity(sleepData ? { id: sleepData.id, recordTime: sleepData.recordTime } : null)
         } else {
           setStartActivity(null)
         }
         setCurrentForm('sleep_end')
         break
-      case ActivityType.BREASTFEED_END:
-        const bfData = getStartActivity('breastfeed')
-        setStartActivity(bfData ? { id: bfData.id, recordTime: bfData.recordTime } : null)
-        setCurrentForm('breastfeed_end')
+      case ActivityType.BREASTFEED:
+        setCurrentForm('breastfeed')
         break
-      case ActivityType.BOTTLE_END:
-        const bottleData = getStartActivity('bottle')
-        setStartActivity(bottleData ? { id: bottleData.id, recordTime: bottleData.recordTime } : null)
-        setCurrentForm('bottle_end')
+      case ActivityType.BOTTLE:
+        setCurrentForm('bottle')
         break
       case ActivityType.HEAD_LIFT:
       case ActivityType.PASSIVE_EXERCISE:
@@ -87,7 +83,7 @@ export default function Home() {
     }
 
     setIsSheetOpen(true)
-  }, [pairedState.sleep, getStartActivity])
+  }, [sleepState, getSleepStartActivity])
 
   // 提交活动记录
   const submitActivity = useCallback(async (data: Record<string, unknown>) => {
@@ -106,7 +102,7 @@ export default function Home() {
           ...(data.burpSuccess !== undefined && { burpSuccess: data.burpSuccess as boolean }),
           ...(data.duration !== undefined && { duration: data.duration as number }),
           ...(data.milkAmount !== undefined && { milkAmount: data.milkAmount as number }),
-          ...(startActivity?.id && { startActivityId: startActivity.id }),
+          ...(startActivity?.id && { sleepStartId: startActivity.id }),
           ...(data.notes !== undefined && { notes: data.notes as string }),
         },
       },
@@ -132,10 +128,6 @@ export default function Home() {
     setCurrentActivityType(null)
     setStartActivity(null)
   }, [])
-
-  // 获取当前应该显示的喂奶按钮类型
-  const breastfeedType = pairedState.breastfeed === 'start' ? ActivityType.BREASTFEED_START : ActivityType.BREASTFEED_END
-  const bottleType = pairedState.bottle === 'start' ? ActivityType.BOTTLE_START : ActivityType.BOTTLE_END
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#fefbf6] to-[#fff5e6] dark:from-[#1a1a2e] dark:to-[#16213e] safe-area-top safe-area-bottom">
@@ -171,20 +163,20 @@ export default function Home() {
               type={ActivityType.SLEEP_START}
               onClick={() => openForm(ActivityType.SLEEP_START)}
               variant="sleep"
-              disabled={pairedState.sleep === 'end'}
-              loading={pairFetching.sleep}
+              disabled={sleepState === 'end'}
+              loading={sleepFetching}
             />
             {/* 睡醒按钮始终可点击 */}
             <ActivityButton
               type={ActivityType.SLEEP_END}
               onClick={() => openForm(ActivityType.SLEEP_END)}
               variant="sleep"
-              loading={pairFetching.sleep}
+              loading={sleepFetching}
             />
           </div>
         </section>
 
-        {/* 喂奶区域 */}
+        {/* 喂奶区域 - 单条记录模式 */}
         <section>
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 px-1 flex items-center gap-1.5">
             <Milk size={16} />
@@ -192,16 +184,14 @@ export default function Home() {
           </h2>
           <div className="grid grid-cols-2 gap-3">
             <ActivityButton
-              type={breastfeedType}
-              onClick={() => openForm(breastfeedType)}
+              type={ActivityType.BREASTFEED}
+              onClick={() => openForm(ActivityType.BREASTFEED)}
               variant="feed"
-              loading={pairFetching.breastfeed}
             />
             <ActivityButton
-              type={bottleType}
-              onClick={() => openForm(bottleType)}
+              type={ActivityType.BOTTLE}
+              onClick={() => openForm(ActivityType.BOTTLE)}
               variant="feed"
-              loading={pairFetching.bottle}
             />
           </div>
         </section>
@@ -269,16 +259,14 @@ export default function Home() {
         {currentForm === 'diaper' && (
           <DiaperForm onSubmit={submitActivity} onCancel={closeForm} />
         )}
-        {currentForm === 'breastfeed_end' && (
-          <BreastfeedEndForm
-            startTime={startActivity ? new Date(startActivity.recordTime) : undefined}
+        {currentForm === 'breastfeed' && (
+          <BreastfeedForm
             onSubmit={submitActivity}
             onCancel={closeForm}
           />
         )}
-        {currentForm === 'bottle_end' && (
-          <BottleEndForm
-            startTime={startActivity ? new Date(startActivity.recordTime) : undefined}
+        {currentForm === 'bottle' && (
+          <BottleForm
             onSubmit={submitActivity}
             onCancel={closeForm}
           />

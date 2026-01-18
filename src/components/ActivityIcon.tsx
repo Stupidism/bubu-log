@@ -20,6 +20,8 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.SLEEP_START]: Moon,
   [ActivityType.SLEEP_END]: Sun,
   [ActivityType.DIAPER]: Baby,
+  [ActivityType.BREASTFEED]: Heart,
+  [ActivityType.BOTTLE]: Milk,
   [ActivityType.BREASTFEED_START]: Heart,
   [ActivityType.BREASTFEED_END]: Heart,
   [ActivityType.BOTTLE_START]: Milk,
@@ -33,13 +35,15 @@ const iconMap: Record<ActivityType, LucideIcon> = {
 }
 
 interface ActivityIconProps {
-  type: ActivityType
+  type: ActivityType | string
   size?: number
   className?: string
 }
 
 export function ActivityIcon({ type, size = 24, className = '' }: ActivityIconProps) {
-  const Icon = iconMap[type]
+  const Icon = iconMap[type as ActivityType]
+  if (!Icon) {
+    return null
+  }
   return <Icon size={size} className={className} />
 }
-
