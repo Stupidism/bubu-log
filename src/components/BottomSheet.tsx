@@ -37,7 +37,7 @@ export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetPro
       <div
         ref={sheetRef}
         className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-t-3xl animate-slide-up"
-        style={{ maxHeight: '85vh' }}
+        style={{ maxHeight: '80vh' }}
       >
         {/* 拖拽指示器 */}
         <div className="flex justify-center pt-3 pb-2">
@@ -53,12 +53,11 @@ export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetPro
           </div>
         )}
 
-        {/* 内容 - 增加底部安全区域 padding */}
+        {/* 内容 - 微信浏览器需要更多底部间距 */}
         <div 
-          className="px-6 pt-4 overflow-y-auto no-scrollbar bottom-sheet-content" 
+          className="px-6 pt-4 pb-20 overflow-y-auto no-scrollbar bottom-sheet-content" 
           style={{ 
-            maxHeight: 'calc(85vh - 80px)',
-            paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 20px))'
+            maxHeight: 'calc(80vh - 80px)',
           }}
         >
           {children}
