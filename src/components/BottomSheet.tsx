@@ -55,7 +55,7 @@ export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetPro
 
         {/* 内容 - 微信浏览器需要更多底部间距 */}
         <div 
-          className="px-6 pt-4 pb-20 overflow-y-auto no-scrollbar bottom-sheet-content" 
+          className="px-6 pt-4 pb-32 overflow-y-auto no-scrollbar bottom-sheet-content" 
           style={{ 
             maxHeight: 'calc(80vh - 80px)',
           }}
