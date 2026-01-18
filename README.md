@@ -79,6 +79,29 @@ npm run dev
 
 Vercel 会自动部署，每次推送代码都会触发新的部署。
 
+## 自定义域名配置 (sunmer.xyz)
+
+### DNS 记录配置 (阿里云)
+
+在阿里云 DNS 管理中添加以下记录：
+
+| 记录类型 | 主机记录 | 记录值 |
+|---------|---------|--------|
+| **A** | @ | `216.198.79.1` |
+| **CNAME** | www | `1ea994bd9984f7f2.vercel-dns-017.com` |
+
+### 访问地址
+
+- 🌐 **主域名**: https://sunmer.xyz
+- 🌐 **www**: https://www.sunmer.xyz (自动重定向到 sunmer.xyz)
+- 🔗 **备用**: https://bubu-log.vercel.app
+
+### Vercel 配置
+
+域名配置在 `vercel.json` 中管理：
+- 区域: `sin1` (新加坡，适合亚洲访问)
+- 安全头: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection
+
 ## 项目结构
 
 ```
