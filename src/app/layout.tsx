@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { Providers } from './providers'
 
 export const metadata: Metadata = {
   title: '宝宝日记 - Baby Care Tracker',
@@ -38,10 +39,12 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased min-h-screen">
-        {/* Mobile-first: 限制最大宽度，PC端保持手机比例 */}
-        <div className="mx-auto max-w-md min-h-screen bg-background shadow-xl">
-          {children}
-        </div>
+        <Providers>
+          {/* Mobile-first: 限制最大宽度，PC端保持手机比例 */}
+          <div className="mx-auto max-w-md min-h-screen bg-background shadow-xl">
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
   )

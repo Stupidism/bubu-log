@@ -1,0 +1,443 @@
+openapi: 3.1.0
+info:
+  title: Bubu Log API
+  description: Baby activity tracking API
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: API server
+
+paths:
+  /activities:
+    get:
+      operationId: getActivities
+      summary: Get activity list
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/ActivityType'
+        - name: date
+          in: query
+          description: Date in YYYY-MM-DD format
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Activity list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Activity'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    post:
+      operationId: createActivity
+      summary: Create new activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateActivityInput'
+      responses:
+        '201':
+          description: Created activity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /activities/latest:
+    get:
+      operationId: getLatestActivity
+      summary: Get latest activity by types
+      parameters:
+        - name: types
+          in: query
+          required: true
+          description: Comma-separated list of activity types
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Latest activity (null if not found)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Activity'
+                  - type: 'null'
+        '400':
+          description: Bad request - types parameter required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /activities/{id}:
+    get:
+      operationId: getActivity
+      summary: Get single activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Activity details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+        '404':
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    patch:
+      operationId: updateActivity
+      summary: Update activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateActivityInput'
+      responses:
+        '200':
+          description: Updated activity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      operationId: deleteActivity
+      summary: Delete activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deletion success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /baby-profile:
+    get:
+      operationId: getBabyProfile
+      summary: Get baby profile
+      responses:
+        '200':
+          description: Baby profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BabyProfile'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    patch:
+      operationId: updateBabyProfile
+      summary: Update baby profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBabyProfileInput'
+      responses:
+        '200':
+          description: Updated baby profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BabyProfile'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /baby-profile/avatar:
+    post:
+      operationId: uploadAvatar
+      summary: Upload baby avatar
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+                - file
+      responses:
+        '200':
+          description: Upload success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                  profile:
+                    $ref: '#/components/schemas/BabyProfile'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      operationId: deleteAvatar
+      summary: Delete baby avatar
+      responses:
+        '200':
+          description: Deletion success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  schemas:
+    ActivityType:
+      type: string
+      enum:
+        - SLEEP_START
+        - SLEEP_END
+        - DIAPER
+        - BREASTFEED_START
+        - BREASTFEED_END
+        - BOTTLE_START
+        - BOTTLE_END
+        - PASSIVE_EXERCISE
+        - GAS_EXERCISE
+        - BATH
+        - OUTDOOR
+        - EARLY_EDUCATION
+
+    PoopColor:
+      type: string
+      enum:
+        - YELLOW
+        - GREEN
+        - BROWN
+        - BLACK
+        - WHITE
+        - RED
+
+    PeeAmount:
+      type: string
+      enum:
+        - SMALL
+        - MEDIUM
+        - LARGE
+
+    Activity:
+      type: object
+      required:
+        - id
+        - type
+        - recordTime
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        type:
+          $ref: '#/components/schemas/ActivityType'
+        recordTime:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        hasPoop:
+          type: boolean
+          nullable: true
+        hasPee:
+          type: boolean
+          nullable: true
+        poopColor:
+          $ref: '#/components/schemas/PoopColor'
+        peeAmount:
+          $ref: '#/components/schemas/PeeAmount'
+        burpSuccess:
+          type: boolean
+          nullable: true
+        duration:
+          type: integer
+          nullable: true
+        milkAmount:
+          type: integer
+          nullable: true
+        startActivityId:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    CreateActivityInput:
+      type: object
+      required:
+        - type
+        - recordTime
+      properties:
+        type:
+          $ref: '#/components/schemas/ActivityType'
+        recordTime:
+          type: string
+          format: date-time
+        hasPoop:
+          type: boolean
+        hasPee:
+          type: boolean
+        poopColor:
+          $ref: '#/components/schemas/PoopColor'
+        peeAmount:
+          $ref: '#/components/schemas/PeeAmount'
+        burpSuccess:
+          type: boolean
+        duration:
+          type: integer
+        milkAmount:
+          type: integer
+        startActivityId:
+          type: string
+        notes:
+          type: string
+
+    UpdateActivityInput:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/ActivityType'
+        recordTime:
+          type: string
+          format: date-time
+        hasPoop:
+          type: boolean
+        hasPee:
+          type: boolean
+        poopColor:
+          $ref: '#/components/schemas/PoopColor'
+        peeAmount:
+          $ref: '#/components/schemas/PeeAmount'
+        burpSuccess:
+          type: boolean
+        duration:
+          type: integer
+        milkAmount:
+          type: integer
+        startActivityId:
+          type: string
+        notes:
+          type: string
+
+    BabyProfile:
+      type: object
+      required:
+        - id
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        birthDate:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateBabyProfileInput:
+      type: object
+      properties:
+        name:
+          type: string
+        avatarUrl:
+          type: string
+        birthDate:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+
+  responses:
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+

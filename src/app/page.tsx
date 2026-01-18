@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { ActivityButton } from '@/components/ActivityButton'
 import { BottomSheet } from '@/components/BottomSheet'
 import { Toast } from '@/components/Toast'
@@ -13,9 +13,11 @@ import {
   SimpleActivityForm,
   SleepEndForm,
 } from '@/components/forms'
-import { ActivityType, ActivityTypeLabels, Activity } from '@/types/activity'
+import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import Link from 'next/link'
 import { Moon, Milk, Baby as DiaperIcon, Target, BarChart3 } from 'lucide-react'
+import { usePairedActivityStates, useCreateActivity, useLatestActivity } from '@/lib/api/hooks'
+import type { components } from '@/lib/api/openapi-types'
 
 type FormType = 
   | 'diaper'
@@ -26,73 +28,31 @@ type FormType =
   | 'sleep_end'
   | null
 
-interface PairedState {
-  sleep: 'start' | 'end'
-  breastfeed: 'start' | 'end'
-  bottle: 'start' | 'end'
+interface StartActivityData {
+  id: string
+  recordTime: string
 }
 
 export default function Home() {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [currentForm, setCurrentForm] = useState<FormType>(null)
   const [currentActivityType, setCurrentActivityType] = useState<ActivityType | null>(null)
-  const [startActivity, setStartActivity] = useState<Activity | null>(null)
+  const [startActivity, setStartActivity] = useState<StartActivityData | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Use new hooks for paired activity states
+  const { pairedState, getStartActivity } = usePairedActivityStates()
   
-  // 配对活动的状态（入睡/睡醒，开始喂/结束喂）
-  const [pairedState, setPairedState] = useState<PairedState>({
-    sleep: 'start',
-    breastfeed: 'start',
-    bottle: 'start',
-  })
+  // Mutation for creating activities
+  const createActivity = useCreateActivity()
 
-  // 获取配对活动的最新状态
-  const fetchPairedStates = useCallback(async () => {
-    try {
-      // 获取睡眠状态
-      const sleepRes = await fetch('/api/activities/latest?types=SLEEP_START,SLEEP_END')
-      const sleepData = await sleepRes.json()
-      if (sleepData) {
-        setPairedState((prev) => ({
-          ...prev,
-          sleep: sleepData.type === 'SLEEP_START' ? 'end' : 'start',
-        }))
-        if (sleepData.type === 'SLEEP_START') {
-          // 保存开始活动用于结束时计算时长
-        }
-      }
-
-      // 获取亲喂状态
-      const bfRes = await fetch('/api/activities/latest?types=BREASTFEED_START,BREASTFEED_END')
-      const bfData = await bfRes.json()
-      if (bfData) {
-        setPairedState((prev) => ({
-          ...prev,
-          breastfeed: bfData.type === 'BREASTFEED_START' ? 'end' : 'start',
-        }))
-      }
-
-      // 获取瓶喂状态
-      const bottleRes = await fetch('/api/activities/latest?types=BOTTLE_START,BOTTLE_END')
-      const bottleData = await bottleRes.json()
-      if (bottleData) {
-        setPairedState((prev) => ({
-          ...prev,
-          bottle: bottleData.type === 'BOTTLE_START' ? 'end' : 'start',
-        }))
-      }
-    } catch (error) {
-      console.error('Failed to fetch paired states:', error)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchPairedStates()
-  }, [fetchPairedStates])
+  // Query for getting sleep start activity (only fetch when needed)
+  const sleepStartQuery = useLatestActivity('SLEEP_START')
+  const breastfeedStartQuery = useLatestActivity('BREASTFEED_START')
+  const bottleStartQuery = useLatestActivity('BOTTLE_START')
 
   // 打开表单
-  const openForm = async (type: ActivityType) => {
+  const openForm = useCallback(async (type: ActivityType) => {
     setCurrentActivityType(type)
 
     switch (type) {
@@ -102,28 +62,21 @@ export default function Home() {
       case ActivityType.SLEEP_END:
         // 获取入睡时间（如果有的话）
         if (pairedState.sleep === 'end') {
-          // 有入睡记录，获取开始时间
-          const sleepRes = await fetch('/api/activities/latest?types=SLEEP_START')
-          const sleepData = await sleepRes.json()
-          setStartActivity(sleepData)
+          const sleepData = getStartActivity('sleep')
+          setStartActivity(sleepData ? { id: sleepData.id, recordTime: sleepData.recordTime } : null)
         } else {
-          // 没有入睡记录，清空开始活动
           setStartActivity(null)
         }
         setCurrentForm('sleep_end')
         break
       case ActivityType.BREASTFEED_END:
-        // 获取开始亲喂的时间
-        const bfRes = await fetch('/api/activities/latest?types=BREASTFEED_START')
-        const bfData = await bfRes.json()
-        setStartActivity(bfData)
+        const bfData = getStartActivity('breastfeed')
+        setStartActivity(bfData ? { id: bfData.id, recordTime: bfData.recordTime } : null)
         setCurrentForm('breastfeed_end')
         break
       case ActivityType.BOTTLE_END:
-        // 获取开始瓶喂的时间
-        const bottleRes = await fetch('/api/activities/latest?types=BOTTLE_START')
-        const bottleData = await bottleRes.json()
-        setStartActivity(bottleData)
+        const bottleData = getStartActivity('bottle')
+        setStartActivity(bottleData ? { id: bottleData.id, recordTime: bottleData.recordTime } : null)
         setCurrentForm('bottle_end')
         break
       case ActivityType.PASSIVE_EXERCISE:
@@ -138,49 +91,52 @@ export default function Home() {
     }
 
     setIsSheetOpen(true)
-  }
+  }, [pairedState.sleep, getStartActivity])
 
   // 提交活动记录
-  const submitActivity = async (data: Record<string, unknown>) => {
-    if (isSubmitting) return
-    setIsSubmitting(true)
+  const submitActivity = useCallback(async (data: Record<string, unknown>) => {
+    if (createActivity.isPending) return
 
-    try {
-      const response = await fetch('/api/activities', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: currentActivityType,
-          ...data,
-          startActivityId: startActivity?.id,
-        }),
-      })
-
-      if (!response.ok) throw new Error('Failed to create activity')
-
-      setToast({ message: '记录成功！', type: 'success' })
-      setIsSheetOpen(false)
-      setCurrentForm(null)
-      setStartActivity(null)
-      fetchPairedStates() // 刷新配对状态
-    } catch (error) {
-      console.error('Failed to submit activity:', error)
-      setToast({ message: '记录失败，请重试', type: 'error' })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+    createActivity.mutate(
+      {
+        body: {
+          type: currentActivityType as components["schemas"]["ActivityType"],
+          recordTime: (data.recordTime as Date).toISOString(),
+          ...(data.hasPoop !== undefined && { hasPoop: data.hasPoop as boolean }),
+          ...(data.hasPee !== undefined && { hasPee: data.hasPee as boolean }),
+          ...(data.poopColor !== undefined && { poopColor: data.poopColor as components["schemas"]["PoopColor"] }),
+          ...(data.peeAmount !== undefined && { peeAmount: data.peeAmount as components["schemas"]["PeeAmount"] }),
+          ...(data.burpSuccess !== undefined && { burpSuccess: data.burpSuccess as boolean }),
+          ...(data.duration !== undefined && { duration: data.duration as number }),
+          ...(data.milkAmount !== undefined && { milkAmount: data.milkAmount as number }),
+          ...(startActivity?.id && { startActivityId: startActivity.id }),
+          ...(data.notes !== undefined && { notes: data.notes as string }),
+        },
+      },
+      {
+        onSuccess: () => {
+          setToast({ message: '记录成功！', type: 'success' })
+          setIsSheetOpen(false)
+          setCurrentForm(null)
+          setStartActivity(null)
+        },
+        onError: (error) => {
+          console.error('Failed to submit activity:', error)
+          setToast({ message: '记录失败，请重试', type: 'error' })
+        },
+      }
+    )
+  }, [createActivity, currentActivityType, startActivity?.id])
 
   // 关闭表单
-  const closeForm = () => {
+  const closeForm = useCallback(() => {
     setIsSheetOpen(false)
     setCurrentForm(null)
     setCurrentActivityType(null)
     setStartActivity(null)
-  }
+  }, [])
 
-  // 获取当前应该显示的睡眠按钮类型
-  const sleepType = pairedState.sleep === 'start' ? ActivityType.SLEEP_START : ActivityType.SLEEP_END
+  // 获取当前应该显示的喂奶按钮类型
   const breastfeedType = pairedState.breastfeed === 'start' ? ActivityType.BREASTFEED_START : ActivityType.BREASTFEED_END
   const bottleType = pairedState.bottle === 'start' ? ActivityType.BOTTLE_START : ActivityType.BOTTLE_END
 

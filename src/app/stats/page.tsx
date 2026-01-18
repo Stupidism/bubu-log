@@ -1,18 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { format, subDays, startOfDay, endOfDay, differenceInMinutes, differenceInHours } from 'date-fns'
+import { format, subDays, differenceInMinutes } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import {
-  Activity,
   ActivityType,
   ActivityTypeLabels,
-  PoopColorLabels,
   PeeAmountLabels,
   PoopColorStyles,
 } from '@/types/activity'
 import { ActivityIcon } from '@/components/ActivityIcon'
+import { useActivities, type Activity } from '@/lib/api/hooks'
 import { 
   Moon, 
   Milk, 
@@ -41,43 +40,32 @@ interface DaySummary {
 }
 
 export default function StatsPage() {
-  const [activities, setActivities] = useState<Activity[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [isLoading, setIsLoading] = useState(true)
-  const [summary, setSummary] = useState<DaySummary | null>(null)
 
-  // 获取活动数据
-  useEffect(() => {
-    const fetchActivities = async () => {
-      setIsLoading(true)
-      try {
-        const dateStr = format(selectedDate, 'yyyy-MM-dd')
-        const res = await fetch(`/api/activities?date=${dateStr}&limit=100`)
-        const data = await res.json()
-        // 检查返回的数据是否是数组
-        if (Array.isArray(data)) {
-          setActivities(data)
-          calculateSummary(data)
-        } else {
-          // API 返回错误或非数组，设为空数组
-          console.error('API returned non-array:', data)
-          setActivities([])
-          calculateSummary([])
-        }
-      } catch (error) {
-        console.error('Failed to fetch activities:', error)
-        setActivities([])
-        calculateSummary([])
-      } finally {
-        setIsLoading(false)
+  // Use React Query for activities
+  const dateStr = format(selectedDate, 'yyyy-MM-dd')
+  const { data: activities = [], isLoading } = useActivities({
+    date: dateStr,
+    limit: 100,
+  })
+
+  // Calculate summary from activities
+  const summary = useMemo<DaySummary | null>(() => {
+    if (!activities || activities.length === 0) {
+      return {
+        sleepCount: 0,
+        totalSleepMinutes: 0,
+        diaperCount: 0,
+        poopCount: 0,
+        peeCount: 0,
+        breastfeedCount: 0,
+        totalBreastfeedMinutes: 0,
+        bottleCount: 0,
+        totalMilkAmount: 0,
+        exerciseCount: 0,
       }
     }
 
-    fetchActivities()
-  }, [selectedDate])
-
-  // 计算每日统计
-  const calculateSummary = (data: Activity[]) => {
     const summary: DaySummary = {
       sleepCount: 0,
       totalSleepMinutes: 0,
@@ -92,8 +80,8 @@ export default function StatsPage() {
     }
 
     // 找到所有睡眠周期
-    const sleepStarts = data.filter((a) => a.type === ActivityType.SLEEP_START)
-    const sleepEnds = data.filter((a) => a.type === ActivityType.SLEEP_END)
+    const sleepStarts = activities.filter((a) => a.type === 'SLEEP_START')
+    const sleepEnds = activities.filter((a) => a.type === 'SLEEP_END')
     summary.sleepCount = Math.min(sleepStarts.length, sleepEnds.length)
     
     // 计算总睡眠时间（简化计算）
@@ -110,13 +98,13 @@ export default function StatsPage() {
     })
 
     // 尿布统计
-    const diapers = data.filter((a) => a.type === ActivityType.DIAPER)
+    const diapers = activities.filter((a) => a.type === 'DIAPER')
     summary.diaperCount = diapers.length
     summary.poopCount = diapers.filter((a) => a.hasPoop).length
     summary.peeCount = diapers.filter((a) => a.hasPee).length
 
     // 亲喂统计
-    const breastfeedEnds = data.filter((a) => a.type === ActivityType.BREASTFEED_END)
+    const breastfeedEnds = activities.filter((a) => a.type === 'BREASTFEED_END')
     summary.breastfeedCount = breastfeedEnds.length
     summary.totalBreastfeedMinutes = breastfeedEnds.reduce(
       (acc, a) => acc + (a.duration || 0),
@@ -124,24 +112,18 @@ export default function StatsPage() {
     )
 
     // 瓶喂统计
-    const bottleEnds = data.filter((a) => a.type === ActivityType.BOTTLE_END)
+    const bottleEnds = activities.filter((a) => a.type === 'BOTTLE_END')
     summary.bottleCount = bottleEnds.length
     summary.totalMilkAmount = bottleEnds.reduce((acc, a) => acc + (a.milkAmount || 0), 0)
 
     // 活动统计
-    const exercises = data.filter((a) =>
-      [
-        ActivityType.PASSIVE_EXERCISE,
-        ActivityType.GAS_EXERCISE,
-        ActivityType.BATH,
-        ActivityType.OUTDOOR,
-        ActivityType.EARLY_EDUCATION,
-      ].includes(a.type)
+    const exercises = activities.filter((a) =>
+      ['PASSIVE_EXERCISE', 'GAS_EXERCISE', 'BATH', 'OUTDOOR', 'EARLY_EDUCATION'].includes(a.type)
     )
     summary.exerciseCount = exercises.length
 
-    setSummary(summary)
-  }
+    return summary
+  }, [activities])
 
   // 日期导航
   const navigateDate = (days: number) => {
@@ -166,7 +148,7 @@ export default function StatsPage() {
   // 渲染活动详情
   const renderActivityDetails = (activity: Activity) => {
     switch (activity.type) {
-      case ActivityType.DIAPER:
+      case 'DIAPER':
         return (
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             {activity.hasPoop && (
@@ -174,7 +156,7 @@ export default function StatsPage() {
                 <span className="text-amber-700">Poop</span>
                 {activity.poopColor && (
                   <span
-                    className={`w-3 h-3 rounded-full ${PoopColorStyles[activity.poopColor]}`}
+                    className={`w-3 h-3 rounded-full ${PoopColorStyles[activity.poopColor as keyof typeof PoopColorStyles]}`}
                   />
                 )}
               </span>
@@ -182,12 +164,12 @@ export default function StatsPage() {
             {activity.hasPee && (
               <span className="flex items-center gap-1">
                 <Droplet size={14} className="text-blue-400" />
-                {activity.peeAmount && PeeAmountLabels[activity.peeAmount]}
+                {activity.peeAmount && PeeAmountLabels[activity.peeAmount as keyof typeof PeeAmountLabels]}
               </span>
             )}
           </div>
         )
-      case ActivityType.BREASTFEED_END:
+      case 'BREASTFEED_END':
         return (
           <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
             {activity.duration && <span>{activity.duration}分钟</span>}
@@ -199,7 +181,7 @@ export default function StatsPage() {
             )}
           </div>
         )
-      case ActivityType.BOTTLE_END:
+      case 'BOTTLE_END':
         return (
           <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
             {activity.milkAmount && <span>{activity.milkAmount}ml</span>}
@@ -350,11 +332,11 @@ export default function StatsPage() {
                 key={activity.id}
                 className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm flex items-center gap-4"
               >
-                <ActivityIcon type={activity.type} size={32} className="text-gray-600 dark:text-gray-300" />
+                <ActivityIcon type={activity.type as ActivityType} size={32} className="text-gray-600 dark:text-gray-300" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-gray-800 dark:text-gray-100">
-                      {ActivityTypeLabels[activity.type]}
+                      {ActivityTypeLabels[activity.type as ActivityType]}
                     </span>
                     <span className="text-sm text-gray-500 dark:text-gray-400">
                       {formatTime(activity.recordTime)}
@@ -370,4 +352,3 @@ export default function StatsPage() {
     </main>
   )
 }
-

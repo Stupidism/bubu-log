@@ -1,47 +1,118 @@
 ---
-description: Fetching data from the API using SWR
+description: Fetching data from the API using openapi-react-query
 globs: 
 alwaysApply: false
 ---
+
 # Data Fetching
 
-There are two ways we fetch data in the app:
-1. SWR (default)
-2. Server Components
+使用 `openapi-react-query` + `@tanstack/react-query` 进行类型安全的数据获取。
 
-Default to SWR as it makes it easier to refetch data we need.
+## 项目结构
 
-Here's how we use SWR:
-
-- For API GET requests to server, use the `swr` package
-- If we're in a server file, you can fetch the data inline
-- For mutating data, use Next.js server actions
-
-## SWR Example
-```typescript
-const searchParams = useSearchParams();
-const page = searchParams.get("page") || "1";
-const { data, isLoading, error } = useSWR<PlanHistoryResponse>(
-  `/api/user/planned/history?page=${page}`
-);
+```
+src/lib/api/
+├── openapi-types.d.ts   # 从 OpenAPI spec 自动生成的类型
+├── client.ts            # openapi-fetch + openapi-react-query 客户端
+└── hooks.ts             # 封装好的 React Query hooks
 ```
 
-## Error Handling
+## 生成类型
 
-Use `result?.serverError` with `toastError` and `toastSuccess`. Success toast is optional:
+当 API 接口变更时，更新 `openapi.yaml` 后运行：
 
-```typescript
-import { toastError, toastSuccess } from "@/components/Toast";
+```bash
+npm run generate:api
+```
 
-const onSubmit: SubmitHandler<TestRulesInputs> = useCallback(async (data) => {
-  const result = await testAiCustomContentAction({ content: data.message });
-  if (result?.serverError) {
-    toastError({
-      title: "Error testing email",
-      description: result?.serverError || "",
-    });
-  } else {
-    toastSuccess({ description: "Saved!" });
+这会从 `openapi.yaml` 生成 `src/lib/api/openapi-types.d.ts`。
+
+## 使用方式
+
+### 1. 使用封装好的 Hooks（推荐）
+
+```tsx
+import { useActivities, useCreateActivity, useBabyProfile } from '@/lib/api/hooks'
+
+function ActivityList() {
+  // GET 请求
+  const { data: activities, isLoading } = useActivities({ date: '2024-01-01' })
+  
+  // POST 请求
+  const createActivity = useCreateActivity()
+  
+  const handleSubmit = () => {
+    createActivity.mutate({
+      body: {
+        type: 'SLEEP_START',
+        recordTime: new Date().toISOString(),
+      },
+    })
   }
-}, []);
-``` 
+}
+```
+
+### 2. 直接使用 $api 客户端
+
+```tsx
+import { $api } from '@/lib/api/client'
+
+function MyComponent() {
+  // GET
+  const { data } = $api.useQuery("get", "/activities", {
+    params: { query: { date: "2024-01-01" } },
+  })
+
+  // POST/PATCH/DELETE
+  const mutation = $api.useMutation("post", "/activities")
+  mutation.mutate({
+    body: { type: 'SLEEP_START', recordTime: new Date().toISOString() },
+  })
+}
+```
+
+## Hooks 列表
+
+### Activities
+- `useActivities(params?)` - 获取活动列表
+- `useLatestActivity(types)` - 获取某类活动的最新记录
+- `useActivity(id)` - 获取单个活动
+- `useCreateActivity()` - 创建活动
+- `useUpdateActivity()` - 更新活动
+- `useDeleteActivity()` - 删除活动
+- `usePairedActivityStates()` - 获取配对活动状态（睡眠/喂奶的开始/结束）
+
+### Baby Profile
+- `useBabyProfile()` - 获取宝宝资料
+- `useUpdateBabyProfile()` - 更新宝宝资料
+
+## Cache Invalidation
+
+Mutations 自动 invalidate 相关的 queries：
+
+```tsx
+const createActivity = useCreateActivity()
+
+// 创建成功后会自动刷新 activities 列表
+createActivity.mutate(data, {
+  onSuccess: () => {
+    toast.success('记录成功')
+  },
+  onError: (error) => {
+    toast.error(error.message)
+  },
+})
+```
+
+## 添加新 API
+
+1. 在 `openapi.yaml` 添加新的 endpoint
+2. 运行 `npm run generate:api` 生成类型
+3. 在 `src/lib/api/hooks.ts` 添加新的 hook（可选，方便复用）
+
+## Dependencies
+
+```bash
+npm install @tanstack/react-query openapi-fetch openapi-react-query
+npm install -D openapi-typescript
+```
