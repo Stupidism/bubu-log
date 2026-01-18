@@ -1,6 +1,6 @@
 'use client'
 
-import { format, addMinutes, addHours } from 'date-fns'
+import { format, addMinutes } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 
 interface TimeAdjusterProps {
@@ -9,14 +9,14 @@ interface TimeAdjusterProps {
 }
 
 const adjustments = [
-  { label: '-1h', minutes: -60 },
-  { label: '-15m', minutes: -15 },
-  { label: '-10m', minutes: -10 },
-  { label: '-5m', minutes: -5 },
-  { label: '+5m', minutes: 5 },
-  { label: '+10m', minutes: 10 },
-  { label: '+15m', minutes: 15 },
-  { label: '+1h', minutes: 60 },
+  { label: '-1小时', minutes: -60 },
+  { label: '-15分', minutes: -15 },
+  { label: '-5分', minutes: -5 },
+  { label: '-1分', minutes: -1 },
+  { label: '+1分', minutes: 1 },
+  { label: '+5分', minutes: 5 },
+  { label: '+15分', minutes: 15 },
+  { label: '+1小时', minutes: 60 },
 ]
 
 export function TimeAdjuster({ time, onTimeChange }: TimeAdjusterProps) {
@@ -53,7 +53,7 @@ export function TimeAdjuster({ time, onTimeChange }: TimeAdjusterProps) {
           <button
             key={label}
             onClick={() => handleAdjust(minutes)}
-            className={`time-adjust-btn ${
+            className={`time-adjust-btn text-sm ${
               minutes < 0
                 ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200'
                 : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200'
@@ -66,4 +66,3 @@ export function TimeAdjuster({ time, onTimeChange }: TimeAdjusterProps) {
     </div>
   )
 }
-

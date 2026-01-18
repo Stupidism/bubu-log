@@ -16,7 +16,7 @@ import {
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import Link from 'next/link'
 import { Moon, Milk, Baby as DiaperIcon, Target, BarChart3 } from 'lucide-react'
-import { usePairedActivityStates, useCreateActivity, useLatestActivity } from '@/lib/api/hooks'
+import { usePairedActivityStates, useCreateActivity } from '@/lib/api/hooks'
 import type { components } from '@/lib/api/openapi-types'
 
 type FormType = 
@@ -41,15 +41,10 @@ export default function Home() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   // Use new hooks for paired activity states
-  const { pairedState, getStartActivity } = usePairedActivityStates()
+  const { pairedState, pairFetching, getStartActivity } = usePairedActivityStates()
   
   // Mutation for creating activities
   const createActivity = useCreateActivity()
-
-  // Query for getting sleep start activity (only fetch when needed)
-  const sleepStartQuery = useLatestActivity('SLEEP_START')
-  const breastfeedStartQuery = useLatestActivity('BREASTFEED_START')
-  const bottleStartQuery = useLatestActivity('BOTTLE_START')
 
   // 打开表单
   const openForm = useCallback(async (type: ActivityType) => {
@@ -79,6 +74,7 @@ export default function Home() {
         setStartActivity(bottleData ? { id: bottleData.id, recordTime: bottleData.recordTime } : null)
         setCurrentForm('bottle_end')
         break
+      case ActivityType.HEAD_LIFT:
       case ActivityType.PASSIVE_EXERCISE:
       case ActivityType.GAS_EXERCISE:
       case ActivityType.BATH:
@@ -105,6 +101,7 @@ export default function Home() {
           ...(data.hasPoop !== undefined && { hasPoop: data.hasPoop as boolean }),
           ...(data.hasPee !== undefined && { hasPee: data.hasPee as boolean }),
           ...(data.poopColor !== undefined && { poopColor: data.poopColor as components["schemas"]["PoopColor"] }),
+          ...(data.poopPhotoUrl !== undefined && { poopPhotoUrl: data.poopPhotoUrl as string }),
           ...(data.peeAmount !== undefined && { peeAmount: data.peeAmount as components["schemas"]["PeeAmount"] }),
           ...(data.burpSuccess !== undefined && { burpSuccess: data.burpSuccess as boolean }),
           ...(data.duration !== undefined && { duration: data.duration as number }),
@@ -175,12 +172,14 @@ export default function Home() {
               onClick={() => openForm(ActivityType.SLEEP_START)}
               variant="sleep"
               disabled={pairedState.sleep === 'end'}
+              loading={pairFetching.sleep}
             />
             {/* 睡醒按钮始终可点击 */}
             <ActivityButton
               type={ActivityType.SLEEP_END}
               onClick={() => openForm(ActivityType.SLEEP_END)}
               variant="sleep"
+              loading={pairFetching.sleep}
             />
           </div>
         </section>
@@ -196,11 +195,13 @@ export default function Home() {
               type={breastfeedType}
               onClick={() => openForm(breastfeedType)}
               variant="feed"
+              loading={pairFetching.breastfeed}
             />
             <ActivityButton
               type={bottleType}
               onClick={() => openForm(bottleType)}
               variant="feed"
+              loading={pairFetching.bottle}
             />
           </div>
         </section>
@@ -225,6 +226,11 @@ export default function Home() {
             其他活动
           </h2>
           <div className="grid grid-cols-3 gap-3">
+            <ActivityButton
+              type={ActivityType.HEAD_LIFT}
+              onClick={() => openForm(ActivityType.HEAD_LIFT)}
+              variant="activity"
+            />
             <ActivityButton
               type={ActivityType.PASSIVE_EXERCISE}
               onClick={() => openForm(ActivityType.PASSIVE_EXERCISE)}

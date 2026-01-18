@@ -6,6 +6,7 @@ export enum ActivityType {
   BREASTFEED_END = 'BREASTFEED_END',
   BOTTLE_START = 'BOTTLE_START',
   BOTTLE_END = 'BOTTLE_END',
+  HEAD_LIFT = 'HEAD_LIFT',
   PASSIVE_EXERCISE = 'PASSIVE_EXERCISE',
   GAS_EXERCISE = 'GAS_EXERCISE',
   BATH = 'BATH',
@@ -37,6 +38,7 @@ export interface Activity {
   hasPoop?: boolean | null
   hasPee?: boolean | null
   poopColor?: PoopColor | null
+  poopPhotoUrl?: string | null
   peeAmount?: PeeAmount | null
   burpSuccess?: boolean | null
   duration?: number | null
@@ -53,6 +55,7 @@ export const ActivityTypeLabels: Record<ActivityType, string> = {
   [ActivityType.BREASTFEED_END]: '结束亲喂',
   [ActivityType.BOTTLE_START]: '开始瓶喂',
   [ActivityType.BOTTLE_END]: '结束瓶喂',
+  [ActivityType.HEAD_LIFT]: '抬头',
   [ActivityType.PASSIVE_EXERCISE]: '被动操',
   [ActivityType.GAS_EXERCISE]: '排气操',
   [ActivityType.BATH]: '洗澡',
@@ -93,6 +96,7 @@ export const ActivityIconNames: Record<ActivityType, string> = {
   [ActivityType.BREASTFEED_END]: 'Heart',
   [ActivityType.BOTTLE_START]: 'Milk',
   [ActivityType.BOTTLE_END]: 'Milk',
+  [ActivityType.HEAD_LIFT]: 'ArrowUp',
   [ActivityType.PASSIVE_EXERCISE]: 'Activity',
   [ActivityType.GAS_EXERCISE]: 'Wind',
   [ActivityType.BATH]: 'Bath',

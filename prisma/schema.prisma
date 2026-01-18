@@ -20,6 +20,7 @@ enum ActivityType {
   BREASTFEED_END   // 结束亲喂
   BOTTLE_START     // 开始瓶喂
   BOTTLE_END       // 结束瓶喂
+  HEAD_LIFT        // 抬头
   PASSIVE_EXERCISE // 被动操
   GAS_EXERCISE     // 排气操
   BATH             // 洗澡
@@ -66,6 +67,7 @@ model Activity {
   hasPoop         Boolean?     // 是否有大便
   hasPee          Boolean?     // 是否有小便
   poopColor       PoopColor?   // 大便颜色
+  poopPhotoUrl    String?      // 大便照片URL（存储在Vercel Blob）
   peeAmount       PeeAmount?   // 小便量
 
   // 喂奶相关字段

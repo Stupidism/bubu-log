@@ -1,9 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { PoopColor, PeeAmount, PoopColorLabels, PeeAmountLabels, PoopColorStyles } from '@/types/activity'
 import { TimeAdjuster } from '../TimeAdjuster'
-import { Droplet, Circle } from 'lucide-react'
+import { Droplet, Circle, Camera, X, Loader2, Check } from 'lucide-react'
+
+const STORAGE_KEY = 'diaper_form_preferences'
+
+interface DiaperFormPreferences {
+  rememberSelection: boolean
+  defaultHasPee: boolean
+  defaultPeeAmount: PeeAmount
+  defaultPoopColor: PoopColor
+}
+
+const DEFAULT_PREFERENCES: DiaperFormPreferences = {
+  rememberSelection: false,
+  defaultHasPee: true,
+  defaultPeeAmount: PeeAmount.LARGE,
+  defaultPoopColor: PoopColor.YELLOW,
+}
 
 interface DiaperFormProps {
   onSubmit: (data: {
@@ -11,17 +27,116 @@ interface DiaperFormProps {
     hasPoop: boolean
     hasPee: boolean
     poopColor?: PoopColor
+    poopPhotoUrl?: string
     peeAmount?: PeeAmount
   }) => void
   onCancel: () => void
 }
 
 export function DiaperForm({ onSubmit, onCancel }: DiaperFormProps) {
+  const [preferences, setPreferences] = useState<DiaperFormPreferences>(DEFAULT_PREFERENCES)
   const [recordTime, setRecordTime] = useState(new Date())
   const [hasPoop, setHasPoop] = useState(false)
-  const [hasPee, setHasPee] = useState(false)
-  const [poopColor, setPoopColor] = useState<PoopColor | undefined>()
-  const [peeAmount, setPeeAmount] = useState<PeeAmount | undefined>()
+  const [hasPee, setHasPee] = useState(true) // 默认选中小便
+  const [poopColor, setPoopColor] = useState<PoopColor>(PoopColor.YELLOW) // 默认黄色
+  const [peeAmount, setPeeAmount] = useState<PeeAmount>(PeeAmount.LARGE) // 默认多
+  const [poopPhotoUrl, setPoopPhotoUrl] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // 加载保存的偏好设置
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const savedPrefs = JSON.parse(saved) as DiaperFormPreferences
+        setPreferences(savedPrefs)
+        if (savedPrefs.rememberSelection) {
+          setHasPee(savedPrefs.defaultHasPee)
+          setPeeAmount(savedPrefs.defaultPeeAmount)
+          setPoopColor(savedPrefs.defaultPoopColor)
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load preferences:', e)
+    }
+  }, [])
+
+  // 保存偏好设置
+  const savePreferences = () => {
+    const newPrefs: DiaperFormPreferences = {
+      rememberSelection: true,
+      defaultHasPee: hasPee,
+      defaultPeeAmount: peeAmount,
+      defaultPoopColor: poopColor,
+    }
+    setPreferences(newPrefs)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newPrefs))
+  }
+
+  // 清除偏好设置
+  const clearPreferences = () => {
+    setPreferences(DEFAULT_PREFERENCES)
+    localStorage.removeItem(STORAGE_KEY)
+  }
+
+  const handlePhotoSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      alert('请选择图片文件')
+      return
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('图片大小不能超过 10MB')
+      return
+    }
+
+    setIsUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('category', 'poop')
+
+      const res = await fetch('/api/activities/upload-photo', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!res.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const data = await res.json()
+      setPoopPhotoUrl(data.url)
+    } catch (error) {
+      console.error('Failed to upload photo:', error)
+      alert('上传失败，请重试')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const removePhoto = async () => {
+    if (!poopPhotoUrl) return
+
+    try {
+      await fetch('/api/activities/upload-photo', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: poopPhotoUrl }),
+      })
+    } catch (e) {
+      console.log('Failed to delete photo:', e)
+    }
+
+    setPoopPhotoUrl(null)
+  }
 
   const handleSubmit = () => {
     if (!hasPoop && !hasPee) return
@@ -30,6 +145,7 @@ export function DiaperForm({ onSubmit, onCancel }: DiaperFormProps) {
       hasPoop,
       hasPee,
       poopColor: hasPoop ? poopColor : undefined,
+      poopPhotoUrl: hasPoop ? (poopPhotoUrl || undefined) : undefined,
       peeAmount: hasPee ? peeAmount : undefined,
     })
   }
@@ -69,8 +185,8 @@ export function DiaperForm({ onSubmit, onCancel }: DiaperFormProps) {
 
         {/* 大便颜色选择 */}
         {hasPoop && (
-          <div className="animate-fade-in">
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">大便颜色</p>
+          <div className="animate-fade-in space-y-3">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">大便颜色</p>
             <div className="grid grid-cols-3 gap-2">
               {Object.entries(PoopColorLabels).map(([color, label]) => (
                 <button
@@ -86,6 +202,50 @@ export function DiaperForm({ onSubmit, onCancel }: DiaperFormProps) {
                   <span className="text-sm font-medium">{label}</span>
                 </button>
               ))}
+            </div>
+
+            {/* 大便照片上传 */}
+            <div className="mt-3">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                大便照片 <span className="text-gray-400">(可选)</span>
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoSelect}
+                className="hidden"
+              />
+              {poopPhotoUrl ? (
+                <div className="relative inline-block">
+                  <img
+                    src={poopPhotoUrl}
+                    alt="大便照片"
+                    className="w-24 h-24 object-cover rounded-xl"
+                  />
+                  <button
+                    onClick={removePhoto}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+                >
+                  {isUploading ? (
+                    <Loader2 size={24} className="animate-spin" />
+                  ) : (
+                    <>
+                      <Camera size={24} />
+                      <span className="text-xs">添加照片</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -118,6 +278,22 @@ export function DiaperForm({ onSubmit, onCancel }: DiaperFormProps) {
         )}
       </div>
 
+      {/* 记住选择 */}
+      <div className="flex items-center justify-between py-2 px-1">
+        <span className="text-sm text-gray-600 dark:text-gray-400">记住当前选择</span>
+        <button
+          onClick={() => preferences.rememberSelection ? clearPreferences() : savePreferences()}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            preferences.rememberSelection
+              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+          }`}
+        >
+          {preferences.rememberSelection && <Check size={14} />}
+          {preferences.rememberSelection ? '已保存' : '保存'}
+        </button>
+      </div>
+
       {/* 操作按钮 */}
       <div className="grid grid-cols-2 gap-3 pt-4">
         <button
@@ -141,4 +317,3 @@ export function DiaperForm({ onSubmit, onCancel }: DiaperFormProps) {
     </div>
   )
 }
-

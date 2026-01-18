@@ -2,11 +2,13 @@
 
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { ActivityIcon } from './ActivityIcon'
+import { Loader2 } from 'lucide-react'
 
 interface ActivityButtonProps {
   type: ActivityType
   onClick: () => void
   disabled?: boolean
+  loading?: boolean
   variant?: 'default' | 'sleep' | 'feed' | 'diaper' | 'activity'
 }
 
@@ -18,16 +20,21 @@ const variantStyles = {
   activity: 'bg-gradient-to-br from-amber-400 to-orange-500 text-white',
 }
 
-export function ActivityButton({ type, onClick, disabled, variant = 'default' }: ActivityButtonProps) {
+export function ActivityButton({ type, onClick, disabled, loading, variant = 'default' }: ActivityButtonProps) {
+  const isDisabled = disabled || loading
+
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
-      className={`big-button ${variantStyles[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      disabled={isDisabled}
+      className={`big-button ${variantStyles[variant]} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
-      <ActivityIcon type={type} size={32} className="mb-1" />
+      {loading ? (
+        <Loader2 size={32} className="mb-1 animate-spin" />
+      ) : (
+        <ActivityIcon type={type} size={32} className="mb-1" />
+      )}
       <span className="text-base font-semibold">{ActivityTypeLabels[type]}</span>
     </button>
   )
 }
-

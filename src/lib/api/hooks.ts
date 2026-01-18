@@ -89,12 +89,20 @@ export function usePairedActivityStates() {
   const bottleQuery = useLatestActivity("BOTTLE_START,BOTTLE_END");
   
   const isLoading = sleepQuery.isLoading || breastfeedQuery.isLoading || bottleQuery.isLoading;
+  const isFetching = sleepQuery.isFetching || breastfeedQuery.isFetching || bottleQuery.isFetching;
   
   const pairedState = {
     sleep: sleepQuery.data?.type === "SLEEP_START" ? "end" : "start",
     breastfeed: breastfeedQuery.data?.type === "BREASTFEED_START" ? "end" : "start",
     bottle: bottleQuery.data?.type === "BOTTLE_START" ? "end" : "start",
   } as const;
+
+  // Loading states for individual pairs
+  const pairFetching = {
+    sleep: sleepQuery.isFetching,
+    breastfeed: breastfeedQuery.isFetching,
+    bottle: bottleQuery.isFetching,
+  };
   
   // Get the start activity for a paired end activity
   const getStartActivity = useCallback((type: "sleep" | "breastfeed" | "bottle") => {
@@ -111,6 +119,8 @@ export function usePairedActivityStates() {
   return {
     pairedState,
     isLoading,
+    isFetching,
+    pairFetching,
     getStartActivity,
     sleepData: sleepQuery.data,
     breastfeedData: breastfeedQuery.data,

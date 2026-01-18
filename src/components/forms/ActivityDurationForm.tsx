@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
+import { Check } from 'lucide-react'
 
 interface ActivityDurationFormProps {
   type: ActivityType
@@ -16,9 +17,61 @@ interface ActivityDurationFormProps {
 
 const DURATION_PRESETS = [5, 10, 15, 20, 30, 45, 60]
 
+// 各活动类型的默认时长
+const DEFAULT_DURATIONS: Partial<Record<ActivityType, number>> = {
+  [ActivityType.HEAD_LIFT]: 5,
+  [ActivityType.PASSIVE_EXERCISE]: 10,
+  [ActivityType.GAS_EXERCISE]: 10,
+  [ActivityType.BATH]: 15,
+  [ActivityType.OUTDOOR]: 30,
+  [ActivityType.EARLY_EDUCATION]: 20,
+}
+
+const STORAGE_KEY_PREFIX = 'activity_duration_'
+
 export function ActivityDurationForm({ type, onSubmit, onCancel }: ActivityDurationFormProps) {
   const [recordTime, setRecordTime] = useState(new Date())
   const [duration, setDuration] = useState<number | undefined>(undefined)
+  const [rememberSelection, setRememberSelection] = useState(false)
+
+  // 加载保存的偏好设置
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`${STORAGE_KEY_PREFIX}${type}`)
+      if (saved) {
+        const savedData = JSON.parse(saved)
+        if (savedData.rememberSelection) {
+          setDuration(savedData.duration)
+          setRememberSelection(true)
+        } else {
+          // 使用默认值
+          setDuration(DEFAULT_DURATIONS[type])
+        }
+      } else {
+        // 使用默认值
+        setDuration(DEFAULT_DURATIONS[type])
+      }
+    } catch (e) {
+      console.error('Failed to load preferences:', e)
+      setDuration(DEFAULT_DURATIONS[type])
+    }
+  }, [type])
+
+  // 保存偏好设置
+  const savePreferences = () => {
+    const newPrefs = {
+      rememberSelection: true,
+      duration,
+    }
+    setRememberSelection(true)
+    localStorage.setItem(`${STORAGE_KEY_PREFIX}${type}`, JSON.stringify(newPrefs))
+  }
+
+  // 清除偏好设置
+  const clearPreferences = () => {
+    setRememberSelection(false)
+    localStorage.removeItem(`${STORAGE_KEY_PREFIX}${type}`)
+  }
 
   const handleSubmit = () => {
     onSubmit({
@@ -29,6 +82,7 @@ export function ActivityDurationForm({ type, onSubmit, onCancel }: ActivityDurat
 
   // 根据活动类型决定是否需要选择时长
   const needsDuration = [
+    ActivityType.HEAD_LIFT,
     ActivityType.PASSIVE_EXERCISE,
     ActivityType.GAS_EXERCISE,
     ActivityType.BATH,
@@ -79,6 +133,22 @@ export function ActivityDurationForm({ type, onSubmit, onCancel }: ActivityDurat
               不记录
             </button>
           </div>
+
+          {/* 记住选择 */}
+          <div className="flex items-center justify-between py-2 px-1">
+            <span className="text-sm text-gray-600 dark:text-gray-400">记住当前选择</span>
+            <button
+              onClick={() => rememberSelection ? clearPreferences() : savePreferences()}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                rememberSelection
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              {rememberSelection && <Check size={14} />}
+              {rememberSelection ? '已保存' : '保存'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -100,4 +170,3 @@ export function ActivityDurationForm({ type, onSubmit, onCancel }: ActivityDurat
     </div>
   )
 }
-

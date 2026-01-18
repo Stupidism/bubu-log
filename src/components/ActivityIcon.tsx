@@ -11,6 +11,7 @@ import {
   Bath,
   SunMedium,
   BookOpen,
+  ArrowUp,
   LucideIcon,
 } from 'lucide-react'
 import { ActivityType } from '@/types/activity'
@@ -23,6 +24,7 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.BREASTFEED_END]: Heart,
   [ActivityType.BOTTLE_START]: Milk,
   [ActivityType.BOTTLE_END]: Milk,
+  [ActivityType.HEAD_LIFT]: ArrowUp,
   [ActivityType.PASSIVE_EXERCISE]: Activity,
   [ActivityType.GAS_EXERCISE]: Wind,
   [ActivityType.BATH]: Bath,

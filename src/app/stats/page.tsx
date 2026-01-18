@@ -118,7 +118,7 @@ export default function StatsPage() {
 
     // 活动统计
     const exercises = activities.filter((a) =>
-      ['PASSIVE_EXERCISE', 'GAS_EXERCISE', 'BATH', 'OUTDOOR', 'EARLY_EDUCATION'].includes(a.type)
+      ['HEAD_LIFT', 'PASSIVE_EXERCISE', 'GAS_EXERCISE', 'BATH', 'OUTDOOR', 'EARLY_EDUCATION'].includes(a.type)
     )
     summary.exerciseCount = exercises.length
 

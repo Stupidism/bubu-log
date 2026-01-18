@@ -17,6 +17,18 @@ interface SleepEndFormProps {
 
 const DURATION_PRESETS = [30, 60, 90, 120, 180, 240]
 
+// 时长调整按钮配置（统一使用四种间隔）
+const durationAdjustments = [
+  { label: '-1小时', minutes: -60 },
+  { label: '-15分', minutes: -15 },
+  { label: '-5分', minutes: -5 },
+  { label: '-1分', minutes: -1 },
+  { label: '+1分', minutes: 1 },
+  { label: '+5分', minutes: 5 },
+  { label: '+15分', minutes: 15 },
+  { label: '+1小时', minutes: 60 },
+]
+
 export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProps) {
   const [recordTime, setRecordTime] = useState(new Date())
   const [manualDuration, setManualDuration] = useState<number | undefined>(undefined)
@@ -37,6 +49,15 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
       recordTime,
       duration: actualDuration,
     })
+  }
+
+  const handleDurationAdjust = (minutes: number) => {
+    if (hasStartTime) {
+      setDurationAdjustment((d) => d + minutes)
+    } else if (manualDuration) {
+      const newDuration = Math.max(1, manualDuration + minutes)
+      setManualDuration(newDuration)
+    }
   }
 
   const canSubmit = hasStartTime || (manualDuration && manualDuration > 0)
@@ -66,30 +87,33 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
             </p>
           </div>
 
-          {/* 时长调整 */}
+          {/* 时长调整（使用统一的四种间隔） */}
           <div>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 text-center">
-              调整睡眠时长
-            </p>
-            <div className="flex justify-center gap-2">
-              <button
-                onClick={() => setDurationAdjustment((d) => d - 15)}
-                className="px-5 py-3 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold"
-              >
-                -15分钟
-              </button>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                调整睡眠时长
+              </p>
               <button
                 onClick={() => setDurationAdjustment(0)}
-                className="px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm"
+                className="text-xs px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
               >
                 重置
               </button>
-              <button
-                onClick={() => setDurationAdjustment((d) => d + 15)}
-                className="px-5 py-3 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-semibold"
-              >
-                +15分钟
-              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {durationAdjustments.map(({ label, minutes }) => (
+                <button
+                  key={label}
+                  onClick={() => handleDurationAdjust(minutes)}
+                  className={`p-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    minutes < 0
+                      ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200'
+                      : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
         </>
@@ -116,9 +140,30 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
               ))}
             </div>
             {manualDuration && (
-              <p className="text-center mt-3 text-lg font-bold text-amber-700 dark:text-amber-300">
-                已选择: {manualDuration >= 60 ? `${Math.floor(manualDuration / 60)}小时${manualDuration % 60 > 0 ? ` ${manualDuration % 60}分钟` : ''}` : `${manualDuration}分钟`}
-              </p>
+              <>
+                <p className="text-center mt-3 text-lg font-bold text-amber-700 dark:text-amber-300">
+                  已选择: {manualDuration >= 60 ? `${Math.floor(manualDuration / 60)}小时${manualDuration % 60 > 0 ? ` ${manualDuration % 60}分钟` : ''}` : `${manualDuration}分钟`}
+                </p>
+                {/* 微调时长 */}
+                <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800">
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mb-2 text-center">微调时长</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {durationAdjustments.map(({ label, minutes }) => (
+                      <button
+                        key={label}
+                        onClick={() => handleDurationAdjust(minutes)}
+                        className={`p-2 rounded-lg text-xs font-semibold transition-all ${
+                          minutes < 0
+                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </>
@@ -147,4 +192,3 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
     </div>
   )
 }
-

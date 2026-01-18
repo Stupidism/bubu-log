@@ -99,7 +99,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        ActivityType: "SLEEP_START" | "SLEEP_END" | "DIAPER" | "BREASTFEED_START" | "BREASTFEED_END" | "BOTTLE_START" | "BOTTLE_END" | "PASSIVE_EXERCISE" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION";
+        ActivityType: "SLEEP_START" | "SLEEP_END" | "DIAPER" | "BREASTFEED_START" | "BREASTFEED_END" | "BOTTLE_START" | "BOTTLE_END" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION";
         /** @enum {string} */
         PoopColor: "YELLOW" | "GREEN" | "BROWN" | "BLACK" | "WHITE" | "RED";
         /** @enum {string} */
@@ -116,6 +116,7 @@ export interface components {
             hasPoop?: boolean | null;
             hasPee?: boolean | null;
             poopColor?: components["schemas"]["PoopColor"];
+            poopPhotoUrl?: string | null;
             peeAmount?: components["schemas"]["PeeAmount"];
             burpSuccess?: boolean | null;
             duration?: number | null;
@@ -130,6 +131,7 @@ export interface components {
             hasPoop?: boolean;
             hasPee?: boolean;
             poopColor?: components["schemas"]["PoopColor"];
+            poopPhotoUrl?: string;
             peeAmount?: components["schemas"]["PeeAmount"];
             burpSuccess?: boolean;
             duration?: number;

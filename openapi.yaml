@@ -260,6 +260,7 @@ components:
         - BREASTFEED_END
         - BOTTLE_START
         - BOTTLE_END
+        - HEAD_LIFT
         - PASSIVE_EXERCISE
         - GAS_EXERCISE
         - BATH
@@ -313,6 +314,9 @@ components:
           nullable: true
         poopColor:
           $ref: '#/components/schemas/PoopColor'
+        poopPhotoUrl:
+          type: string
+          nullable: true
         peeAmount:
           $ref: '#/components/schemas/PeeAmount'
         burpSuccess:
@@ -348,6 +352,8 @@ components:
           type: boolean
         poopColor:
           $ref: '#/components/schemas/PoopColor'
+        poopPhotoUrl:
+          type: string
         peeAmount:
           $ref: '#/components/schemas/PeeAmount'
         burpSuccess:
