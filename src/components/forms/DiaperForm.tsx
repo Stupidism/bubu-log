@@ -31,27 +31,37 @@ interface DiaperFormProps {
     peeAmount?: PeeAmount
   }) => void
   onCancel: () => void
+  initialValues?: {
+    recordTime?: Date
+    hasPoop?: boolean
+    hasPee?: boolean
+    poopColor?: PoopColor
+    poopPhotoUrl?: string
+    peeAmount?: PeeAmount
+  }
+  isEditing?: boolean
 }
 
-export function DiaperForm({ onSubmit, onCancel }: DiaperFormProps) {
+export function DiaperForm({ onSubmit, onCancel, initialValues, isEditing }: DiaperFormProps) {
   const [preferences, setPreferences] = useState<DiaperFormPreferences>(DEFAULT_PREFERENCES)
-  const [recordTime, setRecordTime] = useState(new Date())
-  const [hasPoop, setHasPoop] = useState(false)
-  const [hasPee, setHasPee] = useState(true) // 默认选中小便
-  const [poopColor, setPoopColor] = useState<PoopColor>(PoopColor.YELLOW) // 默认黄色
-  const [peeAmount, setPeeAmount] = useState<PeeAmount>(PeeAmount.LARGE) // 默认多
-  const [poopPhotoUrl, setPoopPhotoUrl] = useState<string | null>(null)
+  const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
+  const [hasPoop, setHasPoop] = useState(initialValues?.hasPoop ?? false)
+  const [hasPee, setHasPee] = useState(initialValues?.hasPee ?? true) // 默认选中小便
+  const [poopColor, setPoopColor] = useState<PoopColor>(initialValues?.poopColor || PoopColor.YELLOW) // 默认黄色
+  const [peeAmount, setPeeAmount] = useState<PeeAmount>(initialValues?.peeAmount || PeeAmount.LARGE) // 默认多
+  const [poopPhotoUrl, setPoopPhotoUrl] = useState<string | null>(initialValues?.poopPhotoUrl || null)
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 加载保存的偏好设置
+  // 加载保存的偏好设置（仅在新建时）
   useEffect(() => {
+    if (isEditing) return // 编辑模式不加载偏好
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const savedPrefs = JSON.parse(saved) as DiaperFormPreferences
         setPreferences(savedPrefs)
-        if (savedPrefs.rememberSelection) {
+        if (savedPrefs.rememberSelection && !initialValues) {
           setHasPee(savedPrefs.defaultHasPee)
           setPeeAmount(savedPrefs.defaultPeeAmount)
           setPoopColor(savedPrefs.defaultPoopColor)
@@ -60,7 +70,7 @@ export function DiaperForm({ onSubmit, onCancel }: DiaperFormProps) {
     } catch (e) {
       console.error('Failed to load preferences:', e)
     }
-  }, [])
+  }, [isEditing, initialValues])
 
   // 保存偏好设置
   const savePreferences = () => {
@@ -310,7 +320,7 @@ export function DiaperForm({ onSubmit, onCancel }: DiaperFormProps) {
               : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
           }`}
         >
-          确认记录
+          {isEditing ? '保存修改' : '确认记录'}
         </button>
       </div>
     </div>

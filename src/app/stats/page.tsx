@@ -10,11 +10,21 @@ import {
   PeeAmountLabels,
   PoopColorStyles,
   ActivityCategories,
+  PoopColor,
+  PeeAmount,
 } from '@/types/activity'
 import { ActivityIcon } from '@/components/ActivityIcon'
 import { BottomSheet } from '@/components/BottomSheet'
 import { Toast } from '@/components/Toast'
-import { useActivities, useDeleteActivity, type Activity } from '@/lib/api/hooks'
+import {
+  DiaperForm,
+  BreastfeedForm,
+  BottleForm,
+  ActivityDurationForm,
+  SleepEndForm,
+} from '@/components/forms'
+import { useActivities, useDeleteActivity, useUpdateActivity, type Activity } from '@/lib/api/hooks'
+import type { components } from '@/lib/api/openapi-types'
 import { 
   Moon, 
   Milk, 
@@ -52,9 +62,11 @@ export default function StatsPage() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   const deleteActivityMutation = useDeleteActivity()
+  const updateActivityMutation = useUpdateActivity()
 
   // Use React Query for activities
   const dateStr = format(selectedDate, 'yyyy-MM-dd')
@@ -193,6 +205,136 @@ export default function StatsPage() {
       }
     )
   }, [selectedActivity, deleteActivityMutation, refetch])
+
+  // 处理编辑
+  const handleEdit = useCallback(() => {
+    setIsEditing(true)
+  }, [])
+
+  // 关闭编辑
+  const closeEdit = useCallback(() => {
+    setIsEditing(false)
+  }, [])
+
+  // 提交编辑
+  const handleEditSubmit = useCallback(async (data: Record<string, unknown>) => {
+    if (!selectedActivity || updateActivityMutation.isPending) return
+
+    updateActivityMutation.mutate(
+      {
+        params: { path: { id: selectedActivity.id } },
+        body: {
+          recordTime: (data.recordTime as Date).toISOString(),
+          ...(data.hasPoop !== undefined && { hasPoop: data.hasPoop as boolean }),
+          ...(data.hasPee !== undefined && { hasPee: data.hasPee as boolean }),
+          ...(data.poopColor !== undefined && { poopColor: data.poopColor as components["schemas"]["PoopColor"] }),
+          ...(data.poopPhotoUrl !== undefined && { poopPhotoUrl: data.poopPhotoUrl as string }),
+          ...(data.peeAmount !== undefined && { peeAmount: data.peeAmount as components["schemas"]["PeeAmount"] }),
+          ...(data.burpSuccess !== undefined && { burpSuccess: data.burpSuccess as boolean }),
+          ...(data.duration !== undefined && { duration: data.duration as number }),
+          ...(data.milkAmount !== undefined && { milkAmount: data.milkAmount as number }),
+          ...(data.notes !== undefined && { notes: data.notes as string }),
+        },
+      },
+      {
+        onSuccess: () => {
+          setToast({ message: '修改成功', type: 'success' })
+          setIsEditing(false)
+          setSelectedActivity(null)
+          refetch()
+        },
+        onError: () => {
+          setToast({ message: '修改失败，请重试', type: 'error' })
+        },
+      }
+    )
+  }, [selectedActivity, updateActivityMutation, refetch])
+
+  // 获取活动类型对应的表单组件
+  const renderEditForm = useCallback(() => {
+    if (!selectedActivity) return null
+
+    const activityType = selectedActivity.type as ActivityType
+    const initialValues = {
+      recordTime: new Date(selectedActivity.recordTime),
+      duration: selectedActivity.duration || undefined,
+      milkAmount: selectedActivity.milkAmount || undefined,
+      burpSuccess: selectedActivity.burpSuccess || undefined,
+      hasPoop: selectedActivity.hasPoop || undefined,
+      hasPee: selectedActivity.hasPee || undefined,
+      poopColor: selectedActivity.poopColor as PoopColor | undefined,
+      poopPhotoUrl: selectedActivity.poopPhotoUrl || undefined,
+      peeAmount: selectedActivity.peeAmount as PeeAmount | undefined,
+    }
+
+    switch (activityType) {
+      case ActivityType.DIAPER:
+        return (
+          <DiaperForm
+            onSubmit={handleEditSubmit}
+            onCancel={closeEdit}
+            initialValues={initialValues}
+            isEditing
+          />
+        )
+      case ActivityType.BREASTFEED:
+      case 'BREASTFEED_END' as ActivityType:
+        return (
+          <BreastfeedForm
+            onSubmit={handleEditSubmit}
+            onCancel={closeEdit}
+            initialValues={initialValues}
+            isEditing
+          />
+        )
+      case ActivityType.BOTTLE:
+      case 'BOTTLE_END' as ActivityType:
+        return (
+          <BottleForm
+            onSubmit={handleEditSubmit}
+            onCancel={closeEdit}
+            initialValues={initialValues}
+            isEditing
+          />
+        )
+      case ActivityType.SLEEP_END:
+        return (
+          <SleepEndForm
+            onSubmit={handleEditSubmit}
+            onCancel={closeEdit}
+            initialValues={initialValues}
+            isEditing
+          />
+        )
+      case ActivityType.HEAD_LIFT:
+      case ActivityType.PASSIVE_EXERCISE:
+      case ActivityType.GAS_EXERCISE:
+      case ActivityType.BATH:
+      case ActivityType.OUTDOOR:
+      case ActivityType.EARLY_EDUCATION:
+        return (
+          <ActivityDurationForm
+            type={activityType}
+            onSubmit={handleEditSubmit}
+            onCancel={closeEdit}
+            initialValues={initialValues}
+            isEditing
+          />
+        )
+      default:
+        return (
+          <div className="text-center py-8 text-gray-500">
+            此类型的活动暂不支持编辑
+            <button
+              onClick={closeEdit}
+              className="mt-4 px-6 py-2 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+            >
+              返回
+            </button>
+          </div>
+        )
+    }
+  }, [selectedActivity, handleEditSubmit, closeEdit])
 
   // 渲染活动详情
   const renderActivityDetails = (activity: Activity) => {
@@ -468,52 +610,66 @@ export default function StatsPage() {
         )}
       </section>
 
-      {/* 活动详情弹窗 */}
+      {/* 活动详情/编辑弹窗 */}
       <BottomSheet
         isOpen={!!selectedActivity}
-        onClose={() => setSelectedActivity(null)}
-        title="活动详情"
+        onClose={() => {
+          setSelectedActivity(null)
+          setIsEditing(false)
+        }}
+        title={isEditing ? '编辑记录' : '活动详情'}
       >
         {selectedActivity && (
-          <div className="space-y-6">
-            {/* 活动信息 */}
-            <div className="text-center">
-              <ActivityIcon type={selectedActivity.type as ActivityType} size={56} className="text-gray-600 dark:text-gray-300 mx-auto" />
-              <h3 className="text-2xl font-bold mt-3 text-gray-800 dark:text-gray-100">
-                {ActivityTypeLabels[selectedActivity.type as ActivityType]}
-              </h3>
-              <p className="text-xl text-gray-500 dark:text-gray-400 mt-1">
-                {format(new Date(selectedActivity.recordTime), 'M月d日 HH:mm', { locale: zhCN })}
-              </p>
-            </div>
-
-            {/* 详细信息 */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4">
-              {renderActivityDetails(selectedActivity)}
-              {selectedActivity.notes && (
-                <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
-                  备注: {selectedActivity.notes}
+          isEditing ? (
+            renderEditForm()
+          ) : (
+            <div className="space-y-6">
+              {/* 活动信息 */}
+              <div className="text-center">
+                <ActivityIcon type={selectedActivity.type as ActivityType} size={56} className="text-gray-600 dark:text-gray-300 mx-auto" />
+                <h3 className="text-2xl font-bold mt-3 text-gray-800 dark:text-gray-100">
+                  {ActivityTypeLabels[selectedActivity.type as ActivityType]}
+                </h3>
+                <p className="text-xl text-gray-500 dark:text-gray-400 mt-1">
+                  {format(new Date(selectedActivity.recordTime), 'M月d日 HH:mm', { locale: zhCN })}
                 </p>
-              )}
-            </div>
+              </div>
 
-            {/* 操作按钮 */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="p-4 rounded-2xl bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-semibold text-lg flex items-center justify-center gap-2"
-              >
-                <Trash2 size={22} />
-                删除
-              </button>
-              <button
-                onClick={() => setSelectedActivity(null)}
-                className="p-4 rounded-2xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-lg"
-              >
-                关闭
-              </button>
+              {/* 详细信息 */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4">
+                {renderActivityDetails(selectedActivity)}
+                {selectedActivity.notes && (
+                  <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
+                    备注: {selectedActivity.notes}
+                  </p>
+                )}
+              </div>
+
+              {/* 操作按钮 */}
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={handleEdit}
+                  className="p-4 rounded-2xl bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold text-lg flex items-center justify-center gap-2"
+                >
+                  <Edit2 size={22} />
+                  编辑
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-4 rounded-2xl bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-semibold text-lg flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={22} />
+                  删除
+                </button>
+                <button
+                  onClick={() => setSelectedActivity(null)}
+                  className="p-4 rounded-2xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-lg"
+                >
+                  关闭
+                </button>
+              </div>
             </div>
-          </div>
+          )
         )}
       </BottomSheet>
 

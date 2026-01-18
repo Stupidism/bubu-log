@@ -14,6 +14,11 @@ interface ActivityDurationFormProps {
     duration?: number
   }) => void
   onCancel: () => void
+  initialValues?: {
+    recordTime?: Date
+    duration?: number
+  }
+  isEditing?: boolean
 }
 
 // 各活动类型的配置：默认时长、最小间隔、范围
@@ -72,33 +77,36 @@ const DEFAULT_CONFIG: ActivityConfig = {
 
 const STORAGE_KEY_PREFIX = 'activity_duration_'
 
-export function ActivityDurationForm({ type, onSubmit, onCancel }: ActivityDurationFormProps) {
+export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, isEditing }: ActivityDurationFormProps) {
   const config = ACTIVITY_CONFIGS[type] || DEFAULT_CONFIG
   
-  const [recordTime, setRecordTime] = useState(new Date())
-  const [duration, setDuration] = useState<number>(config.defaultDuration)
+  const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
+  const [duration, setDuration] = useState<number>(initialValues?.duration || config.defaultDuration)
   const [rememberSelection, setRememberSelection] = useState(false)
 
-  // 加载保存的偏好设置
+  // 加载保存的偏好设置（仅在新建时）
   useEffect(() => {
+    if (isEditing) return
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY_PREFIX}${type}`)
       if (saved) {
         const savedData = JSON.parse(saved)
-        if (savedData.rememberSelection) {
+        if (savedData.rememberSelection && !initialValues) {
           setDuration(savedData.duration)
           setRememberSelection(true)
-        } else {
+        } else if (!initialValues) {
           setDuration(config.defaultDuration)
         }
-      } else {
+      } else if (!initialValues) {
         setDuration(config.defaultDuration)
       }
     } catch (e) {
       console.error('Failed to load preferences:', e)
-      setDuration(config.defaultDuration)
+      if (!initialValues) {
+        setDuration(config.defaultDuration)
+      }
     }
-  }, [type, config.defaultDuration])
+  }, [type, config.defaultDuration, isEditing, initialValues])
 
   // 保存偏好设置
   const savePreferences = () => {
@@ -188,7 +196,7 @@ export function ActivityDurationForm({ type, onSubmit, onCancel }: ActivityDurat
           onClick={handleSubmit}
           className="p-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-lg shadow-lg"
         >
-          确认记录
+          {isEditing ? '保存修改' : '确认记录'}
         </button>
       </div>
     </div>

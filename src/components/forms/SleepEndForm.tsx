@@ -14,6 +14,11 @@ interface SleepEndFormProps {
     duration: number
   }) => void
   onCancel: () => void
+  initialValues?: {
+    recordTime?: Date
+    duration?: number
+  }
+  isEditing?: boolean
 }
 
 // 时长调整按钮配置（只保留四种间隔）
@@ -24,9 +29,9 @@ const durationAdjustments = [
   { label: '+1分钟', minutes: 1 },
 ]
 
-export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProps) {
-  const [recordTime, setRecordTime] = useState(new Date())
-  const [manualDuration, setManualDuration] = useState<number>(60) // 默认1小时
+export function SleepEndForm({ startTime, onSubmit, onCancel, initialValues, isEditing }: SleepEndFormProps) {
+  const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
+  const [manualDuration, setManualDuration] = useState<number>(initialValues?.duration || 60) // 默认1小时
   const [durationAdjustment, setDurationAdjustment] = useState(0)
 
   // 是否有开始时间（是否从入睡状态过来）
@@ -144,7 +149,7 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
           onClick={handleSubmit}
           className="p-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-lg shadow-lg"
         >
-          确认记录
+          {isEditing ? '保存修改' : '确认记录'}
         </button>
       </div>
     </div>

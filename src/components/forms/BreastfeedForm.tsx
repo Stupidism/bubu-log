@@ -14,6 +14,12 @@ interface BreastfeedFormProps {
     burpSuccess?: boolean
   }) => void
   onCancel: () => void
+  initialValues?: {
+    recordTime?: Date
+    duration?: number
+    burpSuccess?: boolean
+  }
+  isEditing?: boolean
 }
 
 const STORAGE_KEY = 'breastfeed_form_preferences'
@@ -30,20 +36,21 @@ const DEFAULT_PREFERENCES: Preferences = {
   defaultBurpSuccess: true,
 }
 
-export function BreastfeedForm({ onSubmit, onCancel }: BreastfeedFormProps) {
+export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }: BreastfeedFormProps) {
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES)
-  const [recordTime, setRecordTime] = useState(new Date())
-  const [duration, setDuration] = useState<number>(15)
-  const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(undefined)
+  const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
+  const [duration, setDuration] = useState<number>(initialValues?.duration || 15)
+  const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialValues?.burpSuccess)
 
-  // 加载偏好设置
+  // 加载偏好设置（仅在新建时）
   useEffect(() => {
+    if (isEditing) return
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const savedPrefs = JSON.parse(saved) as Preferences
         setPreferences(savedPrefs)
-        if (savedPrefs.rememberSelection) {
+        if (savedPrefs.rememberSelection && !initialValues) {
           setDuration(savedPrefs.defaultDuration)
           setBurpSuccess(savedPrefs.defaultBurpSuccess)
         }
@@ -51,7 +58,7 @@ export function BreastfeedForm({ onSubmit, onCancel }: BreastfeedFormProps) {
     } catch (e) {
       console.error('Failed to load preferences:', e)
     }
-  }, [])
+  }, [isEditing, initialValues])
 
   const savePreferences = () => {
     const newPrefs: Preferences = {
@@ -164,7 +171,7 @@ export function BreastfeedForm({ onSubmit, onCancel }: BreastfeedFormProps) {
               : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
           }`}
         >
-          确认记录
+          {isEditing ? '保存修改' : '确认记录'}
         </button>
       </div>
     </div>
