@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
+import { SliderInput } from '../SliderInput'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { Check } from 'lucide-react'
@@ -15,7 +16,6 @@ interface BreastfeedFormProps {
   onCancel: () => void
 }
 
-const DURATION_PRESETS = [5, 10, 15, 20, 25, 30]
 const STORAGE_KEY = 'breastfeed_form_preferences'
 
 interface Preferences {
@@ -77,10 +77,6 @@ export function BreastfeedForm({ onSubmit, onCancel }: BreastfeedFormProps) {
     })
   }
 
-  const handleDurationAdjust = (change: number) => {
-    setDuration(Math.max(1, duration + change))
-  }
-
   return (
     <div className="space-y-6 animate-fade-in">
       {/* 活动图标和名称 */}
@@ -92,67 +88,19 @@ export function BreastfeedForm({ onSubmit, onCancel }: BreastfeedFormProps) {
       </div>
 
       {/* 开始时间 */}
-      <div>
-        <p className="text-base font-medium text-gray-600 dark:text-gray-400 mb-2 text-center">
-          开始时间
-        </p>
-        <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
-      </div>
+      <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
 
-      {/* 喂奶时长 */}
-      <div className="bg-pink-50 dark:bg-pink-900/20 rounded-2xl p-4">
-        <p className="text-base font-medium text-pink-600 dark:text-pink-400 mb-3 text-center">
-          喂奶时长
-        </p>
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          {DURATION_PRESETS.map((d) => (
-            <button
-              key={d}
-              onClick={() => setDuration(d)}
-              className={`p-3 rounded-xl text-lg font-semibold transition-all ${
-                duration === d
-                  ? 'bg-pink-500 text-white shadow-lg scale-105'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              {d}分钟
-            </button>
-          ))}
-        </div>
-        <div className="text-center">
-          <span className="text-4xl font-bold text-pink-700 dark:text-pink-300">
-            {duration}
-          </span>
-          <span className="text-xl text-pink-600 dark:text-pink-400 ml-2">分钟</span>
-        </div>
-        {/* 微调按钮 */}
-        <div className="flex justify-center gap-3 mt-3">
-          <button
-            onClick={() => handleDurationAdjust(-5)}
-            className="px-4 py-2 rounded-xl text-base font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-          >
-            -5分钟
-          </button>
-          <button
-            onClick={() => handleDurationAdjust(-1)}
-            className="px-4 py-2 rounded-xl text-base font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-          >
-            -1分钟
-          </button>
-          <button
-            onClick={() => handleDurationAdjust(1)}
-            className="px-4 py-2 rounded-xl text-base font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-          >
-            +1分钟
-          </button>
-          <button
-            onClick={() => handleDurationAdjust(5)}
-            className="px-4 py-2 rounded-xl text-base font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-          >
-            +5分钟
-          </button>
-        </div>
-      </div>
+      {/* 喂奶时长 - 滑块输入 */}
+      <SliderInput
+        value={duration}
+        onChange={setDuration}
+        min={5}
+        max={45}
+        step={1}
+        unit="分钟"
+        label="喂奶时长"
+        color="pink"
+      />
 
       {/* 拍嗝是否成功 */}
       <div>
@@ -222,4 +170,3 @@ export function BreastfeedForm({ onSubmit, onCancel }: BreastfeedFormProps) {
     </div>
   )
 }
-

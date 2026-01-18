@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
+import { SliderInput } from '../SliderInput'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { Check } from 'lucide-react'
@@ -15,23 +16,67 @@ interface ActivityDurationFormProps {
   onCancel: () => void
 }
 
-const DURATION_PRESETS = [5, 10, 15, 20, 30, 45, 60]
+// 各活动类型的配置：默认时长、最小间隔、范围
+interface ActivityConfig {
+  defaultDuration: number
+  step: number
+  min: number
+  max: number
+}
 
-// 各活动类型的默认时长
-const DEFAULT_DURATIONS: Partial<Record<ActivityType, number>> = {
-  [ActivityType.HEAD_LIFT]: 5,
-  [ActivityType.PASSIVE_EXERCISE]: 10,
-  [ActivityType.GAS_EXERCISE]: 10,
-  [ActivityType.BATH]: 15,
-  [ActivityType.OUTDOOR]: 30,
-  [ActivityType.EARLY_EDUCATION]: 20,
+const ACTIVITY_CONFIGS: Partial<Record<ActivityType, ActivityConfig>> = {
+  [ActivityType.HEAD_LIFT]: {
+    defaultDuration: 5,
+    step: 1,    // 抬头：1分钟间隔
+    min: 1,
+    max: 30,
+  },
+  [ActivityType.PASSIVE_EXERCISE]: {
+    defaultDuration: 10,
+    step: 2,    // 被动操：2分钟间隔
+    min: 2,
+    max: 30,
+  },
+  [ActivityType.GAS_EXERCISE]: {
+    defaultDuration: 10,
+    step: 2,    // 排气操：2分钟间隔
+    min: 2,
+    max: 30,
+  },
+  [ActivityType.BATH]: {
+    defaultDuration: 15,
+    step: 5,    // 洗澡：5分钟间隔
+    min: 5,
+    max: 60,
+  },
+  [ActivityType.OUTDOOR]: {
+    defaultDuration: 30,
+    step: 5,    // 晒太阳：5分钟间隔
+    min: 5,
+    max: 120,
+  },
+  [ActivityType.EARLY_EDUCATION]: {
+    defaultDuration: 20,
+    step: 5,    // 早教：5分钟间隔
+    min: 5,
+    max: 60,
+  },
+}
+
+const DEFAULT_CONFIG: ActivityConfig = {
+  defaultDuration: 10,
+  step: 5,
+  min: 5,
+  max: 60,
 }
 
 const STORAGE_KEY_PREFIX = 'activity_duration_'
 
 export function ActivityDurationForm({ type, onSubmit, onCancel }: ActivityDurationFormProps) {
+  const config = ACTIVITY_CONFIGS[type] || DEFAULT_CONFIG
+  
   const [recordTime, setRecordTime] = useState(new Date())
-  const [duration, setDuration] = useState<number | undefined>(undefined)
+  const [duration, setDuration] = useState<number>(config.defaultDuration)
   const [rememberSelection, setRememberSelection] = useState(false)
 
   // 加载保存的偏好设置
@@ -44,18 +89,16 @@ export function ActivityDurationForm({ type, onSubmit, onCancel }: ActivityDurat
           setDuration(savedData.duration)
           setRememberSelection(true)
         } else {
-          // 使用默认值
-          setDuration(DEFAULT_DURATIONS[type])
+          setDuration(config.defaultDuration)
         }
       } else {
-        // 使用默认值
-        setDuration(DEFAULT_DURATIONS[type])
+        setDuration(config.defaultDuration)
       }
     } catch (e) {
       console.error('Failed to load preferences:', e)
-      setDuration(DEFAULT_DURATIONS[type])
+      setDuration(config.defaultDuration)
     }
-  }, [type])
+  }, [type, config.defaultDuration])
 
   // 保存偏好设置
   const savePreferences = () => {
@@ -94,7 +137,7 @@ export function ActivityDurationForm({ type, onSubmit, onCancel }: ActivityDurat
     <div className="space-y-6 animate-fade-in">
       {/* 活动图标和名称 */}
       <div className="text-center flex flex-col items-center">
-        <ActivityIcon type={type} size={48} className="text-gray-700 dark:text-gray-200" />
+        <ActivityIcon type={type} size={48} className="text-amber-500" />
         <h3 className="text-xl font-bold mt-2 text-gray-800 dark:text-gray-100">
           {ActivityTypeLabels[type]}
         </h3>
@@ -102,37 +145,19 @@ export function ActivityDurationForm({ type, onSubmit, onCancel }: ActivityDurat
 
       <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
 
-      {/* 时长选择（可选） */}
+      {/* 时长选择 - 使用滑块 */}
       {needsDuration && (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-400 text-center">
-            持续时长（可选）
-          </p>
-          <div className="grid grid-cols-4 gap-2">
-            {DURATION_PRESETS.map((d) => (
-              <button
-                key={d}
-                onClick={() => setDuration(duration === d ? undefined : d)}
-                className={`p-3 rounded-xl text-sm font-semibold transition-all ${
-                  duration === d
-                    ? 'bg-amber-500 text-white shadow-lg scale-105'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {d}分钟
-              </button>
-            ))}
-            <button
-              onClick={() => setDuration(undefined)}
-              className={`p-3 rounded-xl text-sm font-semibold transition-all ${
-                duration === undefined
-                  ? 'bg-gray-500 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              不记录
-            </button>
-          </div>
+          <SliderInput
+            value={duration}
+            onChange={setDuration}
+            min={config.min}
+            max={config.max}
+            step={config.step}
+            unit="分钟"
+            label="持续时长"
+            color="amber"
+          />
 
           {/* 记住选择 */}
           <button

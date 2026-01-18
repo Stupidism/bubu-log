@@ -7,6 +7,7 @@ import { zhCN } from 'date-fns/locale'
 interface TimeAdjusterProps {
   time: Date
   onTimeChange: (newTime: Date) => void
+  showDate?: boolean // 是否显示日期，默认不显示
 }
 
 // 只保留向前调整的按钮和+1分钟
@@ -17,12 +18,12 @@ const adjustments = [
   { label: '+1分钟', minutes: 1 },
 ]
 
-export function TimeAdjuster({ time, onTimeChange }: TimeAdjusterProps) {
+export function TimeAdjuster({ time, onTimeChange, showDate = false }: TimeAdjusterProps) {
   const now = useMemo(() => new Date(), [])
   
-  // 计算 slider 的值（0-60分钟，0=1小时前，60=现在）
+  // 计算 slider 的值（0-12，每步5分钟，0=1小时前，12=现在）
   const minutesAgo = differenceInMinutes(now, time)
-  const sliderValue = Math.max(0, Math.min(60, 60 - minutesAgo))
+  const sliderValue = Math.max(0, Math.min(12, Math.round((60 - minutesAgo) / 5)))
   
   const handleAdjust = (minutes: number) => {
     const newTime = addMinutes(time, minutes)
@@ -36,8 +37,8 @@ export function TimeAdjuster({ time, onTimeChange }: TimeAdjusterProps) {
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value)
-    // value: 0 = 1小时前, 60 = 现在
-    const minutesFromNow = 60 - value
+    // value: 0 = 1小时前, 12 = 现在（每步5分钟）
+    const minutesFromNow = (12 - value) * 5
     const newTime = addMinutes(now, -minutesFromNow)
     onTimeChange(newTime)
   }
@@ -59,7 +60,7 @@ export function TimeAdjuster({ time, onTimeChange }: TimeAdjusterProps) {
 
   return (
     <div className="space-y-4">
-      {/* 当前时间显示 - 放大字体 */}
+      {/* 当前时间显示 - 不显示日期 */}
       <div className="text-center">
         <button
           onClick={resetToNow}
@@ -67,9 +68,11 @@ export function TimeAdjuster({ time, onTimeChange }: TimeAdjusterProps) {
         >
           {format(time, 'HH:mm', { locale: zhCN })}
         </button>
-        <p className="text-lg text-gray-500 dark:text-gray-400 mt-2">
-          {format(time, 'M月d日 EEEE', { locale: zhCN })}
-        </p>
+        {showDate && (
+          <p className="text-lg text-gray-500 dark:text-gray-400 mt-2">
+            {format(time, 'M月d日 EEEE', { locale: zhCN })}
+          </p>
+        )}
         <p className="text-base text-primary font-medium mt-1">
           {formatTimeDiff()}
         </p>
@@ -78,12 +81,13 @@ export function TimeAdjuster({ time, onTimeChange }: TimeAdjusterProps) {
         </p>
       </div>
 
-      {/* 时间滑块 */}
+      {/* 时间滑块 - 5分钟间隔 */}
       <div className="px-2">
         <input
           type="range"
           min="0"
-          max="60"
+          max="12"
+          step="1"
           value={sliderValue}
           onChange={handleSliderChange}
           className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-primary

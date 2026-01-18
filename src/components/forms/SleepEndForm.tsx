@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
+import { SliderInput } from '../SliderInput'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { differenceInMinutes } from 'date-fns'
@@ -15,8 +16,6 @@ interface SleepEndFormProps {
   onCancel: () => void
 }
 
-const DURATION_PRESETS = [30, 60, 90, 120, 180, 240]
-
 // 时长调整按钮配置（只保留四种间隔）
 const durationAdjustments = [
   { label: '-1小时', minutes: -60 },
@@ -27,7 +26,7 @@ const durationAdjustments = [
 
 export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProps) {
   const [recordTime, setRecordTime] = useState(new Date())
-  const [manualDuration, setManualDuration] = useState<number | undefined>(undefined)
+  const [manualDuration, setManualDuration] = useState<number>(60) // 默认1小时
   const [durationAdjustment, setDurationAdjustment] = useState(0)
 
   // 是否有开始时间（是否从入睡状态过来）
@@ -37,10 +36,9 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
   const baseDuration = startTime ? differenceInMinutes(recordTime, startTime) : 0
   const actualDuration = hasStartTime 
     ? Math.max(0, baseDuration + durationAdjustment) 
-    : manualDuration || 0
+    : manualDuration
 
   const handleSubmit = () => {
-    if (!hasStartTime && !manualDuration) return
     onSubmit({
       recordTime,
       duration: actualDuration,
@@ -50,13 +48,8 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
   const handleDurationAdjust = (minutes: number) => {
     if (hasStartTime) {
       setDurationAdjustment((d) => d + minutes)
-    } else if (manualDuration) {
-      const newDuration = Math.max(1, manualDuration + minutes)
-      setManualDuration(newDuration)
     }
   }
-
-  const canSubmit = hasStartTime || (manualDuration && manualDuration > 0)
 
   // 格式化时长显示
   const formatDuration = (mins: number) => {
@@ -125,53 +118,17 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
         </>
       ) : (
         <>
-          {/* 手动输入睡眠时长（没有开始时间时） */}
-          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4">
-            <p className="text-lg text-amber-600 dark:text-amber-400 mb-3 text-center">
-              请选择宝宝睡了多久
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {DURATION_PRESETS.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setManualDuration(manualDuration === d ? undefined : d)}
-                  className={`p-3 rounded-xl text-lg font-semibold transition-all ${
-                    manualDuration === d
-                      ? 'bg-amber-500 text-white shadow-lg scale-105'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  {d >= 60 ? `${d / 60}小时` : `${d}分钟`}
-                </button>
-              ))}
-            </div>
-            {manualDuration && (
-              <>
-                <p className="text-center mt-4 text-3xl font-bold text-amber-700 dark:text-amber-300">
-                  已选择: {formatDuration(manualDuration)}
-                </p>
-                {/* 微调时长 */}
-                <div className="mt-4 pt-4 border-t border-amber-200 dark:border-amber-800">
-                  <p className="text-base text-amber-600 dark:text-amber-400 mb-2 text-center">微调时长</p>
-                  <div className="grid grid-cols-4 gap-2">
-                    {durationAdjustments.map(({ label, minutes }) => (
-                      <button
-                        key={label}
-                        onClick={() => handleDurationAdjust(minutes)}
-                        className={`p-2.5 rounded-xl text-sm font-semibold transition-all ${
-                          minutes < 0
-                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          {/* 手动输入睡眠时长（没有开始时间时）- 使用滑块 */}
+          <SliderInput
+            value={manualDuration}
+            onChange={setManualDuration}
+            min={15}
+            max={240}
+            step={15}
+            unit="分钟"
+            label="宝宝睡了多久"
+            color="amber"
+          />
         </>
       )}
 
@@ -185,12 +142,7 @@ export function SleepEndForm({ startTime, onSubmit, onCancel }: SleepEndFormProp
         </button>
         <button
           onClick={handleSubmit}
-          disabled={!canSubmit}
-          className={`p-4 rounded-2xl font-semibold text-lg transition-all ${
-            canSubmit
-              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-              : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
-          }`}
+          className="p-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-lg shadow-lg"
         >
           确认记录
         </button>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
+import { SliderInput } from '../SliderInput'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { Check } from 'lucide-react'
@@ -16,8 +17,6 @@ interface BottleFormProps {
   onCancel: () => void
 }
 
-const DURATION_PRESETS = [5, 10, 15, 20, 25, 30]
-const MILK_PRESETS = [30, 60, 90, 120, 150, 180]
 const STORAGE_KEY = 'bottle_form_preferences'
 
 interface Preferences {
@@ -85,14 +84,6 @@ export function BottleForm({ onSubmit, onCancel }: BottleFormProps) {
     })
   }
 
-  const handleDurationAdjust = (change: number) => {
-    setDuration(Math.max(1, duration + change))
-  }
-
-  const handleMilkAdjust = (change: number) => {
-    setMilkAmount(Math.max(10, milkAmount + change))
-  }
-
   return (
     <div className="space-y-6 animate-fade-in">
       {/* 活动图标和名称 */}
@@ -104,122 +95,31 @@ export function BottleForm({ onSubmit, onCancel }: BottleFormProps) {
       </div>
 
       {/* 开始时间 */}
-      <div>
-        <p className="text-base font-medium text-gray-600 dark:text-gray-400 mb-2 text-center">
-          开始时间
-        </p>
-        <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
-      </div>
+      <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
 
-      {/* 奶量 */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4">
-        <p className="text-base font-medium text-blue-600 dark:text-blue-400 mb-3 text-center">
-          奶量
-        </p>
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          {MILK_PRESETS.map((m) => (
-            <button
-              key={m}
-              onClick={() => setMilkAmount(m)}
-              className={`p-3 rounded-xl text-lg font-semibold transition-all ${
-                milkAmount === m
-                  ? 'bg-blue-500 text-white shadow-lg scale-105'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              {m}ml
-            </button>
-          ))}
-        </div>
-        <div className="text-center">
-          <span className="text-4xl font-bold text-blue-700 dark:text-blue-300">
-            {milkAmount}
-          </span>
-          <span className="text-xl text-blue-600 dark:text-blue-400 ml-2">ml</span>
-        </div>
-        {/* 微调按钮 */}
-        <div className="flex justify-center gap-3 mt-3">
-          <button
-            onClick={() => handleMilkAdjust(-30)}
-            className="px-4 py-2 rounded-xl text-base font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-          >
-            -30ml
-          </button>
-          <button
-            onClick={() => handleMilkAdjust(-10)}
-            className="px-4 py-2 rounded-xl text-base font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-          >
-            -10ml
-          </button>
-          <button
-            onClick={() => handleMilkAdjust(10)}
-            className="px-4 py-2 rounded-xl text-base font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-          >
-            +10ml
-          </button>
-          <button
-            onClick={() => handleMilkAdjust(30)}
-            className="px-4 py-2 rounded-xl text-base font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-          >
-            +30ml
-          </button>
-        </div>
-      </div>
+      {/* 奶量 - 滑块输入，10ml 间隔 */}
+      <SliderInput
+        value={milkAmount}
+        onChange={setMilkAmount}
+        min={10}
+        max={200}
+        step={10}
+        unit="ml"
+        label="奶量"
+        color="blue"
+      />
 
-      {/* 喂奶时长 */}
-      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4">
-        <p className="text-base font-medium text-gray-600 dark:text-gray-400 mb-3 text-center">
-          喂奶时长
-        </p>
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          {DURATION_PRESETS.map((d) => (
-            <button
-              key={d}
-              onClick={() => setDuration(d)}
-              className={`p-2 rounded-xl text-base font-semibold transition-all ${
-                duration === d
-                  ? 'bg-gray-600 dark:bg-gray-500 text-white shadow-lg scale-105'
-                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-              }`}
-            >
-              {d}分钟
-            </button>
-          ))}
-        </div>
-        <div className="text-center">
-          <span className="text-2xl font-bold text-gray-700 dark:text-gray-300">
-            {duration}
-          </span>
-          <span className="text-lg text-gray-600 dark:text-gray-400 ml-2">分钟</span>
-        </div>
-        {/* 微调按钮 */}
-        <div className="flex justify-center gap-3 mt-2">
-          <button
-            onClick={() => handleDurationAdjust(-5)}
-            className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-          >
-            -5分钟
-          </button>
-          <button
-            onClick={() => handleDurationAdjust(-1)}
-            className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-          >
-            -1分钟
-          </button>
-          <button
-            onClick={() => handleDurationAdjust(1)}
-            className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-          >
-            +1分钟
-          </button>
-          <button
-            onClick={() => handleDurationAdjust(5)}
-            className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-          >
-            +5分钟
-          </button>
-        </div>
-      </div>
+      {/* 喂奶时长 - 滑块输入 */}
+      <SliderInput
+        value={duration}
+        onChange={setDuration}
+        min={5}
+        max={45}
+        step={1}
+        unit="分钟"
+        label="喂奶时长"
+        color="gray"
+      />
 
       {/* 拍嗝是否成功 */}
       <div>
@@ -289,4 +189,3 @@ export function BottleForm({ onSubmit, onCancel }: BottleFormProps) {
     </div>
   )
 }
-
