@@ -51,6 +51,8 @@ alwaysApply: false
 - 点击时间显示可重置为现在
 
 ### 记住选择功能
+- 点击"记住当前选择"文字按钮切换状态
+- 图标状态: ✓ 绿色 = 已记住，□ 灰色 = 未记住
 - 保存在 localStorage: `breastfeed_form_preferences` / `bottle_form_preferences`
 - 记住内容: 默认时长、默认奶量（瓶喂）、默认拍嗝状态
 - 下次打开表单自动填充
