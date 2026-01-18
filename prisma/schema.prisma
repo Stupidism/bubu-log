@@ -44,6 +44,16 @@ enum PeeAmount {
   LARGE   // 多
 }
 
+// 宝宝资料模型（单例，只存储一个宝宝的信息）
+model BabyProfile {
+  id        String   @id @default("default")
+  name      String?  // 宝宝名字
+  avatarUrl String?  // 头像URL（存储在Vercel Blob）
+  birthDate DateTime? // 出生日期
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // 活动记录模型
 model Activity {
   id              String       @id @default(cuid())

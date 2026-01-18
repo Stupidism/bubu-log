@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
-import { ActivityType, ActivityTypeLabels, ActivityIcons } from '@/types/activity'
+import { ActivityIcon } from '../ActivityIcon'
+import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 
 interface ActivityDurationFormProps {
   type: ActivityType
@@ -38,8 +39,8 @@ export function ActivityDurationForm({ type, onSubmit, onCancel }: ActivityDurat
   return (
     <div className="space-y-6 animate-fade-in">
       {/* 活动图标和名称 */}
-      <div className="text-center">
-        <span className="text-5xl">{ActivityIcons[type]}</span>
+      <div className="text-center flex flex-col items-center">
+        <ActivityIcon type={type} size={48} className="text-gray-700 dark:text-gray-200" />
         <h3 className="text-xl font-bold mt-2 text-gray-800 dark:text-gray-100">
           {ActivityTypeLabels[type]}
         </h3>

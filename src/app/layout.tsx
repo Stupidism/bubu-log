@@ -37,7 +37,12 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased min-h-screen">
+        {/* Mobile-first: 限制最大宽度，PC端保持手机比例 */}
+        <div className="mx-auto max-w-md min-h-screen bg-background shadow-xl">
+          {children}
+        </div>
+      </body>
     </html>
   )
 }

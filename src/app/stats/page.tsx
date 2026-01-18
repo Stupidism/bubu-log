@@ -8,11 +8,24 @@ import {
   Activity,
   ActivityType,
   ActivityTypeLabels,
-  ActivityIcons,
   PoopColorLabels,
   PeeAmountLabels,
   PoopColorStyles,
 } from '@/types/activity'
+import { ActivityIcon } from '@/components/ActivityIcon'
+import { 
+  Moon, 
+  Milk, 
+  Baby, 
+  Target, 
+  BarChart3, 
+  ArrowLeft, 
+  ChevronLeft, 
+  ChevronRight,
+  ClipboardList,
+  Droplet,
+  Check,
+} from 'lucide-react'
 
 interface DaySummary {
   sleepCount: number
@@ -158,7 +171,7 @@ export default function StatsPage() {
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             {activity.hasPoop && (
               <span className="flex items-center gap-1">
-                💩
+                <span className="text-amber-700">Poop</span>
                 {activity.poopColor && (
                   <span
                     className={`w-3 h-3 rounded-full ${PoopColorStyles[activity.poopColor]}`}
@@ -167,23 +180,36 @@ export default function StatsPage() {
               </span>
             )}
             {activity.hasPee && (
-              <span>💧 {activity.peeAmount && PeeAmountLabels[activity.peeAmount]}</span>
+              <span className="flex items-center gap-1">
+                <Droplet size={14} className="text-blue-400" />
+                {activity.peeAmount && PeeAmountLabels[activity.peeAmount]}
+              </span>
             )}
           </div>
         )
       case ActivityType.BREASTFEED_END:
         return (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
             {activity.duration && <span>{activity.duration}分钟</span>}
-            {activity.burpSuccess && <span className="ml-2">✅ 拍嗝</span>}
+            {activity.burpSuccess && (
+              <span className="flex items-center gap-1">
+                <Check size={14} className="text-green-500" />
+                拍嗝
+              </span>
+            )}
           </div>
         )
       case ActivityType.BOTTLE_END:
         return (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
             {activity.milkAmount && <span>{activity.milkAmount}ml</span>}
-            {activity.duration && <span className="ml-2">({activity.duration}分钟)</span>}
-            {activity.burpSuccess && <span className="ml-2">✅ 拍嗝</span>}
+            {activity.duration && <span>({activity.duration}分钟)</span>}
+            {activity.burpSuccess && (
+              <span className="flex items-center gap-1">
+                <Check size={14} className="text-green-500" />
+                拍嗝
+              </span>
+            )}
           </div>
         )
       default:
@@ -202,12 +228,14 @@ export default function StatsPage() {
         <div className="px-4 py-3 flex items-center justify-between">
           <Link
             href="/"
-            className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-sm"
+            className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-sm flex items-center gap-1"
           >
-            ← 返回
+            <ArrowLeft size={16} />
+            返回
           </Link>
-          <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100">
-            📊 数据统计
+          <h1 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
+            <BarChart3 size={20} />
+            数据统计
           </h1>
           <div className="w-16" />
         </div>
@@ -218,7 +246,7 @@ export default function StatsPage() {
             onClick={() => navigateDate(-1)}
             className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
           >
-            ←
+            <ChevronLeft size={20} />
           </button>
           <div className="text-center">
             <p className="text-lg font-bold text-gray-800 dark:text-gray-100">
@@ -233,7 +261,7 @@ export default function StatsPage() {
             className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
             disabled={format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')}
           >
-            →
+            <ChevronRight size={20} />
           </button>
         </div>
       </header>
@@ -245,7 +273,7 @@ export default function StatsPage() {
             {/* 睡眠卡片 */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">😴</span>
+                <Moon size={24} className="text-indigo-500" />
                 <span className="font-semibold text-gray-700 dark:text-gray-300">睡眠</span>
               </div>
               <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
@@ -259,7 +287,7 @@ export default function StatsPage() {
             {/* 喂奶卡片 */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">🍼</span>
+                <Milk size={24} className="text-pink-500" />
                 <span className="font-semibold text-gray-700 dark:text-gray-300">喂奶</span>
               </div>
               <p className="text-2xl font-bold text-pink-600 dark:text-pink-400">
@@ -273,21 +301,26 @@ export default function StatsPage() {
             {/* 尿布卡片 */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">🧷</span>
+                <Baby size={24} className="text-teal-500" />
                 <span className="font-semibold text-gray-700 dark:text-gray-300">尿布</span>
               </div>
               <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
                 {summary.diaperCount} 次
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                💩 {summary.poopCount}次 · 💧 {summary.peeCount}次
+              <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                <span className="text-amber-600">{summary.poopCount}次</span>
+                <span>·</span>
+                <span className="flex items-center gap-0.5">
+                  <Droplet size={12} className="text-blue-400" />
+                  {summary.peeCount}次
+                </span>
               </p>
             </div>
 
             {/* 活动卡片 */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">🎯</span>
+                <Target size={24} className="text-amber-500" />
                 <span className="font-semibold text-gray-700 dark:text-gray-300">活动</span>
               </div>
               <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
@@ -301,8 +334,9 @@ export default function StatsPage() {
 
       {/* 时间线 */}
       <section className="px-4 pb-4">
-        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">
-          📋 今日记录
+        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-1.5">
+          <ClipboardList size={20} />
+          今日记录
         </h2>
 
         {isLoading ? (
@@ -316,7 +350,7 @@ export default function StatsPage() {
                 key={activity.id}
                 className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm flex items-center gap-4"
               >
-                <div className="text-3xl">{ActivityIcons[activity.type]}</div>
+                <ActivityIcon type={activity.type} size={32} className="text-gray-600 dark:text-gray-300" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-gray-800 dark:text-gray-100">

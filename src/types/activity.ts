@@ -84,19 +84,19 @@ export const PeeAmountLabels: Record<PeeAmount, string> = {
   [PeeAmount.LARGE]: '多',
 }
 
-// 活动图标映射
-export const ActivityIcons: Record<ActivityType, string> = {
-  [ActivityType.SLEEP_START]: '😴',
-  [ActivityType.SLEEP_END]: '☀️',
-  [ActivityType.DIAPER]: '🧷',
-  [ActivityType.BREASTFEED_START]: '🤱',
-  [ActivityType.BREASTFEED_END]: '🤱',
-  [ActivityType.BOTTLE_START]: '🍼',
-  [ActivityType.BOTTLE_END]: '🍼',
-  [ActivityType.PASSIVE_EXERCISE]: '🏃',
-  [ActivityType.GAS_EXERCISE]: '💨',
-  [ActivityType.BATH]: '🛁',
-  [ActivityType.OUTDOOR]: '🌞',
-  [ActivityType.EARLY_EDUCATION]: '📚',
+// 活动图标名称映射（用于 Lucide React 图标）
+export const ActivityIconNames: Record<ActivityType, string> = {
+  [ActivityType.SLEEP_START]: 'Moon',
+  [ActivityType.SLEEP_END]: 'Sun',
+  [ActivityType.DIAPER]: 'Baby',
+  [ActivityType.BREASTFEED_START]: 'Heart',
+  [ActivityType.BREASTFEED_END]: 'Heart',
+  [ActivityType.BOTTLE_START]: 'Milk',
+  [ActivityType.BOTTLE_END]: 'Milk',
+  [ActivityType.PASSIVE_EXERCISE]: 'Activity',
+  [ActivityType.GAS_EXERCISE]: 'Wind',
+  [ActivityType.BATH]: 'Bath',
+  [ActivityType.OUTDOOR]: 'SunMedium',
+  [ActivityType.EARLY_EDUCATION]: 'BookOpen',
 }
 

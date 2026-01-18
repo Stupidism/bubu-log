@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { differenceInMinutes } from 'date-fns'
+import { Check, Circle } from 'lucide-react'
 
 interface BreastfeedEndFormProps {
   startTime?: Date
@@ -85,7 +86,8 @@ export function BreastfeedEndForm({ startTime, onSubmit, onCancel }: BreastfeedE
               : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
           }`}
         >
-          {burpSuccess ? '✅' : '⭕'} 拍嗝成功
+          {burpSuccess ? <Check size={20} /> : <Circle size={20} />}
+          拍嗝成功
         </button>
       </div>
 

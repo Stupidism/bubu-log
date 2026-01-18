@@ -1,6 +1,7 @@
 'use client'
 
-import { ActivityType, ActivityTypeLabels, ActivityIcons } from '@/types/activity'
+import { ActivityType, ActivityTypeLabels } from '@/types/activity'
+import { ActivityIcon } from './ActivityIcon'
 
 interface ActivityButtonProps {
   type: ActivityType
@@ -24,7 +25,7 @@ export function ActivityButton({ type, onClick, disabled, variant = 'default' }:
       disabled={disabled}
       className={`big-button ${variantStyles[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
-      <span className="text-3xl mb-1">{ActivityIcons[type]}</span>
+      <ActivityIcon type={type} size={32} className="mb-1" />
       <span className="text-base font-semibold">{ActivityTypeLabels[type]}</span>
     </button>
   )

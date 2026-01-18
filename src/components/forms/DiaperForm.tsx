@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { PoopColor, PeeAmount, PoopColorLabels, PeeAmountLabels, PoopColorStyles } from '@/types/activity'
 import { TimeAdjuster } from '../TimeAdjuster'
+import { Droplet, Circle } from 'lucide-react'
 
 interface DiaperFormProps {
   onSubmit: (data: {
@@ -44,23 +45,25 @@ export function DiaperForm({ onSubmit, onCancel }: DiaperFormProps) {
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => setHasPoop(!hasPoop)}
-            className={`p-4 rounded-2xl text-lg font-semibold transition-all ${
+            className={`p-4 rounded-2xl text-lg font-semibold transition-all flex items-center justify-center gap-2 ${
               hasPoop
                 ? 'bg-amber-500 text-white shadow-lg scale-105'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
             }`}
           >
-            💩 大便
+            <Circle size={20} className="fill-current" />
+            大便
           </button>
           <button
             onClick={() => setHasPee(!hasPee)}
-            className={`p-4 rounded-2xl text-lg font-semibold transition-all ${
+            className={`p-4 rounded-2xl text-lg font-semibold transition-all flex items-center justify-center gap-2 ${
               hasPee
                 ? 'bg-yellow-400 text-white shadow-lg scale-105'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
             }`}
           >
-            💧 小便
+            <Droplet size={20} />
+            小便
           </button>
         </div>
 
@@ -96,15 +99,18 @@ export function DiaperForm({ onSubmit, onCancel }: DiaperFormProps) {
                 <button
                   key={amount}
                   onClick={() => setPeeAmount(amount as PeeAmount)}
-                  className={`p-4 rounded-xl text-lg font-semibold transition-all ${
+                  className={`p-4 rounded-xl font-semibold transition-all flex flex-col items-center gap-1 ${
                     peeAmount === amount
                       ? 'bg-yellow-400 text-white shadow-lg scale-105'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                   }`}
                 >
-                  {amount === 'SMALL' ? '💧' : amount === 'MEDIUM' ? '💧💧' : '💧💧💧'}
-                  <br />
-                  {label}
+                  <div className="flex gap-0.5">
+                    <Droplet size={16} />
+                    {amount !== 'SMALL' && <Droplet size={16} />}
+                    {amount === 'LARGE' && <Droplet size={16} />}
+                  </div>
+                  <span className="text-sm">{label}</span>
                 </button>
               ))}
             </div>

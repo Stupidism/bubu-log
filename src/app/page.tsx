@@ -4,15 +4,18 @@ import { useState, useEffect, useCallback } from 'react'
 import { ActivityButton } from '@/components/ActivityButton'
 import { BottomSheet } from '@/components/BottomSheet'
 import { Toast } from '@/components/Toast'
+import { AvatarUpload } from '@/components/AvatarUpload'
 import {
   DiaperForm,
   BreastfeedEndForm,
   BottleEndForm,
   ActivityDurationForm,
   SimpleActivityForm,
+  SleepEndForm,
 } from '@/components/forms'
 import { ActivityType, ActivityTypeLabels, Activity } from '@/types/activity'
 import Link from 'next/link'
+import { Moon, Milk, Baby as DiaperIcon, Target, BarChart3 } from 'lucide-react'
 
 type FormType = 
   | 'diaper'
@@ -20,6 +23,7 @@ type FormType =
   | 'bottle_end'
   | 'activity_duration'
   | 'simple'
+  | 'sleep_end'
   | null
 
 interface PairedState {
@@ -94,6 +98,19 @@ export default function Home() {
     switch (type) {
       case ActivityType.DIAPER:
         setCurrentForm('diaper')
+        break
+      case ActivityType.SLEEP_END:
+        // 获取入睡时间（如果有的话）
+        if (pairedState.sleep === 'end') {
+          // 有入睡记录，获取开始时间
+          const sleepRes = await fetch('/api/activities/latest?types=SLEEP_START')
+          const sleepData = await sleepRes.json()
+          setStartActivity(sleepData)
+        } else {
+          // 没有入睡记录，清空开始活动
+          setStartActivity(null)
+        }
+        setCurrentForm('sleep_end')
         break
       case ActivityType.BREASTFEED_END:
         // 获取开始亲喂的时间
@@ -172,15 +189,18 @@ export default function Home() {
       {/* 顶部标题栏 */}
       <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-100 dark:border-gray-800">
         <div className="px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-            <span className="text-2xl">👶</span>
-            宝宝日记
-          </h1>
+          <div className="flex items-center gap-3">
+            <AvatarUpload />
+            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+              宝宝日记
+            </h1>
+          </div>
           <Link 
             href="/stats" 
-            className="px-4 py-2 rounded-full bg-primary/10 text-primary font-medium text-sm hover:bg-primary/20 transition-colors"
+            className="px-4 py-2 rounded-full bg-primary/10 text-primary font-medium text-sm hover:bg-primary/20 transition-colors flex items-center gap-1.5"
           >
-            📊 数据
+            <BarChart3 size={16} />
+            数据
           </Link>
         </div>
       </header>
@@ -189,29 +209,31 @@ export default function Home() {
       <div className="p-4 space-y-6">
         {/* 睡眠区域 */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 px-1">
-            😴 睡眠
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 px-1 flex items-center gap-1.5">
+            <Moon size={16} />
+            睡眠
           </h2>
           <div className="grid grid-cols-2 gap-3">
             <ActivityButton
-              type={sleepType}
-              onClick={() => openForm(sleepType)}
+              type={ActivityType.SLEEP_START}
+              onClick={() => openForm(ActivityType.SLEEP_START)}
               variant="sleep"
+              disabled={pairedState.sleep === 'end'}
             />
-            {/* 显示另一个按钮但置灰 */}
+            {/* 睡醒按钮始终可点击 */}
             <ActivityButton
-              type={pairedState.sleep === 'start' ? ActivityType.SLEEP_END : ActivityType.SLEEP_START}
-              onClick={() => {}}
+              type={ActivityType.SLEEP_END}
+              onClick={() => openForm(ActivityType.SLEEP_END)}
               variant="sleep"
-              disabled
             />
           </div>
         </section>
 
         {/* 喂奶区域 */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 px-1">
-            🍼 喂奶
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 px-1 flex items-center gap-1.5">
+            <Milk size={16} />
+            喂奶
           </h2>
           <div className="grid grid-cols-2 gap-3">
             <ActivityButton
@@ -229,8 +251,9 @@ export default function Home() {
 
         {/* 换尿布 */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 px-1">
-            🧷 换尿布
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 px-1 flex items-center gap-1.5">
+            <DiaperIcon size={16} />
+            换尿布
           </h2>
           <ActivityButton
             type={ActivityType.DIAPER}
@@ -241,8 +264,9 @@ export default function Home() {
 
         {/* 其他活动 */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 px-1">
-            🎯 其他活动
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 px-1 flex items-center gap-1.5">
+            <Target size={16} />
+            其他活动
           </h2>
           <div className="grid grid-cols-3 gap-3">
             <ActivityButton
@@ -307,6 +331,13 @@ export default function Home() {
         {currentForm === 'simple' && currentActivityType && (
           <SimpleActivityForm
             type={currentActivityType}
+            onSubmit={submitActivity}
+            onCancel={closeForm}
+          />
+        )}
+        {currentForm === 'sleep_end' && (
+          <SleepEndForm
+            startTime={startActivity ? new Date(startActivity.recordTime) : undefined}
             onSubmit={submitActivity}
             onCancel={closeForm}
           />

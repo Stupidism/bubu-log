@@ -37,12 +37,19 @@
 }
 
 body {
-  background: var(--background);
+  background: var(--muted);
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   overscroll-behavior: none;
+}
+
+/* Mobile-first: PC端显示手机框架效果 */
+@media (min-width: 448px) {
+  body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
 }
 
 /* 大按钮样式 */
