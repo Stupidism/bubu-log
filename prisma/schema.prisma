@@ -13,13 +13,14 @@ datasource db {
 
 // 活动类型枚举 - 保留旧类型用于向后兼容
 enum ActivityType {
-  SLEEP_START      // 入睡
-  SLEEP_END        // 睡醒
+  // 单条记录类型
+  SLEEP            // 睡眠（单条记录：recordTime=入睡时间，duration=睡眠时长，duration为null表示正在睡）
   DIAPER           // 换尿布
-  // 新的单条记录类型
   BREASTFEED       // 亲喂（单条记录包含开始时间和时长）
   BOTTLE           // 瓶喂（单条记录包含开始时间、时长和奶量）
   // 旧的配对类型（保留用于向后兼容）
+  SLEEP_START      // 入睡 (deprecated, 使用 SLEEP 替代)
+  SLEEP_END        // 睡醒 (deprecated, 使用 SLEEP 替代)
   BREASTFEED_START // 开始亲喂 (deprecated)
   BREASTFEED_END   // 结束亲喂 (deprecated)
   BOTTLE_START     // 开始瓶喂 (deprecated)

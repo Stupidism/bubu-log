@@ -1,11 +1,12 @@
 export enum ActivityType {
-  SLEEP_START = 'SLEEP_START',
-  SLEEP_END = 'SLEEP_END',
+  // 单条记录类型
+  SLEEP = 'SLEEP', // 睡眠（recordTime=入睡时间，duration=睡眠时长，duration为null表示正在睡）
   DIAPER = 'DIAPER',
-  // 新的单条记录类型
   BREASTFEED = 'BREASTFEED',
   BOTTLE = 'BOTTLE',
   // 旧的配对类型（保留用于向后兼容）
+  SLEEP_START = 'SLEEP_START', // deprecated
+  SLEEP_END = 'SLEEP_END', // deprecated
   BREASTFEED_START = 'BREASTFEED_START',
   BREASTFEED_END = 'BREASTFEED_END',
   BOTTLE_START = 'BOTTLE_START',
@@ -53,11 +54,13 @@ export interface Activity {
 }
 
 export const ActivityTypeLabels: Record<ActivityType, string> = {
-  [ActivityType.SLEEP_START]: '入睡',
-  [ActivityType.SLEEP_END]: '睡醒',
+  [ActivityType.SLEEP]: '睡眠',
   [ActivityType.DIAPER]: '换尿布',
   [ActivityType.BREASTFEED]: '亲喂',
   [ActivityType.BOTTLE]: '瓶喂',
+  // 旧类型标签（向后兼容）
+  [ActivityType.SLEEP_START]: '入睡',
+  [ActivityType.SLEEP_END]: '睡醒',
   [ActivityType.BREASTFEED_START]: '开始亲喂',
   [ActivityType.BREASTFEED_END]: '结束亲喂',
   [ActivityType.BOTTLE_START]: '开始瓶喂',
@@ -96,11 +99,13 @@ export const PeeAmountLabels: Record<PeeAmount, string> = {
 
 // 活动图标名称映射（用于 Lucide React 图标）
 export const ActivityIconNames: Record<ActivityType, string> = {
-  [ActivityType.SLEEP_START]: 'Moon',
-  [ActivityType.SLEEP_END]: 'Sun',
+  [ActivityType.SLEEP]: 'Moon',
   [ActivityType.DIAPER]: 'Baby',
   [ActivityType.BREASTFEED]: 'Heart',
   [ActivityType.BOTTLE]: 'Milk',
+  // 旧类型图标（向后兼容）
+  [ActivityType.SLEEP_START]: 'Moon',
+  [ActivityType.SLEEP_END]: 'Sun',
   [ActivityType.BREASTFEED_START]: 'Heart',
   [ActivityType.BREASTFEED_END]: 'Heart',
   [ActivityType.BOTTLE_START]: 'Milk',
@@ -115,7 +120,7 @@ export const ActivityIconNames: Record<ActivityType, string> = {
 
 // 活动分类（用于过滤）
 export const ActivityCategories = {
-  sleep: [ActivityType.SLEEP_START, ActivityType.SLEEP_END],
+  sleep: [ActivityType.SLEEP, ActivityType.SLEEP_START, ActivityType.SLEEP_END],
   feeding: [
     ActivityType.BREASTFEED,
     ActivityType.BOTTLE,

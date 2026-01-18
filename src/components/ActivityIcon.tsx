@@ -17,11 +17,13 @@ import {
 import { ActivityType } from '@/types/activity'
 
 const iconMap: Record<ActivityType, LucideIcon> = {
-  [ActivityType.SLEEP_START]: Moon,
-  [ActivityType.SLEEP_END]: Sun,
+  [ActivityType.SLEEP]: Moon,
   [ActivityType.DIAPER]: Baby,
   [ActivityType.BREASTFEED]: Heart,
   [ActivityType.BOTTLE]: Milk,
+  // deprecated types for backward compatibility
+  [ActivityType.SLEEP_START]: Moon,
+  [ActivityType.SLEEP_END]: Sun,
   [ActivityType.BREASTFEED_START]: Heart,
   [ActivityType.BREASTFEED_END]: Heart,
   [ActivityType.BOTTLE_START]: Milk,

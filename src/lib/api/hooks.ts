@@ -88,24 +88,38 @@ export function useUploadActivityPhoto() {
   return $api.useMutation("post", "/activities/upload-photo");
 }
 
-// Sleep state hook - only sleep needs paired state tracking
+// Sleep state hook - tracks if baby is currently sleeping
 export function useSleepState() {
-  const sleepQuery = useLatestActivity("SLEEP_START,SLEEP_END");
+  // 查询最近的 SLEEP 记录（新类型）和旧的 SLEEP_START/SLEEP_END（向后兼容）
+  const sleepQuery = useLatestActivity("SLEEP,SLEEP_START,SLEEP_END");
   
-  // If the latest activity is SLEEP_START, baby is sleeping (show "end" state)
-  // Otherwise, show "start" state
-  const sleepState = sleepQuery.data?.type === "SLEEP_START" ? "end" : "start";
+  // 判断宝宝是否正在睡觉：
+  // - 新类型：SLEEP 记录的 duration 为 null 表示正在睡
+  // - 旧类型（向后兼容）：最近是 SLEEP_START 表示正在睡
+  const isSleeping = sleepQuery.data?.type === "SLEEP" 
+    ? sleepQuery.data?.duration === null 
+    : sleepQuery.data?.type === "SLEEP_START";
   
-  // Get the start activity for sleep end
-  const getSleepStartActivity = useCallback(() => {
-    return sleepQuery.data?.type === "SLEEP_START" ? sleepQuery.data : null;
+  const sleepState = isSleeping ? "end" : "start";
+  
+  // 获取当前睡眠记录（用于更新）
+  const getCurrentSleepActivity = useCallback(() => {
+    if (sleepQuery.data?.type === "SLEEP" && sleepQuery.data?.duration === null) {
+      return sleepQuery.data;
+    }
+    // 旧类型向后兼容
+    if (sleepQuery.data?.type === "SLEEP_START") {
+      return sleepQuery.data;
+    }
+    return null;
   }, [sleepQuery.data]);
   
   return {
     sleepState,
+    isSleeping,
     isLoading: sleepQuery.isLoading,
     isFetching: sleepQuery.isFetching,
-    getSleepStartActivity,
+    getCurrentSleepActivity,
     sleepData: sleepQuery.data,
   };
 }

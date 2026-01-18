@@ -113,10 +113,15 @@ export default function StatsPage() {
       exerciseCount: 0,
     }
 
-    // 睡眠统计
-    const sleepEnds = activities.filter((a) => a.type === 'SLEEP_END')
-    summary.sleepCount = sleepEnds.length
-    summary.totalSleepMinutes = sleepEnds.reduce((acc, a) => acc + (a.duration || 0), 0)
+    // 睡眠统计（兼容新旧两种类型）
+    // 新类型：SLEEP 记录有 duration 表示已完成的睡眠
+    // 旧类型：SLEEP_END 表示睡醒记录
+    const sleepNew = activities.filter((a) => a.type === 'SLEEP' && a.duration !== null)
+    const sleepOld = activities.filter((a) => a.type === 'SLEEP_END')
+    summary.sleepCount = sleepNew.length + sleepOld.length
+    summary.totalSleepMinutes = 
+      sleepNew.reduce((acc, a) => acc + (a.duration || 0), 0) +
+      sleepOld.reduce((acc, a) => acc + (a.duration || 0), 0)
 
     // 尿布统计
     const diapers = activities.filter((a) => a.type === 'DIAPER')
@@ -297,6 +302,7 @@ export default function StatsPage() {
             isEditing
           />
         )
+      case ActivityType.SLEEP:
       case ActivityType.SLEEP_END:
         return (
           <SleepEndForm
@@ -405,12 +411,17 @@ export default function StatsPage() {
             )}
           </div>
         )
+      case 'SLEEP':
       case 'SLEEP_END':
         return activity.duration ? (
           <span className="text-base text-amber-600 dark:text-amber-400 font-medium">
-            睡了 {formatDuration(activity.duration)}
+            {formatTimeRange(activity.recordTime, activity.duration)} ({formatDuration(activity.duration)})
           </span>
-        ) : null
+        ) : (
+          <span className="text-base text-amber-500 dark:text-amber-400 animate-pulse">
+            正在睡觉...
+          </span>
+        )
       default:
         return activity.duration ? (
           <span className="text-base text-gray-600 dark:text-gray-400">

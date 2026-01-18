@@ -18,7 +18,7 @@ import {
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import Link from 'next/link'
 import { Moon, Milk, Baby as DiaperIcon, Target, BarChart3 } from 'lucide-react'
-import { useSleepState, useCreateActivity } from '@/lib/api/hooks'
+import { useSleepState, useCreateActivity, useUpdateActivity } from '@/lib/api/hooks'
 import type { components } from '@/lib/api/openapi-types'
 
 type FormType = 
@@ -27,10 +27,11 @@ type FormType =
   | 'bottle'
   | 'activity_duration'
   | 'simple'
+  | 'sleep_start'
   | 'sleep_end'
   | null
 
-interface StartActivityData {
+interface SleepActivityData {
   id: string
   recordTime: string
 }
@@ -40,14 +41,15 @@ export default function Home() {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [currentForm, setCurrentForm] = useState<FormType>(null)
   const [currentActivityType, setCurrentActivityType] = useState<ActivityType | null>(null)
-  const [startActivity, setStartActivity] = useState<StartActivityData | null>(null)
+  const [currentSleepActivity, setCurrentSleepActivity] = useState<SleepActivityData | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
-  // 只保留睡眠的配对状态
-  const { sleepState, isFetching: sleepFetching, getSleepStartActivity } = useSleepState()
+  // 睡眠状态
+  const { sleepState, isSleeping, isFetching: sleepFetching, getCurrentSleepActivity } = useSleepState()
   
-  // Mutation for creating activities
+  // Mutation for creating and updating activities
   const createActivity = useCreateActivity()
+  const updateActivity = useUpdateActivity()
 
   // 下拉刷新处理
   const handleRefresh = useCallback(async () => {
@@ -63,13 +65,17 @@ export default function Home() {
       case ActivityType.DIAPER:
         setCurrentForm('diaper')
         break
+      case ActivityType.SLEEP:
+        // 入睡：创建新的 SLEEP 记录，duration=null
+        setCurrentForm('sleep_start')
+        break
       case ActivityType.SLEEP_END:
-        // 获取入睡时间（如果有的话）
-        if (sleepState === 'end') {
-          const sleepData = getSleepStartActivity()
-          setStartActivity(sleepData ? { id: sleepData.id, recordTime: sleepData.recordTime } : null)
+        // 睡醒：如果有正在进行的睡眠记录，更新它；否则手动输入时长
+        if (isSleeping) {
+          const sleepData = getCurrentSleepActivity()
+          setCurrentSleepActivity(sleepData ? { id: sleepData.id, recordTime: sleepData.recordTime } : null)
         } else {
-          setStartActivity(null)
+          setCurrentSleepActivity(null)
         }
         setCurrentForm('sleep_end')
         break
@@ -92,16 +98,46 @@ export default function Home() {
     }
 
     setIsSheetOpen(true)
-  }, [sleepState, getSleepStartActivity])
+  }, [isSleeping, getCurrentSleepActivity])
 
   // 提交活动记录
   const submitActivity = useCallback(async (data: Record<string, unknown>) => {
-    if (createActivity.isPending) return
+    if (createActivity.isPending || updateActivity.isPending) return
+
+    // 睡醒：如果有正在进行的睡眠记录，更新它
+    if (currentForm === 'sleep_end' && currentSleepActivity) {
+      updateActivity.mutate(
+        {
+          params: { path: { id: currentSleepActivity.id } },
+          body: {
+            duration: data.duration as number,
+          },
+        },
+        {
+          onSuccess: () => {
+            setToast({ message: '记录成功！', type: 'success' })
+            setIsSheetOpen(false)
+            setCurrentForm(null)
+            setCurrentSleepActivity(null)
+          },
+          onError: (error) => {
+            console.error('Failed to update sleep activity:', error)
+            setToast({ message: '记录失败，请重试', type: 'error' })
+          },
+        }
+      )
+      return
+    }
+
+    // 入睡：创建 SLEEP 记录，duration=null
+    const activityType = currentForm === 'sleep_start' 
+      ? 'SLEEP' as components["schemas"]["ActivityType"]
+      : currentActivityType as components["schemas"]["ActivityType"]
 
     createActivity.mutate(
       {
         body: {
-          type: currentActivityType as components["schemas"]["ActivityType"],
+          type: activityType,
           recordTime: (data.recordTime as Date).toISOString(),
           ...(data.hasPoop !== undefined && { hasPoop: data.hasPoop as boolean }),
           ...(data.hasPee !== undefined && { hasPee: data.hasPee as boolean }),
@@ -111,7 +147,6 @@ export default function Home() {
           ...(data.burpSuccess !== undefined && { burpSuccess: data.burpSuccess as boolean }),
           ...(data.duration !== undefined && { duration: data.duration as number }),
           ...(data.milkAmount !== undefined && { milkAmount: data.milkAmount as number }),
-          ...(startActivity?.id && { sleepStartId: startActivity.id }),
           ...(data.notes !== undefined && { notes: data.notes as string }),
         },
       },
@@ -120,7 +155,7 @@ export default function Home() {
           setToast({ message: '记录成功！', type: 'success' })
           setIsSheetOpen(false)
           setCurrentForm(null)
-          setStartActivity(null)
+          setCurrentSleepActivity(null)
         },
         onError: (error) => {
           console.error('Failed to submit activity:', error)
@@ -128,14 +163,14 @@ export default function Home() {
         },
       }
     )
-  }, [createActivity, currentActivityType, startActivity?.id])
+  }, [createActivity, updateActivity, currentActivityType, currentForm, currentSleepActivity])
 
   // 关闭表单
   const closeForm = useCallback(() => {
     setIsSheetOpen(false)
     setCurrentForm(null)
     setCurrentActivityType(null)
-    setStartActivity(null)
+    setCurrentSleepActivity(null)
   }, [])
 
   return (
@@ -170,15 +205,17 @@ export default function Home() {
             </h2>
             <div className="grid grid-cols-2 gap-3">
               <ActivityButton
-                type={ActivityType.SLEEP_START}
-                onClick={() => openForm(ActivityType.SLEEP_START)}
+                type={ActivityType.SLEEP}
+                label="入睡"
+                onClick={() => openForm(ActivityType.SLEEP)}
                 variant="sleep"
-                disabled={sleepState === 'end'}
+                disabled={isSleeping}
                 loading={sleepFetching}
               />
               {/* 睡醒按钮始终可点击 */}
               <ActivityButton
                 type={ActivityType.SLEEP_END}
+                label="睡醒"
                 onClick={() => openForm(ActivityType.SLEEP_END)}
                 variant="sleep"
                 loading={sleepFetching}
@@ -295,9 +332,16 @@ export default function Home() {
               onCancel={closeForm}
             />
           )}
+          {currentForm === 'sleep_start' && (
+            <SimpleActivityForm
+              type={ActivityType.SLEEP}
+              onSubmit={submitActivity}
+              onCancel={closeForm}
+            />
+          )}
           {currentForm === 'sleep_end' && (
             <SleepEndForm
-              startTime={startActivity ? new Date(startActivity.recordTime) : undefined}
+              startTime={currentSleepActivity ? new Date(currentSleepActivity.recordTime) : undefined}
               onSubmit={submitActivity}
               onCancel={closeForm}
             />

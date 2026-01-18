@@ -117,7 +117,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        ActivityType: "SLEEP_START" | "SLEEP_END" | "DIAPER" | "BREASTFEED" | "BOTTLE" | "BREASTFEED_START" | "BREASTFEED_END" | "BOTTLE_START" | "BOTTLE_END" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION";
+        ActivityType: "SLEEP" | "DIAPER" | "BREASTFEED" | "BOTTLE" | "SLEEP_START" | "SLEEP_END" | "BREASTFEED_START" | "BREASTFEED_END" | "BOTTLE_START" | "BOTTLE_END" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION";
         /** @enum {string} */
         PoopColor: "YELLOW" | "GREEN" | "BROWN" | "BLACK" | "WHITE" | "RED";
         /** @enum {string} */

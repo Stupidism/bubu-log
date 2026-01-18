@@ -322,11 +322,13 @@ components:
     ActivityType:
       type: string
       enum:
-        - SLEEP_START
-        - SLEEP_END
+        - SLEEP
         - DIAPER
         - BREASTFEED
         - BOTTLE
+        # deprecated types for backward compatibility
+        - SLEEP_START
+        - SLEEP_END
         - BREASTFEED_START
         - BREASTFEED_END
         - BOTTLE_START

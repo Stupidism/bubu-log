@@ -12,13 +12,19 @@ alwaysApply: false
 
 ## Core Components
 
-**数据模型:**
-- `Activity` - type: `SLEEP_START` | `SLEEP_END`
-- `sleepStartId` - 关联入睡记录（用于计算时长，仅 SLEEP_END）
-- `duration` - 睡眠时长（分钟，补录时使用）
+**数据模型（单条记录模式）:**
+- `Activity` - type: `SLEEP`
+- `recordTime` - 入睡时间
+- `duration` - 睡眠时长（分钟）
+  - `null` 表示正在睡觉
+  - 有值表示睡眠已完成
+
+**向后兼容:**
+- 旧类型 `SLEEP_START` / `SLEEP_END` 保留用于读取历史数据
+- 新记录统一使用 `SLEEP` 类型
 
 **组件:**
-- `SleepEndForm` - 睡醒表单，支持自动计算或手动输入时长
+- `SleepEndForm` - 睡醒表单，支持更新现有记录或手动输入时长
 - `ActivityButton` - 入睡/睡醒按钮
 - `TimeAdjuster` - 时间滑块+微调组件
 - `SliderInput` - 通用滑块输入组件（用于补录时长）
@@ -26,19 +32,21 @@ alwaysApply: false
 ## How It Works
 
 ### 标准流程（先入睡后睡醒）
-1. 用户点击"入睡"按钮，记录 `SLEEP_START`
-2. "入睡"按钮变为禁用状态
-3. 用户点击"睡醒"按钮
-4. 系统自动获取入睡时间，计算睡眠时长
-5. 显示睡眠时长，支持微调（-1小时/-15分/-5分/+1分）
-6. 记录 `SLEEP_END`，关联 `sleepStartId`
+1. 用户点击"入睡"按钮
+2. 创建 `SLEEP` 记录，`recordTime` = 入睡时间，`duration` = null
+3. "入睡"按钮变为禁用状态（检测到 duration=null 的 SLEEP 记录）
+4. 用户点击"睡醒"按钮
+5. 系统找到 `duration` 为 null 的 `SLEEP` 记录
+6. 自动计算睡眠时长（当前时间 - recordTime）
+7. 显示睡眠时长，支持微调（-1小时/-15分/-5分/+1分）
+8. **更新**现有 `SLEEP` 记录，设置 `duration` 值
 
 ### 补录流程（直接点睡醒）
 1. 用户直接点击"睡醒"按钮（没有先点入睡）
 2. `SleepEndForm` 显示时长滑块（15-240分钟，15分钟间隔）
 3. 用户拖动滑块选择睡眠时长
 4. 可用微调按钮细调（±15分钟/±75分钟）
-5. 记录 `SLEEP_END`，`duration` 为用户选择的时长
+5. **创建新的** `SLEEP` 记录，同时设置 `recordTime`（根据duration回推）和 `duration`
 
 ### 时间选择器（TimeAdjuster）
 - **滑块**: 范围从"1小时前"到"现在"，5分钟间隔
@@ -47,9 +55,11 @@ alwaysApply: false
 - 不允许超过当前时间
 
 ### 状态管理
-- `sleepState` 追踪当前状态：`'start'` | `'end'`
-- 使用 `useSleepState()` hook 获取状态
-- 当宝宝已入睡时，"入睡"按钮 disabled
+- `useSleepState()` hook 返回：
+  - `isSleeping` - 是否正在睡觉（有 duration=null 的 SLEEP 记录）
+  - `sleepState` - `'start'` | `'end'`
+  - `getCurrentSleepActivity()` - 获取当前正在进行的睡眠记录
+- 当 `isSleeping = true` 时，"入睡"按钮 disabled
 
 ## Key Files
 - `src/components/forms/SleepEndForm.tsx` - 睡醒表单组件
@@ -64,6 +74,13 @@ alwaysApply: false
 - 滑块范围：1小时前 ~ 现在，5分钟间隔
 - 微调按钮：4列布局，颜色区分（减少=蓝色，增加=绿色）
 - 补录时长：滑块输入（15-240分钟，15分钟间隔）
+
+## 数据统计
+- 统计时同时兼容新旧两种类型：
+  - 新类型：`SLEEP` 且 `duration !== null` 的记录
+  - 旧类型：`SLEEP_END` 记录
+- 显示格式：时间范围 + 时长（如 "22:30 - 06:30 (8小时)"）
+- 正在睡觉显示"正在睡觉..."带动画效果
 
 ## Future Improvements
 - 睡眠质量评估（好/一般/差）

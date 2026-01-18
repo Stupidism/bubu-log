@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react'
 
 interface ActivityButtonProps {
   type: ActivityType
+  label?: string // 可选的自定义标签
   onClick: () => void
   disabled?: boolean
   loading?: boolean
@@ -20,8 +21,9 @@ const variantStyles = {
   activity: 'bg-gradient-to-br from-amber-400 to-orange-500 text-white',
 }
 
-export function ActivityButton({ type, onClick, disabled, loading, variant = 'default' }: ActivityButtonProps) {
+export function ActivityButton({ type, label, onClick, disabled, loading, variant = 'default' }: ActivityButtonProps) {
   const isDisabled = disabled || loading
+  const displayLabel = label || ActivityTypeLabels[type]
 
   return (
     <button
@@ -34,7 +36,7 @@ export function ActivityButton({ type, onClick, disabled, loading, variant = 'de
       ) : (
         <ActivityIcon type={type} size={32} className="mb-1" />
       )}
-      <span className="text-base font-semibold">{ActivityTypeLabels[type]}</span>
+      <span className="text-base font-semibold">{displayLabel}</span>
     </button>
   )
 }
