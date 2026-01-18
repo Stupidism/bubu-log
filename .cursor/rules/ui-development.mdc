@@ -28,13 +28,3 @@ globs:
 ### 图标规范
 - 使用 Lucide React 图标库，不使用 emoji
 - 图标映射集中在 `src/components/ActivityIcon.tsx`
-
-### 头像功能
-- 宝宝头像上传到 Vercel Blob Storage
-- 头像 URL 存储在数据库 `BabyProfile` 表中
-- 支持压缩到 200x200 像素
-
-### 睡眠记录逻辑
-- "睡醒" 按钮可以在没有按过 "入睡" 的情况下直接点击
-- 此时 SleepEndForm 会显示时长预设选项（30, 60, 90, 120, 180, 240 分钟）
-- 如果有 "入睡" 记录，则自动计算睡眠时长

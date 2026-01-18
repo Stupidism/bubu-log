@@ -1,0 +1,60 @@
+---
+description: 喂奶记录功能 - 追踪亲喂和瓶喂
+globs:
+  - "src/components/forms/BreastfeedEndForm.tsx"
+  - "src/components/forms/BottleEndForm.tsx"
+alwaysApply: false
+---
+
+# 喂奶记录
+
+追踪宝宝的喂奶情况，支持亲喂（母乳直接喂）和瓶喂（奶瓶喂）两种模式。
+
+## Core Components
+
+**数据模型:**
+- `Activity` - type: `BREASTFEED_START` | `BREASTFEED_END` | `BOTTLE_START` | `BOTTLE_END`
+- `duration` - 喂奶时长（分钟）
+- `milkAmount` - 奶量（毫升，仅瓶喂）
+- `burpSuccess` - 拍嗝是否成功
+
+**组件:**
+- `BreastfeedEndForm` - 亲喂结束表单
+- `BottleEndForm` - 瓶喂结束表单
+- `ActivityDurationForm` - 通用时长表单
+
+## How It Works
+
+### 亲喂流程
+1. 点击"开始亲喂"，记录 `BREASTFEED_START`
+2. 喂奶进行中...
+3. 点击"结束亲喂"，打开 `BreastfeedEndForm`
+4. 自动计算喂奶时长
+5. 选择拍嗝状态（成功/未成功）
+6. 记录 `BREASTFEED_END`
+
+### 瓶喂流程
+1. 点击"开始瓶喂"，记录 `BOTTLE_START`
+2. 喂奶进行中...
+3. 点击"结束瓶喂"，打开 `BottleEndForm`
+4. 自动计算喂奶时长
+5. 输入奶量（基准：50/100/150ml，微调：±10ml）
+6. 选择拍嗝状态
+7. 记录 `BOTTLE_END`
+
+### 状态管理
+- `pairedState.breastfeed` - 亲喂状态
+- `pairedState.bottle` - 瓶喂状态
+- 开始后按钮切换为"结束"
+
+## Key Files
+- `src/components/forms/BreastfeedEndForm.tsx` - 亲喂结束表单
+- `src/components/forms/BottleEndForm.tsx` - 瓶喂结束表单
+- `src/app/page.tsx` - 主页面
+- `src/types/activity.ts` - 类型定义
+
+## Future Improvements
+- 喂奶侧记录（左侧/右侧/两侧）
+- 每日奶量统计
+- 喂奶间隔提醒
+- 奶量趋势图表

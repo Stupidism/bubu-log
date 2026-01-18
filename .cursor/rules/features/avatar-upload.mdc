@@ -1,0 +1,65 @@
+---
+description: 头像上传功能 - 上传宝宝头像到 Vercel Blob Storage
+globs:
+  - "src/components/AvatarUpload.tsx"
+  - "src/app/api/baby-profile/**"
+alwaysApply: false
+---
+
+# 头像上传
+
+允许用户上传宝宝头像，存储在 Vercel Blob Storage，URL 保存在数据库。
+
+## Core Components
+
+**数据模型:**
+- `BabyProfile` - 宝宝资料表
+  - `id` - 固定为 "default"（单例模式）
+  - `avatarUrl` - 头像 URL（Vercel Blob）
+  - `name` - 宝宝名字（可选）
+  - `birthDate` - 出生日期（可选）
+
+**组件:**
+- `AvatarUpload` - 头像上传组件，支持预览、上传、删除
+
+**API Routes:**
+- `GET /api/baby-profile` - 获取宝宝资料
+- `PATCH /api/baby-profile` - 更新宝宝资料
+- `POST /api/baby-profile/avatar` - 上传头像
+- `DELETE /api/baby-profile/avatar` - 删除头像
+
+## How It Works
+
+### 上传流程
+1. 用户点击头像区域，触发文件选择
+2. 选择图片文件（限制 5MB，仅图片类型）
+3. 前端显示 loading 状态
+4. 调用 `POST /api/baby-profile/avatar`
+5. 后端删除旧头像（如有），上传新头像到 Vercel Blob
+6. 更新数据库 `BabyProfile.avatarUrl`
+7. 返回新头像 URL，前端更新显示
+
+### 删除流程
+1. 用户 hover 头像，显示删除按钮
+2. 点击删除，调用 `DELETE /api/baby-profile/avatar`
+3. 后端从 Vercel Blob 删除文件
+4. 清空数据库 `BabyProfile.avatarUrl`
+
+### 加载流程
+1. 组件挂载时调用 `GET /api/baby-profile`
+2. 如有 `avatarUrl`，显示头像图片
+3. 否则显示默认图标（Baby + Camera）
+
+## Environment Variables
+- `BLOB_READ_WRITE_TOKEN` - Vercel Blob 读写 token
+
+## Key Files
+- `src/components/AvatarUpload.tsx` - 头像上传组件
+- `src/app/api/baby-profile/route.ts` - 资料 API
+- `src/app/api/baby-profile/avatar/route.ts` - 头像上传 API
+- `prisma/schema.prisma` - BabyProfile 模型
+
+## Future Improvements
+- 图片裁剪（上传前裁剪为圆形）
+- 多宝宝支持（切换不同宝宝）
+- 宝宝资料编辑页面（名字、生日等）

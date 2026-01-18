@@ -1,0 +1,59 @@
+---
+description: 其他活动功能 - 被动操、排气操、洗澡、户外、早教
+globs:
+  - "src/components/forms/SimpleActivityForm.tsx"
+  - "src/components/forms/ActivityDurationForm.tsx"
+alwaysApply: false
+---
+
+# 其他活动
+
+记录宝宝的日常活动，包括运动、清洁和教育类活动。
+
+## Core Components
+
+**数据模型:**
+- `Activity` - type: `PASSIVE_EXERCISE` | `GAS_EXERCISE` | `BATH` | `OUTDOOR` | `EARLY_EDUCATION`
+- `duration` - 活动时长（分钟，可选）
+- `notes` - 备注（可选）
+
+**活动类型:**
+| Type | 名称 | 图标 | 说明 |
+|------|------|------|------|
+| `PASSIVE_EXERCISE` | 被动操 | Activity | 帮助宝宝活动四肢 |
+| `GAS_EXERCISE` | 排气操 | Wind | 帮助排出肠道气体 |
+| `BATH` | 洗澡 | Bath | 沐浴清洁 |
+| `OUTDOOR` | 户外晒太阳 | SunMedium | 户外活动，补充维生素D |
+| `EARLY_EDUCATION` | 早教 | BookOpen | 早期教育活动 |
+
+**组件:**
+- `SimpleActivityForm` - 简单活动表单（只记录时间）
+- `ActivityDurationForm` - 带时长的活动表单
+
+## How It Works
+
+### 简单记录
+1. 点击活动按钮（如"洗澡"）
+2. 打开 `SimpleActivityForm`
+3. 确认或调整时间
+4. 记录活动
+
+### 带时长记录
+1. 点击活动按钮（如"被动操"）
+2. 打开 `ActivityDurationForm`
+3. 确认或调整时间
+4. 输入活动时长
+5. 记录活动
+
+## Key Files
+- `src/components/forms/SimpleActivityForm.tsx` - 简单活动表单
+- `src/components/forms/ActivityDurationForm.tsx` - 时长活动表单
+- `src/components/ActivityButton.tsx` - 活动按钮
+- `src/components/ActivityIcon.tsx` - 活动图标映射
+- `src/types/activity.ts` - ActivityType 枚举
+
+## Future Improvements
+- 活动模板（常用活动组合）
+- 活动提醒（每日必做活动清单）
+- 活动统计（每周运动时长等）
+- 自定义活动类型

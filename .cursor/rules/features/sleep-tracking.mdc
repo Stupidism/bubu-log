@@ -1,0 +1,50 @@
+---
+description: 睡眠记录功能 - 追踪宝宝的入睡和睡醒时间
+globs:
+  - "src/components/forms/SleepEndForm.tsx"
+  - "src/app/page.tsx"
+alwaysApply: false
+---
+
+# 睡眠记录
+
+追踪宝宝的睡眠模式，包括入睡时间、睡醒时间和睡眠时长。
+
+## Core Components
+
+**数据模型:**
+- `Activity` - type: `SLEEP_START` | `SLEEP_END`
+- `startActivityId` - 关联入睡记录（用于计算时长）
+
+**组件:**
+- `SleepEndForm` - 睡醒表单，支持自动计算或手动输入时长
+- `ActivityButton` - 入睡/睡醒按钮
+
+## How It Works
+
+### 标准流程（先入睡后睡醒）
+1. 用户点击"入睡"按钮，记录 `SLEEP_START`
+2. 用户点击"睡醒"按钮
+3. 系统自动计算睡眠时长（睡醒时间 - 入睡时间）
+4. 记录 `SLEEP_END`，关联 `startActivityId`
+
+### 补录流程（直接点睡醒）
+1. 用户直接点击"睡醒"按钮（没有先点入睡）
+2. `SleepEndForm` 显示时长预设选项：30, 60, 90, 120, 180, 240 分钟
+3. 用户选择睡眠时长
+4. 记录 `SLEEP_END`，`duration` 为用户选择的时长
+
+### 状态管理
+- `pairedState.sleep` 追踪当前状态：`'start'` | `'end'`
+- 当宝宝已入睡时，"入睡"按钮 disabled
+
+## Key Files
+- `src/components/forms/SleepEndForm.tsx` - 睡醒表单组件
+- `src/app/page.tsx` - 主页面，管理 pairedState
+- `src/app/api/activities/route.ts` - API 路由
+- `prisma/schema.prisma` - Activity 模型定义
+
+## Future Improvements
+- 睡眠质量评估（好/一般/差）
+- 睡眠统计图表（每日/每周睡眠时长）
+- 睡眠提醒（设定目标睡眠时长）
