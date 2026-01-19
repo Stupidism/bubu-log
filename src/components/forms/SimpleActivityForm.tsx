@@ -23,16 +23,16 @@ export function SimpleActivityForm({ type, onSubmit, onCancel }: SimpleActivityF
   // 根据活动类型选择颜色
   const getGradient = () => {
     switch (type) {
-      case ActivityType.SLEEP_START:
+      case ActivityType.SLEEP:
         return 'from-indigo-500 to-purple-500'
-      case ActivityType.SLEEP_END:
-        return 'from-amber-400 to-orange-500'
-      case ActivityType.BREASTFEED_START:
+      case ActivityType.BREASTFEED:
         return 'from-pink-500 to-rose-500'
-      case ActivityType.BOTTLE_START:
+      case ActivityType.BOTTLE:
         return 'from-blue-500 to-indigo-500'
+      case ActivityType.DIAPER:
+        return 'from-cyan-500 to-teal-500'
       default:
-        return 'from-gray-500 to-gray-600'
+        return 'from-amber-500 to-orange-500'
     }
   }
 

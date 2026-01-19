@@ -19,13 +19,9 @@ alwaysApply: false
   - `null` 表示正在睡觉
   - 有值表示睡眠已完成
 
-**向后兼容:**
-- 旧类型 `SLEEP_START` / `SLEEP_END` 保留用于读取历史数据
-- 新记录统一使用 `SLEEP` 类型
-
 **组件:**
 - `SleepEndForm` - 睡醒表单，支持更新现有记录或手动输入时长
-- `ActivityButton` - 入睡/睡醒按钮
+- `ActivityButton` - 入睡按钮
 - `TimeAdjuster` - 时间滑块+微调组件
 - `SliderInput` - 通用滑块输入组件（用于补录时长）
 
@@ -76,9 +72,7 @@ alwaysApply: false
 - 补录时长：滑块输入（15-240分钟，15分钟间隔）
 
 ## 数据统计
-- 统计时同时兼容新旧两种类型：
-  - 新类型：`SLEEP` 且 `duration !== null` 的记录
-  - 旧类型：`SLEEP_END` 记录
+- 统计 `SLEEP` 且 `duration !== null` 的记录
 - 显示格式：时间范围 + 时长（如 "22:30 - 06:30 (8小时)"）
 - 正在睡觉显示"正在睡觉..."带动画效果
 

@@ -44,7 +44,7 @@ function ActivityList() {
   const handleSubmit = () => {
     createActivity.mutate({
       body: {
-        type: 'SLEEP_START',
+        type: 'SLEEP',
         recordTime: new Date().toISOString(),
       },
     })
@@ -66,7 +66,7 @@ function MyComponent() {
   // POST/PATCH/DELETE
   const mutation = $api.useMutation("post", "/activities")
   mutation.mutate({
-    body: { type: 'SLEEP_START', recordTime: new Date().toISOString() },
+    body: { type: 'SLEEP', recordTime: new Date().toISOString() },
   })
 }
 ```
@@ -80,7 +80,8 @@ function MyComponent() {
 - `useCreateActivity()` - 创建活动
 - `useUpdateActivity()` - 更新活动
 - `useDeleteActivity()` - 删除活动
-- `usePairedActivityStates()` - 获取配对活动状态（睡眠/喂奶的开始/结束）
+- `useBatchDeleteActivities()` - 批量删除活动
+- `useSleepState()` - 获取睡眠状态
 
 ### Baby Profile
 - `useBabyProfile()` - 获取宝宝资料

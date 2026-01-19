@@ -73,9 +73,9 @@ export function SleepEndForm({ startTime, onSubmit, onCancel, initialValues, isE
     <div className="space-y-6 animate-fade-in">
       {/* 活动图标和名称 */}
       <div className="text-center flex flex-col items-center">
-        <ActivityIcon type={ActivityType.SLEEP_END} size={48} className="text-amber-500" />
+        <ActivityIcon type={ActivityType.SLEEP} size={48} className="text-amber-500" />
         <h3 className="text-xl font-bold mt-2 text-gray-800 dark:text-gray-100">
-          {ActivityTypeLabels[ActivityType.SLEEP_END]}
+          睡醒
         </h3>
       </div>
 
