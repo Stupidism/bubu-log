@@ -16,7 +16,8 @@ export interface paths {
         put?: never;
         /** Create new activity */
         post: operations["createActivity"];
-        delete?: never;
+        /** Batch delete activities */
+        delete: operations["batchDeleteActivities"];
         options?: never;
         head?: never;
         patch?: never;
@@ -117,7 +118,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        ActivityType: "SLEEP" | "DIAPER" | "BREASTFEED" | "BOTTLE" | "SLEEP_START" | "SLEEP_END" | "BREASTFEED_START" | "BREASTFEED_END" | "BOTTLE_START" | "BOTTLE_END" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION";
+        ActivityType: "SLEEP" | "DIAPER" | "BREASTFEED" | "BOTTLE" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION";
         /** @enum {string} */
         PoopColor: "YELLOW" | "GREEN" | "BROWN" | "BLACK" | "WHITE" | "RED";
         /** @enum {string} */
@@ -139,7 +140,6 @@ export interface components {
             burpSuccess?: boolean | null;
             duration?: number | null;
             milkAmount?: number | null;
-            startActivityId?: string | null;
             notes?: string | null;
         };
         CreateActivityInput: {
@@ -154,8 +154,6 @@ export interface components {
             burpSuccess?: boolean;
             duration?: number;
             milkAmount?: number;
-            startActivityId?: string;
-            sleepStartId?: string;
             notes?: string;
         };
         UpdateActivityInput: {
@@ -170,8 +168,6 @@ export interface components {
             burpSuccess?: boolean;
             duration?: number;
             milkAmount?: number;
-            startActivityId?: string;
-            sleepStartId?: string;
             notes?: string;
         };
         BabyProfile: {
@@ -261,6 +257,36 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Activity"];
+                };
+            };
+            500: components["responses"]["ServerError"];
+        };
+    };
+    batchDeleteActivities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    ids: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Deletion success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success?: boolean;
+                        count?: number;
+                    };
                 };
             };
             500: components["responses"]["ServerError"];

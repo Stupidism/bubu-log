@@ -1,17 +1,8 @@
 export enum ActivityType {
-  // 单条记录类型
-  SLEEP = 'SLEEP', // 睡眠（recordTime=入睡时间，duration=睡眠时长，duration为null表示正在睡）
+  SLEEP = 'SLEEP',
   DIAPER = 'DIAPER',
   BREASTFEED = 'BREASTFEED',
   BOTTLE = 'BOTTLE',
-  // 旧的配对类型（保留用于向后兼容）
-  SLEEP_START = 'SLEEP_START', // deprecated
-  SLEEP_END = 'SLEEP_END', // deprecated
-  BREASTFEED_START = 'BREASTFEED_START',
-  BREASTFEED_END = 'BREASTFEED_END',
-  BOTTLE_START = 'BOTTLE_START',
-  BOTTLE_END = 'BOTTLE_END',
-  // 其他活动
   HEAD_LIFT = 'HEAD_LIFT',
   PASSIVE_EXERCISE = 'PASSIVE_EXERCISE',
   GAS_EXERCISE = 'GAS_EXERCISE',
@@ -49,7 +40,6 @@ export interface Activity {
   burpSuccess?: boolean | null
   duration?: number | null
   milkAmount?: number | null
-  startActivityId?: string | null
   notes?: string | null
 }
 
@@ -58,13 +48,6 @@ export const ActivityTypeLabels: Record<ActivityType, string> = {
   [ActivityType.DIAPER]: '换尿布',
   [ActivityType.BREASTFEED]: '亲喂',
   [ActivityType.BOTTLE]: '瓶喂',
-  // 旧类型标签（向后兼容）
-  [ActivityType.SLEEP_START]: '入睡',
-  [ActivityType.SLEEP_END]: '睡醒',
-  [ActivityType.BREASTFEED_START]: '开始亲喂',
-  [ActivityType.BREASTFEED_END]: '结束亲喂',
-  [ActivityType.BOTTLE_START]: '开始瓶喂',
-  [ActivityType.BOTTLE_END]: '结束瓶喂',
   [ActivityType.HEAD_LIFT]: '抬头',
   [ActivityType.PASSIVE_EXERCISE]: '被动操',
   [ActivityType.GAS_EXERCISE]: '排气操',
@@ -103,13 +86,6 @@ export const ActivityIconNames: Record<ActivityType, string> = {
   [ActivityType.DIAPER]: 'Baby',
   [ActivityType.BREASTFEED]: 'Heart',
   [ActivityType.BOTTLE]: 'Milk',
-  // 旧类型图标（向后兼容）
-  [ActivityType.SLEEP_START]: 'Moon',
-  [ActivityType.SLEEP_END]: 'Sun',
-  [ActivityType.BREASTFEED_START]: 'Heart',
-  [ActivityType.BREASTFEED_END]: 'Heart',
-  [ActivityType.BOTTLE_START]: 'Milk',
-  [ActivityType.BOTTLE_END]: 'Milk',
   [ActivityType.HEAD_LIFT]: 'ArrowUp',
   [ActivityType.PASSIVE_EXERCISE]: 'Activity',
   [ActivityType.GAS_EXERCISE]: 'Wind',
@@ -120,15 +96,8 @@ export const ActivityIconNames: Record<ActivityType, string> = {
 
 // 活动分类（用于过滤）
 export const ActivityCategories = {
-  sleep: [ActivityType.SLEEP, ActivityType.SLEEP_START, ActivityType.SLEEP_END],
-  feeding: [
-    ActivityType.BREASTFEED,
-    ActivityType.BOTTLE,
-    ActivityType.BREASTFEED_START,
-    ActivityType.BREASTFEED_END,
-    ActivityType.BOTTLE_START,
-    ActivityType.BOTTLE_END,
-  ],
+  sleep: [ActivityType.SLEEP],
+  feeding: [ActivityType.BREASTFEED, ActivityType.BOTTLE],
   diaper: [ActivityType.DIAPER],
   activities: [
     ActivityType.HEAD_LIFT,

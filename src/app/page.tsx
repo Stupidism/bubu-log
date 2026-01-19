@@ -17,7 +17,7 @@ import {
 } from '@/components/forms'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import Link from 'next/link'
-import { Moon, Milk, Baby as DiaperIcon, Target, BarChart3 } from 'lucide-react'
+import { Moon, Sun, Milk, Baby as DiaperIcon, Target, BarChart3 } from 'lucide-react'
 import { useSleepState, useCreateActivity, useUpdateActivity } from '@/lib/api/hooks'
 import type { components } from '@/lib/api/openapi-types'
 
@@ -58,7 +58,21 @@ export default function Home() {
   }, [queryClient])
 
   // 打开表单
-  const openForm = useCallback(async (type: ActivityType) => {
+  const openForm = useCallback(async (type: ActivityType | 'wake') => {
+    if (type === 'wake') {
+      // 睡醒：如果有正在进行的睡眠记录，更新它；否则手动输入时长
+      setCurrentActivityType(ActivityType.SLEEP)
+      if (isSleeping) {
+        const sleepData = getCurrentSleepActivity()
+        setCurrentSleepActivity(sleepData ? { id: sleepData.id, recordTime: sleepData.recordTime } : null)
+      } else {
+        setCurrentSleepActivity(null)
+      }
+      setCurrentForm('sleep_end')
+      setIsSheetOpen(true)
+      return
+    }
+
     setCurrentActivityType(type)
 
     switch (type) {
@@ -68,16 +82,6 @@ export default function Home() {
       case ActivityType.SLEEP:
         // 入睡：创建新的 SLEEP 记录，duration=null
         setCurrentForm('sleep_start')
-        break
-      case ActivityType.SLEEP_END:
-        // 睡醒：如果有正在进行的睡眠记录，更新它；否则手动输入时长
-        if (isSleeping) {
-          const sleepData = getCurrentSleepActivity()
-          setCurrentSleepActivity(sleepData ? { id: sleepData.id, recordTime: sleepData.recordTime } : null)
-        } else {
-          setCurrentSleepActivity(null)
-        }
-        setCurrentForm('sleep_end')
         break
       case ActivityType.BREASTFEED:
         setCurrentForm('breastfeed')
@@ -212,14 +216,15 @@ export default function Home() {
                 disabled={isSleeping}
                 loading={sleepFetching}
               />
-              {/* 睡醒按钮始终可点击 */}
-              <ActivityButton
-                type={ActivityType.SLEEP_END}
-                label="睡醒"
-                onClick={() => openForm(ActivityType.SLEEP_END)}
-                variant="sleep"
-                loading={sleepFetching}
-              />
+              {/* 睡醒按钮 - 使用自定义按钮因为不是独立的活动类型 */}
+              <button
+                onClick={() => openForm('wake')}
+                disabled={sleepFetching}
+                className={`big-button bg-gradient-to-br from-indigo-400 to-purple-500 text-white ${sleepFetching ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <Sun size={32} className="mb-1" />
+                <span className="text-base font-semibold">睡醒</span>
+              </button>
             </div>
           </section>
 

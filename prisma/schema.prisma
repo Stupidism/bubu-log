@@ -11,21 +11,12 @@ datasource db {
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
-// 活动类型枚举 - 保留旧类型用于向后兼容
+// 活动类型枚举
 enum ActivityType {
-  // 单条记录类型
-  SLEEP            // 睡眠（单条记录：recordTime=入睡时间，duration=睡眠时长，duration为null表示正在睡）
+  SLEEP            // 睡眠（recordTime=入睡时间，duration=睡眠时长，duration为null表示正在睡）
   DIAPER           // 换尿布
   BREASTFEED       // 亲喂（单条记录包含开始时间和时长）
   BOTTLE           // 瓶喂（单条记录包含开始时间、时长和奶量）
-  // 旧的配对类型（保留用于向后兼容）
-  SLEEP_START      // 入睡 (deprecated, 使用 SLEEP 替代)
-  SLEEP_END        // 睡醒 (deprecated, 使用 SLEEP 替代)
-  BREASTFEED_START // 开始亲喂 (deprecated)
-  BREASTFEED_END   // 结束亲喂 (deprecated)
-  BOTTLE_START     // 开始瓶喂 (deprecated)
-  BOTTLE_END       // 结束瓶喂 (deprecated)
-  // 其他活动
   HEAD_LIFT        // 抬头
   PASSIVE_EXERCISE // 被动操
   GAS_EXERCISE     // 排气操
@@ -80,11 +71,6 @@ model Activity {
   burpSuccess     Boolean?     // 拍嗝是否成功
   duration        Int?         // 持续时间（分钟）
   milkAmount      Int?         // 奶量（毫升）- 瓶喂专用
-
-  // 关联字段（用于向后兼容旧的配对记录）
-  startActivityId String?      @unique
-  startActivity   Activity?    @relation("ActivityPair", fields: [startActivityId], references: [id])
-  endActivity     Activity?    @relation("ActivityPair")
 
   // 备注
   notes           String?

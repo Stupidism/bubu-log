@@ -65,6 +65,37 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+    delete:
+      operationId: batchDeleteActivities
+      summary: Batch delete activities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - ids
+      responses:
+        '200':
+          description: Deletion success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  count:
+                    type: integer
+        '500':
+          $ref: '#/components/responses/ServerError'
+
   /activities/latest:
     get:
       operationId: getLatestActivity
@@ -326,13 +357,6 @@ components:
         - DIAPER
         - BREASTFEED
         - BOTTLE
-        # deprecated types for backward compatibility
-        - SLEEP_START
-        - SLEEP_END
-        - BREASTFEED_START
-        - BREASTFEED_END
-        - BOTTLE_START
-        - BOTTLE_END
         - HEAD_LIFT
         - PASSIVE_EXERCISE
         - GAS_EXERCISE
@@ -401,9 +425,6 @@ components:
         milkAmount:
           type: integer
           nullable: true
-        startActivityId:
-          type: string
-          nullable: true
         notes:
           type: string
           nullable: true
@@ -435,10 +456,6 @@ components:
           type: integer
         milkAmount:
           type: integer
-        startActivityId:
-          type: string
-        sleepStartId:
-          type: string
         notes:
           type: string
 
@@ -466,10 +483,6 @@ components:
           type: integer
         milkAmount:
           type: integer
-        startActivityId:
-          type: string
-        sleepStartId:
-          type: string
         notes:
           type: string
 

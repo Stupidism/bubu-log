@@ -63,13 +63,8 @@ export async function POST(request: NextRequest) {
       burpSuccess,
       duration,
       milkAmount,
-      startActivityId,
-      sleepStartId,
       notes,
     } = body
-
-    // 使用 sleepStartId 或 startActivityId（兼容两种字段名）
-    const activityLinkId = sleepStartId || startActivityId
 
     const activity = await prisma.activity.create({
       data: {
@@ -83,7 +78,6 @@ export async function POST(request: NextRequest) {
         burpSuccess,
         duration,
         milkAmount,
-        startActivityId: activityLinkId,
         notes,
       },
     })
@@ -93,6 +87,35 @@ export async function POST(request: NextRequest) {
     console.error('Failed to create activity:', error)
     return NextResponse.json(
       { error: 'Failed to create activity' },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE: 批量删除活动
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { ids } = body
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { error: 'ids array is required' },
+        { status: 400 }
+      )
+    }
+
+    const result = await prisma.activity.deleteMany({
+      where: {
+        id: { in: ids },
+      },
+    })
+
+    return NextResponse.json({ success: true, count: result.count })
+  } catch (error) {
+    console.error('Failed to batch delete activities:', error)
+    return NextResponse.json(
+      { error: 'Failed to batch delete activities' },
       { status: 500 }
     )
   }

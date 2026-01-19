@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { format, subDays, addMinutes, differenceInMinutes } from 'date-fns'
+import { format, subDays, addMinutes } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import {
   ActivityType,
@@ -23,7 +23,7 @@ import {
   ActivityDurationForm,
   SleepEndForm,
 } from '@/components/forms'
-import { useActivities, useDeleteActivity, useUpdateActivity, type Activity } from '@/lib/api/hooks'
+import { useActivities, useDeleteActivity, useUpdateActivity, useBatchDeleteActivities, type Activity } from '@/lib/api/hooks'
 import type { components } from '@/lib/api/openapi-types'
 import { 
   Moon, 
@@ -40,6 +40,8 @@ import {
   Trash2,
   Edit2,
   X,
+  CheckSquare,
+  Square,
 } from 'lucide-react'
 
 interface DaySummary {
@@ -64,9 +66,16 @@ export default function StatsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  
+  // 多选状态
+  const [isSelectMode, setIsSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false)
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null)
 
   const deleteActivityMutation = useDeleteActivity()
   const updateActivityMutation = useUpdateActivity()
+  const batchDeleteMutation = useBatchDeleteActivities()
 
   // Use React Query for activities
   const dateStr = format(selectedDate, 'yyyy-MM-dd')
@@ -113,15 +122,10 @@ export default function StatsPage() {
       exerciseCount: 0,
     }
 
-    // 睡眠统计（兼容新旧两种类型）
-    // 新类型：SLEEP 记录有 duration 表示已完成的睡眠
-    // 旧类型：SLEEP_END 表示睡醒记录
-    const sleepNew = activities.filter((a) => a.type === 'SLEEP' && a.duration !== null)
-    const sleepOld = activities.filter((a) => a.type === 'SLEEP_END')
-    summary.sleepCount = sleepNew.length + sleepOld.length
-    summary.totalSleepMinutes = 
-      sleepNew.reduce((acc, a) => acc + (a.duration || 0), 0) +
-      sleepOld.reduce((acc, a) => acc + (a.duration || 0), 0)
+    // 睡眠统计
+    const sleeps = activities.filter((a) => a.type === 'SLEEP' && a.duration !== null)
+    summary.sleepCount = sleeps.length
+    summary.totalSleepMinutes = sleeps.reduce((acc, a) => acc + (a.duration || 0), 0)
 
     // 尿布统计
     const diapers = activities.filter((a) => a.type === 'DIAPER')
@@ -129,21 +133,15 @@ export default function StatsPage() {
     summary.poopCount = diapers.filter((a) => a.hasPoop).length
     summary.peeCount = diapers.filter((a) => a.hasPee).length
 
-    // 亲喂统计（兼容新旧两种类型）
-    const breastfeedsNew = activities.filter((a) => a.type === 'BREASTFEED')
-    const breastfeedsOld = activities.filter((a) => a.type === 'BREASTFEED_END')
-    summary.breastfeedCount = breastfeedsNew.length + breastfeedsOld.length
-    summary.totalBreastfeedMinutes = 
-      breastfeedsNew.reduce((acc, a) => acc + (a.duration || 0), 0) +
-      breastfeedsOld.reduce((acc, a) => acc + (a.duration || 0), 0)
+    // 亲喂统计
+    const breastfeeds = activities.filter((a) => a.type === 'BREASTFEED')
+    summary.breastfeedCount = breastfeeds.length
+    summary.totalBreastfeedMinutes = breastfeeds.reduce((acc, a) => acc + (a.duration || 0), 0)
 
-    // 瓶喂统计（兼容新旧两种类型）
-    const bottlesNew = activities.filter((a) => a.type === 'BOTTLE')
-    const bottlesOld = activities.filter((a) => a.type === 'BOTTLE_END')
-    summary.bottleCount = bottlesNew.length + bottlesOld.length
-    summary.totalMilkAmount = 
-      bottlesNew.reduce((acc, a) => acc + (a.milkAmount || 0), 0) +
-      bottlesOld.reduce((acc, a) => acc + (a.milkAmount || 0), 0)
+    // 瓶喂统计
+    const bottles = activities.filter((a) => a.type === 'BOTTLE')
+    summary.bottleCount = bottles.length
+    summary.totalMilkAmount = bottles.reduce((acc, a) => acc + (a.milkAmount || 0), 0)
 
     // 活动统计
     const exercises = activities.filter((a) =>
@@ -157,6 +155,8 @@ export default function StatsPage() {
   // 日期导航
   const navigateDate = (days: number) => {
     setSelectedDate((prev) => subDays(prev, -days))
+    // 切换日期时退出多选模式
+    exitSelectMode()
   }
 
   // 格式化时间
@@ -186,10 +186,74 @@ export default function StatsPage() {
     setFilter(prev => prev === filterType ? 'all' : filterType)
   }
 
+  // 长按开始多选
+  const handleLongPressStart = useCallback((activityId: string) => {
+    longPressTimer.current = setTimeout(() => {
+      setIsSelectMode(true)
+      setSelectedIds(new Set([activityId]))
+    }, 500) // 500ms 长按
+  }, [])
+
+  // 长按结束
+  const handleLongPressEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }, [])
+
   // 处理活动点击
-  const handleActivityClick = (activity: Activity) => {
-    setSelectedActivity(activity)
-  }
+  const handleActivityClick = useCallback((activity: Activity) => {
+    if (isSelectMode) {
+      // 多选模式下，切换选中状态
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        if (next.has(activity.id)) {
+          next.delete(activity.id)
+        } else {
+          next.add(activity.id)
+        }
+        return next
+      })
+    } else {
+      setSelectedActivity(activity)
+    }
+  }, [isSelectMode])
+
+  // 退出多选模式
+  const exitSelectMode = useCallback(() => {
+    setIsSelectMode(false)
+    setSelectedIds(new Set())
+  }, [])
+
+  // 全选/取消全选
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === filteredActivities.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredActivities.map(a => a.id)))
+    }
+  }, [filteredActivities, selectedIds.size])
+
+  // 批量删除
+  const handleBatchDelete = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    
+    batchDeleteMutation.mutate(
+      { body: { ids: Array.from(selectedIds) } },
+      {
+        onSuccess: (data) => {
+          setToast({ message: `成功删除 ${data.count} 条记录`, type: 'success' })
+          setShowBatchDeleteConfirm(false)
+          exitSelectMode()
+          refetch()
+        },
+        onError: () => {
+          setToast({ message: '删除失败，请重试', type: 'error' })
+        },
+      }
+    )
+  }, [selectedIds, batchDeleteMutation, refetch, exitSelectMode])
 
   // 处理删除
   const handleDelete = useCallback(async () => {
@@ -283,7 +347,6 @@ export default function StatsPage() {
           />
         )
       case ActivityType.BREASTFEED:
-      case 'BREASTFEED_END' as ActivityType:
         return (
           <BreastfeedForm
             onSubmit={handleEditSubmit}
@@ -293,7 +356,6 @@ export default function StatsPage() {
           />
         )
       case ActivityType.BOTTLE:
-      case 'BOTTLE_END' as ActivityType:
         return (
           <BottleForm
             onSubmit={handleEditSubmit}
@@ -303,7 +365,6 @@ export default function StatsPage() {
           />
         )
       case ActivityType.SLEEP:
-      case ActivityType.SLEEP_END:
         return (
           <SleepEndForm
             onSubmit={handleEditSubmit}
@@ -367,7 +428,6 @@ export default function StatsPage() {
           </div>
         )
       case 'BREASTFEED':
-      case 'BREASTFEED_END':
         return (
           <div className="text-base text-gray-600 dark:text-gray-400 flex items-center gap-2">
             {activity.duration && (
@@ -387,7 +447,6 @@ export default function StatsPage() {
           </div>
         )
       case 'BOTTLE':
-      case 'BOTTLE_END':
         return (
           <div className="text-base text-gray-600 dark:text-gray-400 flex flex-wrap items-center gap-2">
             {activity.milkAmount && (
@@ -412,7 +471,6 @@ export default function StatsPage() {
           </div>
         )
       case 'SLEEP':
-      case 'SLEEP_END':
         return activity.duration ? (
           <span className="text-base text-amber-600 dark:text-amber-400 font-medium">
             {formatTimeRange(activity.recordTime, activity.duration)} ({formatDuration(activity.duration)})
@@ -447,48 +505,83 @@ export default function StatsPage() {
       {/* 顶部导航 */}
       <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-100 dark:border-gray-800">
         <div className="px-4 py-3 flex items-center justify-between">
-          <Link
-            href="/"
-            className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-base flex items-center gap-1"
-          >
-            <ArrowLeft size={18} />
-            返回
-          </Link>
-          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
-            <BarChart3 size={22} />
-            数据统计
-          </h1>
-          <div className="w-16" />
+          {isSelectMode ? (
+            <>
+              <button
+                onClick={exitSelectMode}
+                className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-base flex items-center gap-1"
+              >
+                <X size={18} />
+                取消
+              </button>
+              <span className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                已选 {selectedIds.size} 项
+              </span>
+              <button
+                onClick={toggleSelectAll}
+                className="px-4 py-2 rounded-full bg-primary/10 text-primary font-medium text-base flex items-center gap-1"
+              >
+                {selectedIds.size === filteredActivities.length ? (
+                  <>
+                    <Square size={18} />
+                    取消
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare size={18} />
+                    全选
+                  </>
+                )}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/"
+                className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-base flex items-center gap-1"
+              >
+                <ArrowLeft size={18} />
+                返回
+              </Link>
+              <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
+                <BarChart3 size={22} />
+                数据统计
+              </h1>
+              <div className="w-16" />
+            </>
+          )}
         </div>
 
-        {/* 日期选择器 */}
-        <div className="px-4 pb-3 flex items-center justify-center gap-4">
-          <button
-            onClick={() => navigateDate(-1)}
-            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-              {format(selectedDate, 'M月d日', { locale: zhCN })}
-            </p>
-            <p className="text-base text-gray-500 dark:text-gray-400">
-              {format(selectedDate, 'EEEE', { locale: zhCN })}
-            </p>
+        {/* 日期选择器 - 多选模式下隐藏 */}
+        {!isSelectMode && (
+          <div className="px-4 pb-3 flex items-center justify-center gap-4">
+            <button
+              onClick={() => navigateDate(-1)}
+              className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                {format(selectedDate, 'M月d日', { locale: zhCN })}
+              </p>
+              <p className="text-base text-gray-500 dark:text-gray-400">
+                {format(selectedDate, 'EEEE', { locale: zhCN })}
+              </p>
+            </div>
+            <button
+              onClick={() => navigateDate(1)}
+              className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+              disabled={format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')}
+            >
+              <ChevronRight size={24} />
+            </button>
           </div>
-          <button
-            onClick={() => navigateDate(1)}
-            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-            disabled={format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')}
-          >
-            <ChevronRight size={24} />
-          </button>
-        </div>
+        )}
       </header>
 
-      {/* 统计概览 - 可点击过滤 */}
-      {summary && (
+      {/* 统计概览 - 可点击过滤，多选模式下隐藏 */}
+      {summary && !isSelectMode && (
         <section className="p-4">
           <div className="grid grid-cols-2 gap-3">
             {/* 睡眠卡片 */}
@@ -580,7 +673,7 @@ export default function StatsPage() {
             <ClipboardList size={22} />
             {getFilterLabel()}
           </h2>
-          {filter !== 'all' && (
+          {filter !== 'all' && !isSelectMode && (
             <button
               onClick={() => setFilter('all')}
               className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-base flex items-center gap-1"
@@ -590,6 +683,13 @@ export default function StatsPage() {
             </button>
           )}
         </div>
+
+        {/* 长按提示 */}
+        {!isSelectMode && filteredActivities.length > 0 && (
+          <p className="text-sm text-gray-400 dark:text-gray-500 mb-3">
+            长按记录可进入多选模式
+          </p>
+        )}
 
         {isLoading ? (
           <div className="text-center py-8 text-gray-500 text-lg">加载中...</div>
@@ -601,8 +701,28 @@ export default function StatsPage() {
               <button
                 key={activity.id}
                 onClick={() => handleActivityClick(activity)}
-                className="w-full bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm flex items-start gap-4 text-left hover:shadow-md transition-shadow"
+                onTouchStart={() => handleLongPressStart(activity.id)}
+                onTouchEnd={handleLongPressEnd}
+                onTouchCancel={handleLongPressEnd}
+                onMouseDown={() => handleLongPressStart(activity.id)}
+                onMouseUp={handleLongPressEnd}
+                onMouseLeave={handleLongPressEnd}
+                className={`w-full bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm flex items-start gap-4 text-left transition-all ${
+                  isSelectMode && selectedIds.has(activity.id)
+                    ? 'ring-2 ring-primary ring-offset-2 bg-primary/5'
+                    : 'hover:shadow-md'
+                }`}
               >
+                {/* 多选模式下显示选择框 */}
+                {isSelectMode && (
+                  <div className="flex-shrink-0 mt-1">
+                    {selectedIds.has(activity.id) ? (
+                      <CheckSquare size={24} className="text-primary" />
+                    ) : (
+                      <Square size={24} className="text-gray-400" />
+                    )}
+                  </div>
+                )}
                 <ActivityIcon type={activity.type as ActivityType} size={36} className="text-gray-600 dark:text-gray-300 flex-shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
@@ -620,6 +740,21 @@ export default function StatsPage() {
           </div>
         )}
       </section>
+
+      {/* 多选模式底部操作栏 */}
+      {isSelectMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4 safe-area-bottom">
+          <div className="max-w-md mx-auto">
+            <button
+              onClick={() => setShowBatchDeleteConfirm(true)}
+              className="w-full p-4 rounded-2xl bg-red-500 text-white font-semibold text-lg flex items-center justify-center gap-2"
+            >
+              <Trash2 size={22} />
+              删除选中的 {selectedIds.size} 项
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 活动详情/编辑弹窗 */}
       <BottomSheet
@@ -707,6 +842,34 @@ export default function StatsPage() {
               className="p-4 rounded-2xl bg-red-500 text-white font-semibold text-lg"
             >
               {deleteActivityMutation.isPending ? '删除中...' : '确认删除'}
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* 批量删除确认弹窗 */}
+      <BottomSheet
+        isOpen={showBatchDeleteConfirm}
+        onClose={() => setShowBatchDeleteConfirm(false)}
+        title="确认批量删除"
+      >
+        <div className="space-y-6">
+          <p className="text-center text-lg text-gray-600 dark:text-gray-400">
+            确定要删除选中的 <span className="font-bold text-red-500">{selectedIds.size}</span> 条记录吗？此操作无法撤销。
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setShowBatchDeleteConfirm(false)}
+              className="p-4 rounded-2xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-lg"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleBatchDelete}
+              disabled={batchDeleteMutation.isPending}
+              className="p-4 rounded-2xl bg-red-500 text-white font-semibold text-lg"
+            >
+              {batchDeleteMutation.isPending ? '删除中...' : '确认删除'}
             </button>
           </div>
         </div>

@@ -2,7 +2,6 @@
 
 import {
   Moon,
-  Sun,
   Baby,
   Heart,
   Milk,
@@ -21,13 +20,6 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.DIAPER]: Baby,
   [ActivityType.BREASTFEED]: Heart,
   [ActivityType.BOTTLE]: Milk,
-  // deprecated types for backward compatibility
-  [ActivityType.SLEEP_START]: Moon,
-  [ActivityType.SLEEP_END]: Sun,
-  [ActivityType.BREASTFEED_START]: Heart,
-  [ActivityType.BREASTFEED_END]: Heart,
-  [ActivityType.BOTTLE_START]: Milk,
-  [ActivityType.BOTTLE_END]: Milk,
   [ActivityType.HEAD_LIFT]: ArrowUp,
   [ActivityType.PASSIVE_EXERCISE]: Activity,
   [ActivityType.GAS_EXERCISE]: Wind,
