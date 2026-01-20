@@ -4,22 +4,12 @@ import { useMemo } from 'react'
 import { format, addMinutes, startOfDay, differenceInMinutes } from 'date-fns'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { ActivityIcon } from './ActivityIcon'
-
-interface TimelineActivity {
-  id: string
-  type: string
-  recordTime: string
-  duration?: number | null
-  milkAmount?: number | null
-  hasPoop?: boolean | null
-  hasPee?: boolean | null
-  [key: string]: unknown // 允许其他属性
-}
+import type { Activity } from '@/lib/api/hooks'
 
 interface DayTimelineProps {
-  activities: TimelineActivity[]
+  activities: Activity[]
   date: Date
-  onActivityClick?: (activity: TimelineActivity) => void
+  onActivityClick?: (activity: Activity) => void
 }
 
 // 活动类型对应的颜色
@@ -90,7 +80,7 @@ export function DayTimeline({ activities, date, onActivityClick }: DayTimelinePr
     return result
   }, [positionedActivities])
 
-  const getActivityLabel = (activity: TimelineActivity) => {
+  const getActivityLabel = (activity: Activity) => {
     const type = activity.type as ActivityType
     let label = ActivityTypeLabels[type] || activity.type
     
