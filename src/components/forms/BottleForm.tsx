@@ -122,11 +122,12 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
         value={duration}
         onChange={setDuration}
         min={5}
-        max={45}
+        max={60}
         step={1}
         unit="分钟"
         label="喂奶时长"
         color="gray"
+        allowExceedMax
       />
 
       {/* 拍嗝是否成功 */}

@@ -9,6 +9,8 @@ interface SliderInputProps {
   unit: string
   label?: string
   color?: 'pink' | 'blue' | 'amber' | 'gray'
+  /** 允许 + 按钮突破最大值限制 */
+  allowExceedMax?: boolean
 }
 
 const colorStyles = {
@@ -55,6 +57,7 @@ export function SliderInput({
   unit,
   label,
   color = 'gray',
+  allowExceedMax = false,
 }: SliderInputProps) {
   const styles = colorStyles[color]
 
@@ -63,7 +66,13 @@ export function SliderInput({
   }
 
   const handleAdjust = (amount: number) => {
-    const newValue = Math.max(min, Math.min(max, value + amount))
+    let newValue = value + amount
+    // 始终不能低于 min
+    newValue = Math.max(min, newValue)
+    // 如果不允许突破 max，则限制最大值
+    if (!allowExceedMax) {
+      newValue = Math.min(max, newValue)
+    }
     onChange(newValue)
   }
 
@@ -135,14 +144,14 @@ export function SliderInput({
         </button>
         <button
           onClick={() => handleAdjust(smallStep)}
-          disabled={value >= max}
+          disabled={!allowExceedMax && value >= max}
           className={`px-3 py-2 rounded-xl text-base font-semibold transition-all ${styles.plus} disabled:opacity-50`}
         >
           +{smallStep}{unit}
         </button>
         <button
           onClick={() => handleAdjust(largeStep)}
-          disabled={value >= max}
+          disabled={!allowExceedMax && value >= max}
           className={`px-3 py-2 rounded-xl text-base font-semibold transition-all ${styles.plus} disabled:opacity-50`}
         >
           +{largeStep}{unit}
