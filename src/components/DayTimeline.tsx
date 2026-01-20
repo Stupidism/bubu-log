@@ -5,7 +5,7 @@ import { format, addMinutes, startOfDay, differenceInMinutes } from 'date-fns'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { ActivityIcon } from './ActivityIcon'
 
-interface Activity {
+interface TimelineActivity {
   id: string
   type: string
   recordTime: string
@@ -13,12 +13,13 @@ interface Activity {
   milkAmount?: number | null
   hasPoop?: boolean | null
   hasPee?: boolean | null
+  [key: string]: unknown // 允许其他属性
 }
 
 interface DayTimelineProps {
-  activities: Activity[]
+  activities: TimelineActivity[]
   date: Date
-  onActivityClick?: (activity: Activity) => void
+  onActivityClick?: (activity: TimelineActivity) => void
 }
 
 // 活动类型对应的颜色
@@ -89,7 +90,7 @@ export function DayTimeline({ activities, date, onActivityClick }: DayTimelinePr
     return result
   }, [positionedActivities])
 
-  const getActivityLabel = (activity: Activity) => {
+  const getActivityLabel = (activity: TimelineActivity) => {
     const type = activity.type as ActivityType
     let label = ActivityTypeLabels[type] || activity.type
     
