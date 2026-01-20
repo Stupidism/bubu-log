@@ -40,9 +40,11 @@ interface DiaperFormProps {
     peeAmount?: PeeAmount
   }
   isEditing?: boolean
+  /** 隐藏大小便选择（从首页按钮已经确定了类型） */
+  hideTypeSelection?: boolean
 }
 
-export function DiaperForm({ onSubmit, onCancel, initialValues, isEditing }: DiaperFormProps) {
+export function DiaperForm({ onSubmit, onCancel, initialValues, isEditing, hideTypeSelection }: DiaperFormProps) {
   const [preferences, setPreferences] = useState<DiaperFormPreferences>(DEFAULT_PREFERENCES)
   const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
   const [hasPoop, setHasPoop] = useState(initialValues?.hasPoop ?? false)
@@ -166,32 +168,34 @@ export function DiaperForm({ onSubmit, onCancel, initialValues, isEditing }: Dia
     <div className="space-y-6 animate-fade-in">
       <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
 
-      {/* 大小便选择 */}
+      {/* 大小便选择 - 如果从首页按钮进入则隐藏 */}
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => setHasPoop(!hasPoop)}
-            className={`p-4 rounded-2xl text-lg font-semibold transition-all flex items-center justify-center gap-2 ${
-              hasPoop
-                ? 'bg-amber-500 text-white shadow-lg scale-105'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            <Circle size={20} className="fill-current" />
-            大便
-          </button>
-          <button
-            onClick={() => setHasPee(!hasPee)}
-            className={`p-4 rounded-2xl text-lg font-semibold transition-all flex items-center justify-center gap-2 ${
-              hasPee
-                ? 'bg-yellow-400 text-white shadow-lg scale-105'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            <Droplet size={20} />
-            小便
-          </button>
-        </div>
+        {!hideTypeSelection && (
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setHasPoop(!hasPoop)}
+              className={`p-4 rounded-2xl text-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+                hasPoop
+                  ? 'bg-amber-500 text-white shadow-lg scale-105'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              <Circle size={20} className="fill-current" />
+              大便
+            </button>
+            <button
+              onClick={() => setHasPee(!hasPee)}
+              className={`p-4 rounded-2xl text-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+                hasPee
+                  ? 'bg-yellow-400 text-white shadow-lg scale-105'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              <Droplet size={20} />
+              小便
+            </button>
+          </div>
+        )}
 
         {/* 大便颜色选择 */}
         {hasPoop && (

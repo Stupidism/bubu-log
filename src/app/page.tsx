@@ -19,7 +19,7 @@ import {
 } from '@/components/forms'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import Link from 'next/link'
-import { Moon, Sun, Milk, Baby as DiaperIcon, Target, BarChart3 } from 'lucide-react'
+import { Moon, Sun, Milk, Baby as DiaperIcon, Target, BarChart3, Droplet } from 'lucide-react'
 import { useSleepState, useCreateActivity, useUpdateActivity } from '@/lib/api/hooks'
 import type { components } from '@/lib/api/openapi-types'
 
@@ -33,6 +33,8 @@ type FormType =
   | 'sleep_end'
   | null
 
+type DiaperType = 'poop' | 'pee' | 'both'
+
 interface SleepActivityData {
   id: string
   recordTime: string
@@ -44,6 +46,7 @@ export default function Home() {
   const [currentForm, setCurrentForm] = useState<FormType>(null)
   const [currentActivityType, setCurrentActivityType] = useState<ActivityType | null>(null)
   const [currentSleepActivity, setCurrentSleepActivity] = useState<SleepActivityData | null>(null)
+  const [currentDiaperType, setCurrentDiaperType] = useState<DiaperType | null>(null)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   // 睡眠状态
@@ -61,6 +64,14 @@ export default function Home() {
     await queryClient.invalidateQueries()
     setToast({ message: '刷新成功', type: 'success' })
   }, [queryClient])
+
+  // 打开换尿布表单
+  const openDiaperForm = useCallback((diaperType: DiaperType) => {
+    setCurrentActivityType(ActivityType.DIAPER)
+    setCurrentDiaperType(diaperType)
+    setCurrentForm('diaper')
+    setIsSheetOpen(true)
+  }, [])
 
   // 打开表单
   const openForm = useCallback(async (type: ActivityType | 'wake') => {
@@ -180,6 +191,7 @@ export default function Home() {
     setCurrentForm(null)
     setCurrentActivityType(null)
     setCurrentSleepActivity(null)
+    setCurrentDiaperType(null)
   }, [])
 
   return (
@@ -253,17 +265,35 @@ export default function Home() {
             </div>
           </section>
 
-          {/* 换尿布 */}
+          {/* 换尿布 - 三个快捷按钮 */}
           <section>
             <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 px-1 flex items-center gap-1.5">
               <DiaperIcon size={16} />
               换尿布
             </h2>
-            <ActivityButton
-              type={ActivityType.DIAPER}
-              onClick={() => openForm(ActivityType.DIAPER)}
-              variant="diaper"
-            />
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                onClick={() => openDiaperForm('poop')}
+                className="big-button bg-gradient-to-br from-amber-400 to-orange-500 text-white"
+              >
+                <span className="text-2xl mb-1">💩</span>
+                <span className="text-base font-semibold">大便</span>
+              </button>
+              <button
+                onClick={() => openDiaperForm('pee')}
+                className="big-button bg-gradient-to-br from-yellow-300 to-amber-400 text-white"
+              >
+                <Droplet size={28} className="mb-1" />
+                <span className="text-base font-semibold">小便</span>
+              </button>
+              <button
+                onClick={() => openDiaperForm('both')}
+                className="big-button bg-gradient-to-br from-teal-400 to-cyan-500 text-white"
+              >
+                <span className="text-2xl mb-1">💩💧</span>
+                <span className="text-base font-semibold">大小便</span>
+              </button>
+            </div>
           </section>
 
           {/* 其他活动 */}
@@ -314,7 +344,15 @@ export default function Home() {
           title={currentActivityType ? ActivityTypeLabels[currentActivityType] : ''}
         >
           {currentForm === 'diaper' && (
-            <DiaperForm onSubmit={submitActivity} onCancel={closeForm} />
+            <DiaperForm
+              onSubmit={submitActivity}
+              onCancel={closeForm}
+              hideTypeSelection={!!currentDiaperType}
+              initialValues={currentDiaperType ? {
+                hasPoop: currentDiaperType === 'poop' || currentDiaperType === 'both',
+                hasPee: currentDiaperType === 'pee' || currentDiaperType === 'both',
+              } : undefined}
+            />
           )}
           {currentForm === 'breastfeed' && (
             <BreastfeedForm

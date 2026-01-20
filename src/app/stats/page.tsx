@@ -42,7 +42,10 @@ import {
   X,
   CheckSquare,
   Square,
+  List,
+  Calendar,
 } from 'lucide-react'
+import { DayTimeline } from '@/components/DayTimeline'
 
 interface DaySummary {
   sleepCount: number
@@ -58,10 +61,12 @@ interface DaySummary {
 }
 
 type FilterType = 'all' | 'sleep' | 'feeding' | 'diaper' | 'activities'
+type ViewType = 'list' | 'timeline'
 
 export default function StatsPage() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [filter, setFilter] = useState<FilterType>('all')
+  const [viewType, setViewType] = useState<ViewType>('list')
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -673,71 +678,109 @@ export default function StatsPage() {
             <ClipboardList size={22} />
             {getFilterLabel()}
           </h2>
-          {filter !== 'all' && !isSelectMode && (
-            <button
-              onClick={() => setFilter('all')}
-              className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-base flex items-center gap-1"
-            >
-              <X size={16} />
-              清除筛选
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {filter !== 'all' && !isSelectMode && (
+              <button
+                onClick={() => setFilter('all')}
+                className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-base flex items-center gap-1"
+              >
+                <X size={16} />
+                清除筛选
+              </button>
+            )}
+            {/* 视图切换 */}
+            {!isSelectMode && (
+              <div className="flex rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+                <button
+                  onClick={() => setViewType('list')}
+                  className={`p-1.5 rounded transition-all ${
+                    viewType === 'list'
+                      ? 'bg-white dark:bg-gray-700 shadow-sm text-primary'
+                      : 'text-gray-500'
+                  }`}
+                  title="列表视图"
+                >
+                  <List size={18} />
+                </button>
+                <button
+                  onClick={() => setViewType('timeline')}
+                  className={`p-1.5 rounded transition-all ${
+                    viewType === 'timeline'
+                      ? 'bg-white dark:bg-gray-700 shadow-sm text-primary'
+                      : 'text-gray-500'
+                  }`}
+                  title="时间线视图"
+                >
+                  <Calendar size={18} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-
-        {/* 长按提示 */}
-        {!isSelectMode && filteredActivities.length > 0 && (
-          <p className="text-sm text-gray-400 dark:text-gray-500 mb-3">
-            长按记录可进入多选模式
-          </p>
-        )}
 
         {isLoading ? (
           <div className="text-center py-8 text-gray-500 text-lg">加载中...</div>
         ) : filteredActivities.length === 0 ? (
           <div className="text-center py-8 text-gray-500 text-lg">暂无记录</div>
+        ) : viewType === 'timeline' ? (
+          /* 时间线视图 */
+          <DayTimeline
+            activities={filteredActivities}
+            date={selectedDate}
+            onActivityClick={handleActivityClick}
+          />
         ) : (
-          <div className="space-y-3">
-            {filteredActivities.map((activity) => (
-              <button
-                key={activity.id}
-                onClick={() => handleActivityClick(activity)}
-                onTouchStart={() => handleLongPressStart(activity.id)}
-                onTouchEnd={handleLongPressEnd}
-                onTouchCancel={handleLongPressEnd}
-                onMouseDown={() => handleLongPressStart(activity.id)}
-                onMouseUp={handleLongPressEnd}
-                onMouseLeave={handleLongPressEnd}
-                className={`w-full bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm flex items-start gap-4 text-left transition-all ${
-                  isSelectMode && selectedIds.has(activity.id)
-                    ? 'ring-2 ring-primary ring-offset-2 bg-primary/5'
-                    : 'hover:shadow-md'
-                }`}
-              >
-                {/* 多选模式下显示选择框 */}
-                {isSelectMode && (
-                  <div className="flex-shrink-0 mt-1">
-                    {selectedIds.has(activity.id) ? (
-                      <CheckSquare size={24} className="text-primary" />
-                    ) : (
-                      <Square size={24} className="text-gray-400" />
-                    )}
+          /* 列表视图 */
+          <>
+            {/* 长按提示 */}
+            {!isSelectMode && (
+              <p className="text-sm text-gray-400 dark:text-gray-500 mb-3">
+                长按记录可进入多选模式
+              </p>
+            )}
+            <div className="space-y-3">
+              {filteredActivities.map((activity) => (
+                <button
+                  key={activity.id}
+                  onClick={() => handleActivityClick(activity)}
+                  onTouchStart={() => handleLongPressStart(activity.id)}
+                  onTouchEnd={handleLongPressEnd}
+                  onTouchCancel={handleLongPressEnd}
+                  onMouseDown={() => handleLongPressStart(activity.id)}
+                  onMouseUp={handleLongPressEnd}
+                  onMouseLeave={handleLongPressEnd}
+                  className={`w-full bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm flex items-start gap-4 text-left transition-all ${
+                    isSelectMode && selectedIds.has(activity.id)
+                      ? 'ring-2 ring-primary ring-offset-2 bg-primary/5'
+                      : 'hover:shadow-md'
+                  }`}
+                >
+                  {/* 多选模式下显示选择框 */}
+                  {isSelectMode && (
+                    <div className="flex-shrink-0 mt-1">
+                      {selectedIds.has(activity.id) ? (
+                        <CheckSquare size={24} className="text-primary" />
+                      ) : (
+                        <Square size={24} className="text-gray-400" />
+                      )}
+                    </div>
+                  )}
+                  <ActivityIcon type={activity.type as ActivityType} size={36} className="text-gray-600 dark:text-gray-300 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-lg text-gray-800 dark:text-gray-100">
+                        {ActivityTypeLabels[activity.type as ActivityType]}
+                      </span>
+                      <span className="text-lg text-gray-500 dark:text-gray-400 font-medium">
+                        {formatTime(activity.recordTime)}
+                      </span>
+                    </div>
+                    {renderActivityDetails(activity)}
                   </div>
-                )}
-                <ActivityIcon type={activity.type as ActivityType} size={36} className="text-gray-600 dark:text-gray-300 flex-shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-lg text-gray-800 dark:text-gray-100">
-                      {ActivityTypeLabels[activity.type as ActivityType]}
-                    </span>
-                    <span className="text-lg text-gray-500 dark:text-gray-400 font-medium">
-                      {formatTime(activity.recordTime)}
-                    </span>
-                  </div>
-                  {renderActivityDetails(activity)}
-                </div>
-              </button>
-            ))}
-          </div>
+                </button>
+              ))}
+            </div>
+          </>
         )}
       </section>
 
