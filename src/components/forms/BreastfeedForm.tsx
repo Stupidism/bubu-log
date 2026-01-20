@@ -32,14 +32,14 @@ interface Preferences {
 
 const DEFAULT_PREFERENCES: Preferences = {
   rememberSelection: false,
-  defaultDuration: 90,
+  defaultDuration: 20,
   defaultBurpSuccess: true,
 }
 
 export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }: BreastfeedFormProps) {
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES)
   const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
-  const [duration, setDuration] = useState<number>(initialValues?.duration || 90)
+  const [duration, setDuration] = useState<number>(initialValues?.duration || 20)
   const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialValues?.burpSuccess)
 
   // 加载偏好设置（仅在新建时）

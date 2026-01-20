@@ -113,3 +113,4 @@ export function useVersionCheck(checkInterval = 60000) {
   return { hasNewVersion, refresh, dismiss }
 }
 
+
