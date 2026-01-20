@@ -35,7 +35,7 @@ interface Preferences {
 
 const DEFAULT_PREFERENCES: Preferences = {
   rememberSelection: false,
-  defaultDuration: 15,
+  defaultDuration: 90,
   defaultMilkAmount: 90,
   defaultBurpSuccess: true,
 }
@@ -43,7 +43,7 @@ const DEFAULT_PREFERENCES: Preferences = {
 export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: BottleFormProps) {
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES)
   const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
-  const [duration, setDuration] = useState<number>(initialValues?.duration || 15)
+  const [duration, setDuration] = useState<number>(initialValues?.duration || 90)
   const [milkAmount, setMilkAmount] = useState<number>(initialValues?.milkAmount || 90)
   const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialValues?.burpSuccess)
 

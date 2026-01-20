@@ -7,6 +7,8 @@ import { BottomSheet } from '@/components/BottomSheet'
 import { Toast } from '@/components/Toast'
 import { AvatarUpload } from '@/components/AvatarUpload'
 import { PullToRefresh } from '@/components/PullToRefresh'
+import { UpdatePrompt } from '@/components/UpdatePrompt'
+import { useVersionCheck } from '@/hooks/useVersionCheck'
 import {
   DiaperForm,
   BreastfeedForm,
@@ -46,6 +48,9 @@ export default function Home() {
 
   // 睡眠状态
   const { sleepState, isSleeping, isFetching: sleepFetching, getCurrentSleepActivity } = useSleepState()
+  
+  // 版本检测 - 每分钟检查一次新版本
+  const { hasNewVersion, refresh: refreshPage, dismiss: dismissUpdate } = useVersionCheck(60000)
   
   // Mutation for creating and updating activities
   const createActivity = useCreateActivity()
@@ -352,6 +357,11 @@ export default function Home() {
             />
           )}
         </BottomSheet>
+
+        {/* 新版本提示 */}
+        {hasNewVersion && (
+          <UpdatePrompt onRefresh={refreshPage} onDismiss={dismissUpdate} />
+        )}
 
         {/* Toast 提示 */}
         {toast && (
