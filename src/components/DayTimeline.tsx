@@ -1,10 +1,10 @@
 'use client'
 
 import { useMemo, useRef, useImperativeHandle, forwardRef, useEffect, useState } from 'react'
-import { format, addMinutes, startOfDay, differenceInMinutes } from 'date-fns'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { ActivityIcon } from './ActivityIcon'
 import type { Activity } from '@/lib/api/hooks'
+import { dayjs, calculateDurationMinutes, formatTime } from '@/lib/dayjs'
 
 interface DayTimelineProps {
   activities: Activity[]
@@ -77,23 +77,26 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
 
     // 计算活动在时间线上的位置
     const positionedActivities = useMemo(() => {
-      const dayStart = startOfDay(date)
+      const dayStart = dayjs(date).startOf('day')
       
       return activities.map(activity => {
-        const activityTime = new Date(activity.recordTime)
-        const minutesFromStart = differenceInMinutes(activityTime, dayStart)
+        const startTime = dayjs(activity.startTime)
+        const minutesFromStart = startTime.diff(dayStart, 'minute')
         const top = (minutesFromStart / 60) * HOUR_HEIGHT
         
-        // 计算高度：有 duration 的活动按时长显示，没有的显示最小高度
-        const duration = activity.duration || 5 // 没有 duration 的默认显示 5 分钟
+        // 计算时长：有 endTime 则计算差值，否则默认 5 分钟
+        const duration = activity.endTime 
+          ? calculateDurationMinutes(activity.startTime, activity.endTime) 
+          : 5
         const height = Math.max((duration / 60) * HOUR_HEIGHT, MIN_BLOCK_HEIGHT)
         
         return {
           ...activity,
           top,
           height,
-          startTime: activityTime,
-          endTime: activity.duration ? addMinutes(activityTime, activity.duration) : activityTime,
+          startTimeDate: startTime.toDate(),
+          endTimeDate: activity.endTime ? dayjs(activity.endTime).toDate() : startTime.toDate(),
+          duration,
         }
       }).sort((a, b) => a.top - b.top)
     }, [activities, date])
@@ -118,7 +121,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
       return result
     }, [positionedActivities])
 
-    const getActivityLabel = (activity: Activity) => {
+    const getActivityLabel = (activity: typeof positionedActivities[0]) => {
       const type = activity.type as ActivityType
       let label = ActivityTypeLabels[type] || activity.type
       
@@ -132,7 +135,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
         } else if (activity.hasPee) {
           label = '小便'
         }
-      } else if (activity.duration) {
+      } else if (activity.duration && activity.duration > 0) {
         label += ` ${activity.duration}分钟`
       }
       
@@ -181,7 +184,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
               <div className="absolute left-4 right-0 h-0.5 bg-red-500 shadow-sm" />
               {/* 当前时间标签 */}
               <div className="absolute right-2 -top-2.5 px-1.5 py-0.5 bg-red-500 text-white text-xs font-medium rounded">
-                {format(new Date(), 'HH:mm')}
+                {formatTime(new Date())}
               </div>
             </div>
           )}
@@ -190,11 +193,26 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
           <div className="absolute left-14 right-2 top-0 bottom-0">
             {layoutActivities.map(activity => {
               const colors = activityColors[activity.type] || defaultColor
+              // 创建一个可以传递给 onActivityClick 的对象（保持原始 API 类型）
+              const originalActivity: Activity = {
+                id: activity.id,
+                type: activity.type,
+                startTime: activity.startTime,
+                endTime: activity.endTime,
+                createdAt: activity.createdAt,
+                updatedAt: activity.updatedAt,
+                milkAmount: activity.milkAmount,
+                hasPoop: activity.hasPoop,
+                hasPee: activity.hasPee,
+                poopColor: activity.poopColor,
+                peeAmount: activity.peeAmount,
+                notes: activity.notes,
+              }
               
               return (
                 <button
                   key={activity.id}
-                  onClick={() => onActivityClick?.(activity)}
+                  onClick={() => onActivityClick?.(originalActivity)}
                   className={`absolute rounded-lg border-l-4 px-2 py-1 overflow-hidden transition-all hover:shadow-md hover:z-10 ${colors.bg} ${colors.border}`}
                   style={{
                     top: activity.top,
@@ -215,8 +233,8 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
                       </p>
                       {activity.height > 40 && (
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {format(activity.startTime, 'HH:mm')}
-                          {activity.duration ? ` - ${format(activity.endTime, 'HH:mm')}` : ''}
+                          {formatTime(activity.startTimeDate)}
+                          {activity.duration > 0 ? ` - ${formatTime(activity.endTimeDate)}` : ''}
                         </p>
                       )}
                     </div>

@@ -10,7 +10,7 @@ import { ActivityType } from '@/types/activity'
 import { Loader2 } from 'lucide-react'
 
 export function SleepEndModal() {
-  const { modalType, activityId, closeModal } = useModalParams()
+  const { modalType, activityId, closeModal, selectedDate } = useModalParams()
   const searchParams = useSearchParams()
   const { getCurrentSleepActivity } = useSleepState()
   
@@ -32,41 +32,41 @@ export function SleepEndModal() {
   const initialValuesFromUrl = useMemo(() => {
     if (isEditing || !isOpen) return undefined
     
-    const duration = searchParams.get('duration')
-    const recordTime = searchParams.get('recordTime')
+    const startTime = searchParams.get('startTime')
+    const endTime = searchParams.get('endTime')
+    
+    // 使用 URL 中的时间，或者使用当前选中日期的当前时间
+    const defaultTime = new Date()
+    defaultTime.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
     
     return {
-      recordTime: recordTime ? new Date(recordTime) : new Date(),
-      duration: duration ? parseInt(duration, 10) : undefined,
+      startTime: startTime ? new Date(startTime) : undefined,
+      endTime: endTime ? new Date(endTime) : defaultTime,
     }
-  }, [isEditing, isOpen, searchParams])
+  }, [isEditing, isOpen, searchParams, selectedDate])
   
   // 编辑模式的初始值
   const initialValues = useMemo(() => {
     if (isEditing && activity) {
       return {
-        recordTime: new Date(activity.recordTime),
-        duration: activity.duration ?? undefined,
+        startTime: new Date(activity.startTime),
+        endTime: activity.endTime ? new Date(activity.endTime) : undefined,
       }
     }
     return initialValuesFromUrl
   }, [isEditing, activity, initialValuesFromUrl])
   
   // 睡眠开始时间（从当前睡眠活动获取，或从 URL 参数获取）
-  const startTime = useMemo(() => {
+  const sleepStartTime = useMemo(() => {
     if (currentSleepActivity) {
-      return new Date(currentSleepActivity.recordTime)
+      return new Date(currentSleepActivity.startTime)
     }
-    // 如果有初始值中的 recordTime 和 duration，计算开始时间
-    if (initialValues?.recordTime && initialValues?.duration) {
-      const endTime = initialValues.recordTime
-      return new Date(endTime.getTime() - initialValues.duration * 60 * 1000)
-    }
-    return undefined
+    return initialValues?.startTime
   }, [currentSleepActivity, initialValues])
   
   const handleSubmit = useCallback(async (data: Record<string, unknown>) => {
-    const duration = data.duration as number
+    const startTime = data.startTime as Date
+    const endTime = data.endTime as Date
     
     if (isEditing && activityId) {
       // 编辑模式：更新现有活动
@@ -74,8 +74,8 @@ export function SleepEndModal() {
         {
           params: { path: { id: activityId } },
           body: {
-            recordTime: (data.recordTime as Date).toISOString(),
-            duration,
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
           },
         },
         {
@@ -83,12 +83,12 @@ export function SleepEndModal() {
         }
       )
     } else if (currentSleepActivity) {
-      // 更新现有睡眠记录（添加 duration）
+      // 更新现有睡眠记录（添加 endTime）
       updateActivity.mutate(
         {
           params: { path: { id: currentSleepActivity.id } },
           body: {
-            duration,
+            endTime: endTime.toISOString(),
           },
         },
         {
@@ -101,8 +101,8 @@ export function SleepEndModal() {
         {
           body: {
             type: ActivityType.SLEEP,
-            recordTime: (data.recordTime as Date).toISOString(),
-            duration,
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
           },
         },
         {
@@ -128,7 +128,7 @@ export function SleepEndModal() {
         <SleepEndForm
           onSubmit={handleSubmit}
           onCancel={closeModal}
-          startTime={startTime}
+          sleepStartTime={sleepStartTime}
           initialValues={initialValues}
           isEditing={isEditing}
         />

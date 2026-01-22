@@ -7,8 +7,7 @@ import { Toast } from '@/components/Toast'
 import { useModalParams } from '@/hooks/useModalParams'
 import { useActivity, useDeleteActivity } from '@/lib/api/hooks'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
-import { format } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
+import { formatDateTimeChinese } from '@/lib/dayjs'
 
 export function DeleteConfirmModal() {
   const { modalType, activityId, closeModal } = useModalParams()
@@ -61,7 +60,7 @@ export function DeleteConfirmModal() {
                 确定要删除这条记录吗？
               </p>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                {ActivityTypeLabels[activity.type as ActivityType]} · {format(new Date(activity.recordTime), 'M月d日 HH:mm', { locale: zhCN })}
+                {ActivityTypeLabels[activity.type as ActivityType]} · {formatDateTimeChinese(activity.startTime)}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
                 此操作无法撤销

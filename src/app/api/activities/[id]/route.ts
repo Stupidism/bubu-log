@@ -39,35 +39,30 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     
     const {
       type,
-      recordTime,
+      startTime,
+      endTime,
       hasPoop,
       hasPee,
       poopColor,
       poopPhotoUrl,
       peeAmount,
       burpSuccess,
-      duration,
       milkAmount,
-      startActivityId,
-      sleepStartId,
       notes,
     } = body
 
     const updateData: Record<string, unknown> = {}
 
     if (type !== undefined) updateData.type = type
-    if (recordTime !== undefined) updateData.recordTime = new Date(recordTime)
+    if (startTime !== undefined) updateData.startTime = new Date(startTime)
+    if (endTime !== undefined) updateData.endTime = endTime ? new Date(endTime) : null
     if (hasPoop !== undefined) updateData.hasPoop = hasPoop
     if (hasPee !== undefined) updateData.hasPee = hasPee
     if (poopColor !== undefined) updateData.poopColor = poopColor
     if (poopPhotoUrl !== undefined) updateData.poopPhotoUrl = poopPhotoUrl
     if (peeAmount !== undefined) updateData.peeAmount = peeAmount
     if (burpSuccess !== undefined) updateData.burpSuccess = burpSuccess
-    if (duration !== undefined) updateData.duration = duration
     if (milkAmount !== undefined) updateData.milkAmount = milkAmount
-    if (startActivityId !== undefined || sleepStartId !== undefined) {
-      updateData.startActivityId = sleepStartId || startActivityId
-    }
     if (notes !== undefined) updateData.notes = notes
 
     const activity = await prisma.activity.update({

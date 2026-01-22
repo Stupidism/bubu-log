@@ -5,18 +5,18 @@ import { TimeAdjuster } from '../TimeAdjuster'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { Check } from 'lucide-react'
-import { differenceInMinutes, addMinutes } from 'date-fns'
+import { dayjs, calculateDurationMinutes } from '@/lib/dayjs'
 
 interface ActivityDurationFormProps {
   type: ActivityType
   onSubmit: (data: {
-    recordTime: Date
-    duration?: number
+    startTime: Date
+    endTime?: Date
   }) => void
   onCancel: () => void
   initialValues?: {
-    recordTime?: Date
-    duration?: number
+    startTime?: Date
+    endTime?: Date
   }
   isEditing?: boolean
 }
@@ -66,17 +66,17 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
   const [rememberSelection, setRememberSelection] = useState(false)
   
   // 计算初始的开始时间和结束时间
-  const initialEndTime = useMemo(() => initialValues?.recordTime || new Date(), [initialValues?.recordTime])
+  const initialEndTime = useMemo(() => initialValues?.endTime || new Date(), [initialValues?.endTime])
   const initialStartTime = useMemo(() => {
-    const duration = initialValues?.duration || config.defaultDuration
-    return addMinutes(initialEndTime, -duration)
-  }, [initialEndTime, initialValues?.duration, config.defaultDuration])
+    if (initialValues?.startTime) return initialValues.startTime
+    return dayjs(initialEndTime).subtract(config.defaultDuration, 'minute').toDate()
+  }, [initialEndTime, initialValues?.startTime, config.defaultDuration])
   
   const [startTime, setStartTime] = useState(initialStartTime)
   const [endTime, setEndTime] = useState(initialEndTime)
 
   // 计算时长
-  const duration = Math.max(0, differenceInMinutes(endTime, startTime))
+  const duration = calculateDurationMinutes(startTime, endTime)
 
   // 格式化时长显示
   const formatDuration = (mins: number) => {
@@ -100,26 +100,26 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
       if (saved) {
         const savedData = JSON.parse(saved)
         if (savedData.rememberSelection && !initialValues) {
-          const now = new Date()
-          setEndTime(now)
-          setStartTime(addMinutes(now, -savedData.duration))
+          const now = dayjs()
+          setEndTime(now.toDate())
+          setStartTime(now.subtract(savedData.duration, 'minute').toDate())
           setRememberSelection(true)
         } else if (!initialValues) {
-          const now = new Date()
-          setEndTime(now)
-          setStartTime(addMinutes(now, -config.defaultDuration))
+          const now = dayjs()
+          setEndTime(now.toDate())
+          setStartTime(now.subtract(config.defaultDuration, 'minute').toDate())
         }
       } else if (!initialValues) {
-        const now = new Date()
-        setEndTime(now)
-        setStartTime(addMinutes(now, -config.defaultDuration))
+        const now = dayjs()
+        setEndTime(now.toDate())
+        setStartTime(now.subtract(config.defaultDuration, 'minute').toDate())
       }
     } catch (e) {
       console.error('Failed to load preferences:', e)
       if (!initialValues) {
-        const now = new Date()
-        setEndTime(now)
-        setStartTime(addMinutes(now, -config.defaultDuration))
+        const now = dayjs()
+        setEndTime(now.toDate())
+        setStartTime(now.subtract(config.defaultDuration, 'minute').toDate())
       }
     }
   }, [type, config.defaultDuration, isEditing, initialValues])
@@ -142,8 +142,8 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
 
   const handleSubmit = () => {
     onSubmit({
-      recordTime: startTime,
-      duration,
+      startTime: startTime,
+      endTime: endTime,
     })
   }
 

@@ -23,7 +23,7 @@ const DEFAULT_PREFERENCES: DiaperFormPreferences = {
 
 interface DiaperFormProps {
   onSubmit: (data: {
-    recordTime: Date
+    startTime: Date
     hasPoop: boolean
     hasPee: boolean
     poopColor?: PoopColor
@@ -32,7 +32,7 @@ interface DiaperFormProps {
   }) => void
   onCancel: () => void
   initialValues?: {
-    recordTime?: Date
+    startTime?: Date
     hasPoop?: boolean
     hasPee?: boolean
     poopColor?: PoopColor
@@ -46,7 +46,7 @@ interface DiaperFormProps {
 
 export function DiaperForm({ onSubmit, onCancel, initialValues, isEditing, hideTypeSelection }: DiaperFormProps) {
   const [preferences, setPreferences] = useState<DiaperFormPreferences>(DEFAULT_PREFERENCES)
-  const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
+  const [startTime, setStartTime] = useState(initialValues?.startTime || new Date())
   const [hasPoop, setHasPoop] = useState(initialValues?.hasPoop ?? false)
   const [hasPee, setHasPee] = useState(initialValues?.hasPee ?? true) // 默认选中小便
   const [poopColor, setPoopColor] = useState<PoopColor>(initialValues?.poopColor || PoopColor.YELLOW) // 默认黄色
@@ -153,7 +153,7 @@ export function DiaperForm({ onSubmit, onCancel, initialValues, isEditing, hideT
   const handleSubmit = () => {
     if (!hasPoop && !hasPee) return
     onSubmit({
-      recordTime,
+      startTime,
       hasPoop,
       hasPee,
       poopColor: hasPoop ? poopColor : undefined,
@@ -166,7 +166,7 @@ export function DiaperForm({ onSubmit, onCancel, initialValues, isEditing, hideT
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
+      <TimeAdjuster time={startTime} onTimeChange={setStartTime} />
 
       {/* 大小便选择 - 如果从首页按钮进入则隐藏 */}
       <div className="space-y-4">

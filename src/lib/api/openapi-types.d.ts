@@ -77,6 +77,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/voice-input": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Parse voice input and create activity
+         * @description Accepts natural language text (from voice input) and uses AI to parse it into a structured activity record.
+         *     Supports Chinese input like "宝宝喝了80毫升奶" or "刚换了尿布，有便便".
+         */
+        post: operations["parseVoiceInput"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/baby-profile": {
         parameters: {
             query?: never;
@@ -126,8 +147,16 @@ export interface components {
         Activity: {
             id: string;
             type: components["schemas"]["ActivityType"];
-            /** Format: date-time */
-            recordTime: string;
+            /**
+             * Format: date-time
+             * @description 活动开始时间
+             */
+            startTime: string;
+            /**
+             * Format: date-time
+             * @description 活动结束时间（正在进行的活动没有结束时间）
+             */
+            endTime?: string | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -138,35 +167,48 @@ export interface components {
             poopPhotoUrl?: string | null;
             peeAmount?: components["schemas"]["PeeAmount"];
             burpSuccess?: boolean | null;
-            duration?: number | null;
             milkAmount?: number | null;
             notes?: string | null;
         };
         CreateActivityInput: {
             type: components["schemas"]["ActivityType"];
-            /** Format: date-time */
-            recordTime: string;
+            /**
+             * Format: date-time
+             * @description 活动开始时间
+             */
+            startTime: string;
+            /**
+             * Format: date-time
+             * @description 活动结束时间（可选）
+             */
+            endTime?: string;
             hasPoop?: boolean;
             hasPee?: boolean;
             poopColor?: components["schemas"]["PoopColor"];
             poopPhotoUrl?: string;
             peeAmount?: components["schemas"]["PeeAmount"];
             burpSuccess?: boolean;
-            duration?: number;
             milkAmount?: number;
             notes?: string;
         };
         UpdateActivityInput: {
             type?: components["schemas"]["ActivityType"];
-            /** Format: date-time */
-            recordTime?: string;
+            /**
+             * Format: date-time
+             * @description 活动开始时间
+             */
+            startTime?: string;
+            /**
+             * Format: date-time
+             * @description 活动结束时间
+             */
+            endTime?: string;
             hasPoop?: boolean;
             hasPee?: boolean;
             poopColor?: components["schemas"]["PoopColor"];
             poopPhotoUrl?: string;
             peeAmount?: components["schemas"]["PeeAmount"];
             burpSuccess?: boolean;
-            duration?: number;
             milkAmount?: number;
             notes?: string;
         };
@@ -472,6 +514,61 @@ export interface operations {
                 content: {
                     "application/json": {
                         success?: boolean;
+                    };
+                };
+            };
+            500: components["responses"]["ServerError"];
+        };
+    };
+    parseVoiceInput: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description The voice input text to parse
+                     * @example 宝宝刚才喝了60毫升奶
+                     */
+                    text: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Activity created successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success?: boolean;
+                        activity?: components["schemas"]["Activity"];
+                        parsed?: {
+                            /** @description AI confidence level (0-1) */
+                            confidence?: number;
+                            originalText?: string;
+                        };
+                        /** @description Human-readable confirmation message */
+                        message?: string;
+                    };
+                };
+            };
+            /** @description Parse failed or invalid input */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error?: string;
+                        /** @enum {string} */
+                        code?: "MISSING_TEXT" | "PARSE_FAILED" | "INVALID_TYPE";
+                        originalText?: string;
                     };
                 };
             };

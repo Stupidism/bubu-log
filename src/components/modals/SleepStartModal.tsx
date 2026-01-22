@@ -10,7 +10,7 @@ import { ActivityType } from '@/types/activity'
 import { Loader2 } from 'lucide-react'
 
 export function SleepStartModal() {
-  const { modalType, activityId, closeModal } = useModalParams()
+  const { modalType, activityId, closeModal, selectedDate } = useModalParams()
   const searchParams = useSearchParams()
   
   const isOpen = modalType === 'sleep_start'
@@ -28,18 +28,22 @@ export function SleepStartModal() {
   const initialValuesFromUrl = useMemo(() => {
     if (isEditing || !isOpen) return undefined
     
-    const recordTime = searchParams.get('recordTime')
+    const startTime = searchParams.get('startTime')
+    
+    // 使用 URL 中的时间，或者使用当前选中日期的当前时间
+    const defaultTime = new Date()
+    defaultTime.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
     
     return {
-      recordTime: recordTime ? new Date(recordTime) : new Date(),
+      startTime: startTime ? new Date(startTime) : defaultTime,
     }
-  }, [isEditing, isOpen, searchParams])
+  }, [isEditing, isOpen, searchParams, selectedDate])
   
   // 编辑模式的初始值
   const initialValues = useMemo(() => {
     if (isEditing && activity) {
       return {
-        recordTime: new Date(activity.recordTime),
+        startTime: new Date(activity.startTime),
       }
     }
     return initialValuesFromUrl
@@ -51,7 +55,7 @@ export function SleepStartModal() {
         {
           params: { path: { id: activityId } },
           body: {
-            recordTime: (data.recordTime as Date).toISOString(),
+            startTime: (data.startTime as Date).toISOString(),
           },
         },
         {
@@ -59,12 +63,12 @@ export function SleepStartModal() {
         }
       )
     } else {
-      // 入睡记录：不需要 duration
+      // 入睡记录：只有 startTime，没有 endTime
       createActivity.mutate(
         {
           body: {
             type: ActivityType.SLEEP,
-            recordTime: (data.recordTime as Date).toISOString(),
+            startTime: (data.startTime as Date).toISOString(),
           },
         },
         {

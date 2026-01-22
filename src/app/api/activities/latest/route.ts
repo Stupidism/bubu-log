@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       where: {
         type: { in: types },
       },
-      orderBy: { recordTime: 'desc' },
+      orderBy: { startTime: 'desc' },
     })
 
     return NextResponse.json(activity)

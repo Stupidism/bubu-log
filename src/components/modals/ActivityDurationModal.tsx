@@ -29,7 +29,7 @@ const ACTIVITY_MODALS: ModalType[] = [
 ]
 
 export function ActivityDurationModal() {
-  const { modalType, activityId, closeModal } = useModalParams()
+  const { modalType, activityId, closeModal, selectedDate } = useModalParams()
   const searchParams = useSearchParams()
   
   const activityType = modalType ? MODAL_TO_ACTIVITY_TYPE[modalType] : undefined
@@ -48,21 +48,25 @@ export function ActivityDurationModal() {
   const initialValuesFromUrl = useMemo(() => {
     if (isEditing || !isOpen) return undefined
     
-    const duration = searchParams.get('duration')
-    const recordTime = searchParams.get('recordTime')
+    const startTime = searchParams.get('startTime')
+    const endTime = searchParams.get('endTime')
+    
+    // 使用 URL 中的时间，或者使用当前选中日期的当前时间
+    const defaultTime = new Date()
+    defaultTime.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
     
     return {
-      recordTime: recordTime ? new Date(recordTime) : new Date(),
-      duration: duration ? parseInt(duration, 10) : undefined,
+      startTime: startTime ? new Date(startTime) : defaultTime,
+      endTime: endTime ? new Date(endTime) : undefined,
     }
-  }, [isEditing, isOpen, searchParams])
+  }, [isEditing, isOpen, searchParams, selectedDate])
   
   // 编辑模式的初始值
   const initialValues = useMemo(() => {
     if (isEditing && activity) {
       return {
-        recordTime: new Date(activity.recordTime),
-        duration: activity.duration ?? undefined,
+        startTime: new Date(activity.startTime),
+        endTime: activity.endTime ? new Date(activity.endTime) : undefined,
       }
     }
     return initialValuesFromUrl
@@ -76,8 +80,8 @@ export function ActivityDurationModal() {
         {
           params: { path: { id: activityId } },
           body: {
-            recordTime: (data.recordTime as Date).toISOString(),
-            duration: data.duration as number,
+            startTime: (data.startTime as Date).toISOString(),
+            endTime: data.endTime ? (data.endTime as Date).toISOString() : undefined,
           },
         },
         {
@@ -89,8 +93,8 @@ export function ActivityDurationModal() {
         {
           body: {
             type: activityType,
-            recordTime: (data.recordTime as Date).toISOString(),
-            duration: data.duration as number,
+            startTime: (data.startTime as Date).toISOString(),
+            endTime: data.endTime ? (data.endTime as Date).toISOString() : undefined,
           },
         },
         {

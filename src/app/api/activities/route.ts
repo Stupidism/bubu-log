@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       const endOfDay = new Date(date)
       endOfDay.setHours(23, 59, 59, 999)
 
-      where.recordTime = {
+      where.startTime = {
         gte: startOfDay,
         lte: endOfDay,
       }
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     const activities = await prisma.activity.findMany({
       where,
-      orderBy: { recordTime: 'desc' },
+      orderBy: { startTime: 'desc' },
       take: limit,
     })
 
@@ -54,14 +54,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const {
       type,
-      recordTime,
+      startTime,
+      endTime,
       hasPoop,
       hasPee,
       poopColor,
       poopPhotoUrl,
       peeAmount,
       burpSuccess,
-      duration,
       milkAmount,
       notes,
     } = body
@@ -69,14 +69,14 @@ export async function POST(request: NextRequest) {
     const activity = await prisma.activity.create({
       data: {
         type,
-        recordTime: new Date(recordTime),
+        startTime: new Date(startTime),
+        endTime: endTime ? new Date(endTime) : null,
         hasPoop,
         hasPee,
         poopColor,
         poopPhotoUrl,
         peeAmount,
         burpSuccess,
-        duration,
         milkAmount,
         notes,
       },

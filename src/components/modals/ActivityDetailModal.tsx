@@ -1,8 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
-import { format, addMinutes } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
+import { useState, useCallback } from 'react'
 import { Edit2, Trash2, Loader2 } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { ActivityIcon } from '@/components/ActivityIcon'
@@ -17,6 +15,7 @@ import {
   SleepEndForm,
 } from '@/components/forms'
 import type { components } from '@/lib/api/openapi-types'
+import { dayjs, calculateDurationMinutes, formatDuration, formatDateTimeChinese } from '@/lib/dayjs'
 
 export function ActivityDetailModal() {
   const { modalType, activityId, isEditing, closeModal, setEditing, openModal } = useModalParams()
@@ -59,14 +58,14 @@ export function ActivityDetailModal() {
       {
         params: { path: { id: activityId } },
         body: {
-          recordTime: (data.recordTime as Date).toISOString(),
+          startTime: (data.startTime as Date).toISOString(),
+          ...(data.endTime !== undefined && { endTime: (data.endTime as Date).toISOString() }),
           ...(data.hasPoop !== undefined && { hasPoop: data.hasPoop as boolean }),
           ...(data.hasPee !== undefined && { hasPee: data.hasPee as boolean }),
           ...(data.poopColor !== undefined && { poopColor: data.poopColor as components["schemas"]["PoopColor"] }),
           ...(data.poopPhotoUrl !== undefined && { poopPhotoUrl: data.poopPhotoUrl as string }),
           ...(data.peeAmount !== undefined && { peeAmount: data.peeAmount as components["schemas"]["PeeAmount"] }),
           ...(data.burpSuccess !== undefined && { burpSuccess: data.burpSuccess as boolean }),
-          ...(data.duration !== undefined && { duration: data.duration as number }),
           ...(data.milkAmount !== undefined && { milkAmount: data.milkAmount as number }),
           ...(data.notes !== undefined && { notes: data.notes as string }),
         },
@@ -80,31 +79,24 @@ export function ActivityDetailModal() {
   }, [activityId, updateActivity, handleClose])
   
   // 格式化时间范围
-  const formatTimeRange = (startTime: Date | string, duration: number) => {
-    const start = new Date(startTime)
-    const end = addMinutes(start, duration)
-    return `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`
-  }
-
-  // 格式化时长
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (hours > 0) {
-      return `${hours}小时${mins > 0 ? mins + '分钟' : ''}`
-    }
-    return `${mins}分钟`
+  const formatTimeRange = (startTime: Date | string, endTime: Date | string) => {
+    return `${dayjs(startTime).format('HH:mm')} - ${dayjs(endTime).format('HH:mm')}`
   }
   
   // 渲染活动详情
   const renderDetails = () => {
     if (!activity) return null
     
+    // 计算时长
+    const duration = activity.endTime 
+      ? calculateDurationMinutes(activity.startTime, activity.endTime) 
+      : null
+    
     switch (activity.type) {
       case 'SLEEP':
-        return activity.duration ? (
+        return activity.endTime ? (
           <p className="text-lg text-gray-700 dark:text-gray-300">
-            {formatTimeRange(activity.recordTime, activity.duration)} · {formatDuration(activity.duration)}
+            {formatTimeRange(activity.startTime, activity.endTime)} · {formatDuration(duration!)}
           </p>
         ) : (
           <p className="text-lg text-amber-600 dark:text-amber-400">正在睡觉...</p>
@@ -113,7 +105,7 @@ export function ActivityDetailModal() {
       case 'BREASTFEED':
         return (
           <p className="text-lg text-gray-700 dark:text-gray-300">
-            {activity.duration ? formatDuration(activity.duration) : '未记录时长'}
+            {duration ? formatDuration(duration) : '未记录时长'}
             {activity.burpSuccess !== null && (
               <span className={activity.burpSuccess ? 'text-green-600' : 'text-red-600'}>
                 {' · '}{activity.burpSuccess ? '拍嗝成功' : '拍嗝未成功'}
@@ -127,7 +119,7 @@ export function ActivityDetailModal() {
           <div className="space-y-1">
             <p className="text-lg text-gray-700 dark:text-gray-300">
               {activity.milkAmount ? `${activity.milkAmount}ml` : '未记录奶量'}
-              {activity.duration ? ` · ${formatDuration(activity.duration)}` : ''}
+              {duration ? ` · ${formatDuration(duration)}` : ''}
             </p>
             {activity.burpSuccess !== null && (
               <p className={activity.burpSuccess ? 'text-green-600' : 'text-red-600'}>
@@ -167,9 +159,9 @@ export function ActivityDetailModal() {
         )
       
       default:
-        return activity.duration ? (
+        return activity.endTime ? (
           <p className="text-lg text-gray-700 dark:text-gray-300">
-            {formatTimeRange(activity.recordTime, activity.duration)} · {formatDuration(activity.duration)}
+            {formatTimeRange(activity.startTime, activity.endTime)} · {formatDuration(duration!)}
           </p>
         ) : null
     }
@@ -181,8 +173,8 @@ export function ActivityDetailModal() {
     
     const activityType = activity.type as ActivityType
     const baseValues = {
-      recordTime: new Date(activity.recordTime),
-      duration: activity.duration || undefined,
+      startTime: new Date(activity.startTime),
+      endTime: activity.endTime ? new Date(activity.endTime) : undefined,
       milkAmount: activity.milkAmount || undefined,
       hasPoop: activity.hasPoop ?? undefined,
       hasPee: activity.hasPee ?? undefined,
@@ -276,7 +268,7 @@ export function ActivityDetailModal() {
                 {ActivityTypeLabels[activity.type as ActivityType]}
               </h3>
               <p className="text-xl text-gray-500 dark:text-gray-400 mt-1">
-                {format(new Date(activity.recordTime), 'M月d日 HH:mm', { locale: zhCN })}
+                {formatDateTimeChinese(activity.startTime)}
               </p>
             </div>
 

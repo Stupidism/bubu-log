@@ -6,19 +6,19 @@ import { SliderInput } from '../SliderInput'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { Check } from 'lucide-react'
-import { differenceInMinutes, addMinutes } from 'date-fns'
+import { dayjs, calculateDurationMinutes } from '@/lib/dayjs'
 
 interface BottleFormProps {
   onSubmit: (data: {
-    recordTime: Date
-    duration: number
+    startTime: Date
+    endTime?: Date
     milkAmount: number
     burpSuccess?: boolean
   }) => void
   onCancel: () => void
   initialValues?: {
-    recordTime?: Date
-    duration?: number
+    startTime?: Date
+    endTime?: Date
     milkAmount?: number
     burpSuccess?: boolean
   }
@@ -45,11 +45,11 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES)
   
   // 计算初始的开始时间和结束时间
-  const initialEndTime = useMemo(() => initialValues?.recordTime || new Date(), [initialValues?.recordTime])
+  const initialEndTime = useMemo(() => initialValues?.endTime || new Date(), [initialValues?.endTime])
   const initialStartTime = useMemo(() => {
-    const duration = initialValues?.duration || 15
-    return addMinutes(initialEndTime, -duration)
-  }, [initialEndTime, initialValues?.duration])
+    if (initialValues?.startTime) return initialValues.startTime
+    return dayjs(initialEndTime).subtract(15, 'minute').toDate()
+  }, [initialEndTime, initialValues?.startTime])
   
   const [startTime, setStartTime] = useState(initialStartTime)
   const [endTime, setEndTime] = useState(initialEndTime)
@@ -57,7 +57,7 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
   const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialValues?.burpSuccess)
 
   // 计算时长
-  const duration = Math.max(0, differenceInMinutes(endTime, startTime))
+  const duration = calculateDurationMinutes(startTime, endTime)
 
   // 格式化时长显示
   const formatDuration = (mins: number) => {
@@ -83,9 +83,9 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
         setPreferences(savedPrefs)
         if (savedPrefs.rememberSelection && !initialValues) {
           // 设置默认时长对应的开始时间
-          const now = new Date()
-          setEndTime(now)
-          setStartTime(addMinutes(now, -savedPrefs.defaultDuration))
+          const now = dayjs()
+          setEndTime(now.toDate())
+          setStartTime(now.subtract(savedPrefs.defaultDuration, 'minute').toDate())
           setMilkAmount(savedPrefs.defaultMilkAmount)
           setBurpSuccess(savedPrefs.defaultBurpSuccess)
         }
@@ -114,8 +114,8 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
   const handleSubmit = () => {
     if (duration <= 0 || milkAmount <= 0) return
     onSubmit({
-      recordTime: startTime,
-      duration,
+      startTime,
+      endTime,
       milkAmount,
       burpSuccess,
     })

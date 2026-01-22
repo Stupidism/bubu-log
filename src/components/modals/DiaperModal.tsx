@@ -11,7 +11,7 @@ import type { components } from '@/lib/api/openapi-types'
 import { Loader2 } from 'lucide-react'
 
 export function DiaperModal() {
-  const { modalType, activityId, closeModal } = useModalParams()
+  const { modalType, activityId, closeModal, selectedDate } = useModalParams()
   const searchParams = useSearchParams()
   
   const isOpen = modalType === 'diaper'
@@ -33,27 +33,30 @@ export function DiaperModal() {
     const hasPee = searchParams.get('hasPee')
     const poopColor = searchParams.get('poopColor')
     const peeAmount = searchParams.get('peeAmount')
-    const recordTime = searchParams.get('recordTime')
+    const startTime = searchParams.get('startTime')
+    
+    // 使用 URL 中的时间，或者使用当前选中日期的当前时间
+    const defaultTime = new Date()
+    defaultTime.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
     
     return {
-      recordTime: recordTime ? new Date(recordTime) : new Date(),
+      startTime: startTime ? new Date(startTime) : defaultTime,
       hasPoop: hasPoop ? hasPoop === 'true' : undefined,
       hasPee: hasPee ? hasPee === 'true' : undefined,
       poopColor: poopColor as PoopColor | undefined,
       peeAmount: peeAmount as PeeAmount | undefined,
     }
-  }, [isEditing, isOpen, searchParams])
+  }, [isEditing, isOpen, searchParams, selectedDate])
   
   // 编辑模式的初始值
   const initialValues = useMemo(() => {
     if (isEditing && activity) {
       return {
-        recordTime: new Date(activity.recordTime),
+        startTime: new Date(activity.startTime),
         hasPoop: activity.hasPoop ?? undefined,
         hasPee: activity.hasPee ?? undefined,
         poopColor: activity.poopColor as PoopColor | undefined,
         peeAmount: activity.peeAmount as PeeAmount | undefined,
-        poopPhotoUrl: activity.poopPhotoUrl ?? undefined,
       }
     }
     return initialValuesFromUrl
@@ -66,11 +69,10 @@ export function DiaperModal() {
         {
           params: { path: { id: activityId } },
           body: {
-            recordTime: (data.recordTime as Date).toISOString(),
+            startTime: (data.startTime as Date).toISOString(),
             hasPoop: data.hasPoop as boolean,
             hasPee: data.hasPee as boolean,
             poopColor: data.poopColor as components["schemas"]["PoopColor"],
-            poopPhotoUrl: data.poopPhotoUrl as string,
             peeAmount: data.peeAmount as components["schemas"]["PeeAmount"],
           },
         },
@@ -84,11 +86,10 @@ export function DiaperModal() {
         {
           body: {
             type: ActivityType.DIAPER,
-            recordTime: (data.recordTime as Date).toISOString(),
+            startTime: (data.startTime as Date).toISOString(),
             hasPoop: data.hasPoop as boolean,
             hasPee: data.hasPee as boolean,
             poopColor: data.poopColor as components["schemas"]["PoopColor"],
-            poopPhotoUrl: data.poopPhotoUrl as string,
             peeAmount: data.peeAmount as components["schemas"]["PeeAmount"],
           },
         },

@@ -2,8 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { format, subDays, addMinutes } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
+import { dayjs, calculateDurationMinutes, formatDuration as formatDurationUtil, formatDateChinese, formatWeekday } from '@/lib/dayjs'
 import {
   ActivityType,
   ActivityTypeLabels,
@@ -54,7 +53,6 @@ type FilterType = 'all' | 'sleep' | 'feeding' | 'diaper' | 'activities'
 type ViewType = 'list' | 'timeline'
 
 export default function StatsPage() {
-  const [selectedDate, setSelectedDate] = useState(new Date())
   const [filter, setFilter] = useState<FilterType>('all')
   const [viewType, setViewType] = useState<ViewType>('list')
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -65,13 +63,13 @@ export default function StatsPage() {
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false)
   const longPressTimer = useRef<NodeJS.Timeout | null>(null)
 
-  const { openActivityDetail } = useModalParams()
+  // URL 参数管理（包括日期）
+  const { openActivityDetail, selectedDate, selectedDateStr, setSelectedDate } = useModalParams()
   const batchDeleteMutation = useBatchDeleteActivities()
 
   // Use React Query for activities
-  const dateStr = format(selectedDate, 'yyyy-MM-dd')
   const { data: activities = [], isLoading, refetch } = useActivities({
-    date: dateStr,
+    date: selectedDateStr,
     limit: 100,
   })
 
@@ -113,10 +111,11 @@ export default function StatsPage() {
       exerciseCount: 0,
     }
 
-    // 睡眠统计
-    const sleeps = activities.filter((a) => a.type === 'SLEEP' && a.duration !== null)
+    // 睡眠统计 - 有 endTime 才计为完整睡眠
+    const sleeps = activities.filter((a) => a.type === 'SLEEP' && a.endTime)
     summary.sleepCount = sleeps.length
-    summary.totalSleepMinutes = sleeps.reduce((acc, a) => acc + (a.duration || 0), 0)
+    summary.totalSleepMinutes = sleeps.reduce((acc, a) => 
+      acc + (a.endTime ? calculateDurationMinutes(a.startTime, a.endTime) : 0), 0)
 
     // 尿布统计
     const diapers = activities.filter((a) => a.type === 'DIAPER')
@@ -127,7 +126,8 @@ export default function StatsPage() {
     // 亲喂统计
     const breastfeeds = activities.filter((a) => a.type === 'BREASTFEED')
     summary.breastfeedCount = breastfeeds.length
-    summary.totalBreastfeedMinutes = breastfeeds.reduce((acc, a) => acc + (a.duration || 0), 0)
+    summary.totalBreastfeedMinutes = breastfeeds.reduce((acc, a) => 
+      acc + (a.endTime ? calculateDurationMinutes(a.startTime, a.endTime) : 0), 0)
 
     // 瓶喂统计
     const bottles = activities.filter((a) => a.type === 'BOTTLE')
@@ -145,31 +145,24 @@ export default function StatsPage() {
 
   // 日期导航
   const navigateDate = (days: number) => {
-    setSelectedDate((prev) => subDays(prev, -days))
+    const newDate = dayjs(selectedDate).add(days, 'day').toDate()
+    setSelectedDate(newDate)
     // 切换日期时退出多选模式
-    exitSelectMode()
+    setIsSelectMode(false)
+    setSelectedIds(new Set())
   }
+
+  // 是否是今天
+  const isToday = selectedDateStr === dayjs().format('YYYY-MM-DD')
 
   // 格式化时间
   const formatTime = (date: Date | string) => {
-    return format(new Date(date), 'HH:mm')
-  }
-
-  // 格式化分钟为小时和分钟
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (hours > 0) {
-      return `${hours}小时${mins > 0 ? mins + '分钟' : ''}`
-    }
-    return `${mins}分钟`
+    return dayjs(date).format('HH:mm')
   }
 
   // 格式化时间范围
-  const formatTimeRange = (startTime: Date | string, duration: number) => {
-    const start = new Date(startTime)
-    const end = addMinutes(start, duration)
-    return `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`
+  const formatTimeRange = (startTime: Date | string, endTime: Date | string) => {
+    return `${dayjs(startTime).format('HH:mm')} - ${dayjs(endTime).format('HH:mm')}`
   }
 
   // 处理卡片点击过滤
@@ -271,15 +264,18 @@ export default function StatsPage() {
             )}
           </div>
         )
-      case 'BREASTFEED':
+      case 'BREASTFEED': {
+        const duration = activity.endTime 
+          ? calculateDurationMinutes(activity.startTime, activity.endTime) 
+          : null
         return (
           <div className="text-base text-gray-600 dark:text-gray-400 flex items-center gap-2">
-            {activity.duration && (
+            {activity.endTime && (
               <>
                 <span className="text-pink-600 dark:text-pink-400 font-medium">
-                  {formatTimeRange(activity.recordTime, activity.duration)}
+                  {formatTimeRange(activity.startTime, activity.endTime)}
                 </span>
-                <span>({activity.duration}分钟)</span>
+                <span>({duration}分钟)</span>
               </>
             )}
             {activity.burpSuccess && (
@@ -290,7 +286,11 @@ export default function StatsPage() {
             )}
           </div>
         )
-      case 'BOTTLE':
+      }
+      case 'BOTTLE': {
+        const duration = activity.endTime 
+          ? calculateDurationMinutes(activity.startTime, activity.endTime) 
+          : null
         return (
           <div className="text-base text-gray-600 dark:text-gray-400 flex flex-wrap items-center gap-2">
             {activity.milkAmount && (
@@ -298,12 +298,12 @@ export default function StatsPage() {
                 {activity.milkAmount}ml
               </span>
             )}
-            {activity.duration && (
+            {activity.endTime && (
               <>
                 <span className="text-gray-500">
-                  {formatTimeRange(activity.recordTime, activity.duration)}
+                  {formatTimeRange(activity.startTime, activity.endTime)}
                 </span>
-                <span>({activity.duration}分钟)</span>
+                <span>({duration}分钟)</span>
               </>
             )}
             {activity.burpSuccess && (
@@ -314,22 +314,31 @@ export default function StatsPage() {
             )}
           </div>
         )
-      case 'SLEEP':
-        return activity.duration ? (
+      }
+      case 'SLEEP': {
+        const duration = activity.endTime 
+          ? calculateDurationMinutes(activity.startTime, activity.endTime) 
+          : null
+        return activity.endTime ? (
           <span className="text-base text-amber-600 dark:text-amber-400 font-medium">
-            {formatTimeRange(activity.recordTime, activity.duration)} ({formatDuration(activity.duration)})
+            {formatTimeRange(activity.startTime, activity.endTime)} ({formatDurationUtil(duration!)})
           </span>
         ) : (
           <span className="text-base text-amber-500 dark:text-amber-400 animate-pulse">
             正在睡觉...
           </span>
         )
-      default:
-        return activity.duration ? (
+      }
+      default: {
+        const duration = activity.endTime 
+          ? calculateDurationMinutes(activity.startTime, activity.endTime) 
+          : null
+        return duration ? (
           <span className="text-base text-gray-600 dark:text-gray-400">
-            {activity.duration}分钟
+            {duration}分钟
           </span>
         ) : null
+      }
     }
   }
 
@@ -381,7 +390,7 @@ export default function StatsPage() {
           ) : (
             <>
               <Link
-                href="/"
+                href={isToday ? '/' : `/?date=${selectedDateStr}`}
                 className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-base flex items-center gap-1"
               >
                 <ArrowLeft size={18} />
@@ -407,16 +416,16 @@ export default function StatsPage() {
             </button>
             <div className="text-center">
               <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                {format(selectedDate, 'M月d日', { locale: zhCN })}
+                {formatDateChinese(selectedDate)}
               </p>
               <p className="text-base text-gray-500 dark:text-gray-400">
-                {format(selectedDate, 'EEEE', { locale: zhCN })}
+                {formatWeekday(selectedDate)}
               </p>
             </div>
             <button
               onClick={() => navigateDate(1)}
               className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-              disabled={format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')}
+              disabled={isToday}
             >
               <ChevronRight size={24} />
             </button>
@@ -440,7 +449,7 @@ export default function StatsPage() {
                 <span className="font-semibold text-lg text-gray-700 dark:text-gray-300">睡眠</span>
               </div>
               <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-                {formatDuration(summary.totalSleepMinutes)}
+                {formatDurationUtil(summary.totalSleepMinutes)}
               </p>
               <p className="text-base text-gray-500 dark:text-gray-400">
                 {summary.sleepCount} 次
@@ -611,7 +620,7 @@ export default function StatsPage() {
                         {ActivityTypeLabels[activity.type as ActivityType]}
                       </span>
                       <span className="text-lg text-gray-500 dark:text-gray-400 font-medium">
-                        {formatTime(activity.recordTime)}
+                        {formatTime(activity.startTime)}
                       </span>
                     </div>
                     {renderActivityDetails(activity)}

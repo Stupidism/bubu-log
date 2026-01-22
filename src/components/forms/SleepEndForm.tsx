@@ -4,39 +4,37 @@ import { useState, useMemo } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType } from '@/types/activity'
-import { differenceInMinutes, addMinutes } from 'date-fns'
+import { dayjs, calculateDurationMinutes } from '@/lib/dayjs'
 
 interface SleepEndFormProps {
-  startTime?: Date
+  sleepStartTime?: Date
   onSubmit: (data: {
-    recordTime: Date
-    duration: number
+    startTime: Date
+    endTime: Date
   }) => void
   onCancel: () => void
   initialValues?: {
-    recordTime?: Date
-    duration?: number
+    startTime?: Date
+    endTime?: Date
   }
   isEditing?: boolean
 }
 
-export function SleepEndForm({ startTime: propStartTime, onSubmit, onCancel, initialValues, isEditing }: SleepEndFormProps) {
+export function SleepEndForm({ sleepStartTime: propStartTime, onSubmit, onCancel, initialValues, isEditing }: SleepEndFormProps) {
   // 计算初始的开始时间和结束时间
   const initialEndTime = useMemo(() => {
-    // 如果有 initialValues，使用它计算结束时间
-    if (initialValues?.recordTime && initialValues?.duration) {
-      return addMinutes(new Date(initialValues.recordTime), initialValues.duration)
-    }
+    // 如果有 initialValues.endTime，使用它
+    if (initialValues?.endTime) return initialValues.endTime
     return new Date()
   }, [initialValues])
   
   const initialStartTime = useMemo(() => {
     // 优先使用 propStartTime（从入睡状态过来）
     if (propStartTime) return propStartTime
-    // 其次使用 initialValues 的 recordTime
-    if (initialValues?.recordTime) return new Date(initialValues.recordTime)
+    // 其次使用 initialValues 的 startTime
+    if (initialValues?.startTime) return initialValues.startTime
     // 否则默认1小时前
-    return addMinutes(new Date(), -60)
+    return dayjs().subtract(60, 'minute').toDate()
   }, [propStartTime, initialValues])
   
   const [sleepStartTime, setSleepStartTime] = useState(initialStartTime)
@@ -46,13 +44,13 @@ export function SleepEndForm({ startTime: propStartTime, onSubmit, onCancel, ini
   const hasFixedStartTime = !!propStartTime
 
   // 计算时长
-  const duration = Math.max(0, differenceInMinutes(sleepEndTime, sleepStartTime))
+  const duration = calculateDurationMinutes(sleepStartTime, sleepEndTime)
 
   const handleSubmit = () => {
     if (duration <= 0) return
     onSubmit({
-      recordTime: sleepStartTime,
-      duration,
+      startTime: sleepStartTime,
+      endTime: sleepEndTime,
     })
   }
 

@@ -104,13 +104,13 @@ export function useUploadActivityPhoto() {
 export function useSleepState() {
   const sleepQuery = useLatestActivity("SLEEP");
   
-  // 宝宝正在睡觉：SLEEP 记录的 duration 为 null
-  const isSleeping = sleepQuery.data?.type === "SLEEP" && sleepQuery.data?.duration === null;
+  // 宝宝正在睡觉：SLEEP 记录没有 endTime（只有入睡时间）
+  const isSleeping = sleepQuery.data?.type === "SLEEP" && !sleepQuery.data?.endTime;
   const sleepState = isSleeping ? "end" : "start";
   
   // 获取当前睡眠记录（用于更新）
   const getCurrentSleepActivity = useCallback(() => {
-    if (sleepQuery.data?.type === "SLEEP" && sleepQuery.data?.duration === null) {
+    if (sleepQuery.data?.type === "SLEEP" && !sleepQuery.data?.endTime) {
       return sleepQuery.data;
     }
     return null;

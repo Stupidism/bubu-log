@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { ActivityType } from '@/types/activity'
+import { dayjs } from '@/lib/dayjs'
 
 export type ModalType = 
   | 'activity'        // 查看/编辑活动详情
@@ -50,6 +51,12 @@ interface ModalParams {
   activityId: string | null
   /** 是否处于编辑模式 */
   isEditing: boolean
+  /** 当前选中的日期（用于首页日历） */
+  selectedDate: Date
+  /** 当前选中的日期字符串 (YYYY-MM-DD) */
+  selectedDateStr: string
+  /** 设置日期 */
+  setSelectedDate: (date: Date) => void
   /** 关闭弹窗 */
   closeModal: () => void
   /** 打开弹窗 */
@@ -63,9 +70,10 @@ interface ModalParams {
 }
 
 /**
- * 通过 URL 参数管理弹窗状态
+ * 通过 URL 参数管理弹窗状态和日期选择
  * 
  * URL 参数格式：
+ * - ?date=2026-01-22 - 选择日期
  * - ?modal=activity&id=xxx - 查看活动详情
  * - ?modal=activity&id=xxx&edit=true - 编辑活动
  * - ?modal=delete&id=xxx - 删除确认
@@ -82,12 +90,48 @@ export function useModalParams(): ModalParams {
   const activityId = searchParams.get('id')
   const isEditing = searchParams.get('edit') === 'true'
   
-  const closeModal = useCallback(() => {
-    router.push(pathname, { scroll: false })
-  }, [router, pathname])
+  // 日期参数
+  const dateParam = searchParams.get('date')
+  const selectedDateStr = dateParam || dayjs().format('YYYY-MM-DD')
+  const selectedDate = useMemo(() => {
+    return dateParam ? dayjs(dateParam).toDate() : new Date()
+  }, [dateParam])
   
+  // 设置日期（保留其他参数）
+  const setSelectedDate = useCallback((date: Date) => {
+    const params = new URLSearchParams(searchParams.toString())
+    const dateStr = dayjs(date).format('YYYY-MM-DD')
+    // 只有不是今天才设置 date 参数
+    if (dayjs(date).isSame(dayjs(), 'day')) {
+      params.delete('date')
+    } else {
+      params.set('date', dateStr)
+    }
+    // 移除 modal 相关参数
+    params.delete('modal')
+    params.delete('id')
+    params.delete('edit')
+    const queryString = params.toString()
+    router.push(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
+  }, [router, pathname, searchParams])
+  
+  // 关闭弹窗（保留日期参数）
+  const closeModal = useCallback(() => {
+    const params = new URLSearchParams()
+    if (dateParam) {
+      params.set('date', dateParam)
+    }
+    const queryString = params.toString()
+    router.push(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
+  }, [router, pathname, dateParam])
+  
+  // 打开弹窗（保留日期参数）
   const openModal = useCallback((type: ModalType, options?: OpenModalOptions) => {
     const params = new URLSearchParams()
+    // 保留日期参数
+    if (dateParam) {
+      params.set('date', dateParam)
+    }
     params.set('modal', type)
     if (options?.id) {
       params.set('id', options.id)
@@ -102,7 +146,7 @@ export function useModalParams(): ModalParams {
       })
     }
     router.push(`${pathname}?${params.toString()}`, { scroll: false })
-  }, [router, pathname])
+  }, [router, pathname, dateParam])
   
   const setEditing = useCallback((editing: boolean) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -126,10 +170,13 @@ export function useModalParams(): ModalParams {
     modalType,
     activityId,
     isEditing,
+    selectedDate,
+    selectedDateStr,
+    setSelectedDate,
     closeModal,
     openModal,
     setEditing,
     openActivityDetail,
     openDeleteConfirm,
-  }), [modalType, activityId, isEditing, closeModal, openModal, setEditing, openActivityDetail, openDeleteConfirm])
+  }), [modalType, activityId, isEditing, selectedDate, selectedDateStr, setSelectedDate, closeModal, openModal, setEditing, openActivityDetail, openDeleteConfirm])
 }

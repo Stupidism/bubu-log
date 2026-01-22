@@ -11,8 +11,8 @@ import { useSleepState } from '@/lib/api/hooks'
 // Parsed voice input data for confirmation
 export interface VoiceParsedData {
   type: ActivityType
-  recordTime: string
-  duration: number | null
+  startTime: string
+  endTime: string | null
   milkAmount: number | null
   hasPoop: boolean | null
   hasPee: boolean | null
@@ -106,16 +106,19 @@ export function ActivityFAB({
     // 确定要打开的弹窗类型
     let modalType: ModalType
     if (parsed.type === ActivityType.SLEEP) {
-      modalType = parsed.duration ? 'sleep_end' : 'sleep_start'
+      // 有 endTime 说明是睡醒（有时长），否则是入睡
+      modalType = parsed.endTime ? 'sleep_end' : 'sleep_start'
     } else {
       modalType = activityTypeToModalType[parsed.type]
     }
     
-    // 构建初始值参数
+    // 构建初始值参数 - 直接使用 startTime 和 endTime
     const params: Record<string, string> = {
-      recordTime: parsed.recordTime,
+      startTime: parsed.startTime,
     }
-    if (parsed.duration !== null) params.duration = parsed.duration.toString()
+    if (parsed.endTime !== null) {
+      params.endTime = parsed.endTime
+    }
     if (parsed.milkAmount !== null) params.milkAmount = parsed.milkAmount.toString()
     if (parsed.hasPoop !== null) params.hasPoop = parsed.hasPoop.toString()
     if (parsed.hasPee !== null) params.hasPee = parsed.hasPee.toString()

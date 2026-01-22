@@ -37,8 +37,8 @@ const SYSTEM_PROMPT = `你是一个宝宝活动记录助手。用户会用自然
 请根据用户输入返回以下 JSON 格式（只返回 JSON，不要其他内容）：
 {
   "type": "活动类型",
-  "recordTime": "ISO 8601 时间字符串，这是活动开始的时间",
-  "duration": 活动时长（分钟），如果没提到返回 null,
+  "startTime": "ISO 8601 时间字符串，活动开始时间",
+  "endTime": "ISO 8601 时间字符串，活动结束时间，如果没提到或正在进行返回 null",
   "milkAmount": 奶量（毫升），如果没提到返回 null,
   "hasPoop": 是否有大便（布尔值），如果没提到返回 null,
   "hasPee": 是否有小便（布尔值），如果没提到返回 null,
@@ -52,19 +52,19 @@ const SYSTEM_PROMPT = `你是一个宝宝活动记录助手。用户会用自然
 1. 如果无法确定活动类型，返回 {"error": "无法识别活动类型", "originalText": "用户原文"}
 2. 【睡眠记录的特殊规则 - 非常重要】：
    - 当用户说"睡了X分钟"、"睡了X小时"、"刚睡了X分钟"时，表示宝宝刚刚睡醒，这是一个已完成的睡眠记录
-   - 此时 recordTime 应该是睡眠开始时间 = 当前时间 - duration
-   - 例如：用户在 10:00 说"睡了30分钟"，recordTime 应该是 09:30，duration 是 30
-   - 只有当用户明确说"入睡"、"开始睡"、"睡着了"时，才是记录入睡时间（此时 duration 为 null）
+   - 此时需要计算 startTime = 当前时间 - X分钟，endTime = 当前时间
+   - 例如：用户在 10:00 说"睡了30分钟"，startTime = 09:30，endTime = 10:00
+   - 只有当用户明确说"入睡"、"开始睡"、"睡着了"时，才是记录入睡时间（此时 endTime 为 null）
 3. 时间解析规则：
    - "刚才"、"刚刚" = 当前时间往前 5 分钟
    - "X分钟前" = 当前时间往前 X 分钟
    - "X小时前" = 当前时间往前 X 小时
-   - 对于有 duration 的活动，recordTime 是活动开始时间，不是结束时间
    - 【时间范围解析 - 非常重要】：
-     * 格式 "A到B" 或 "A至B"：A 是开始时间，B 是结束时间，recordTime = A，duration = B - A
-     * 例如："一点到一点半" → recordTime = 13:00, duration = 30（不是 12:30 到 13:00！）
-     * 例如："8点10分到9点" → recordTime = 08:10, duration = 50
-     * 例如："下午3点到4点半" → recordTime = 15:00, duration = 90
+     * 格式 "A到B" 或 "A至B"：A 是开始时间，B 是结束时间
+     * startTime = A，endTime = B
+     * 例如："一点到一点半" → startTime = 13:00, endTime = 13:30（不是 12:30 到 13:00！）
+     * 例如："8点10分到9点" → startTime = 08:10, endTime = 09:00
+     * 例如："下午3点到4点半" → startTime = 15:00, endTime = 16:30
      * 注意：第一个时间是开始时间，第二个时间是结束时间，不要搞反！
    - 【具体时间解析】：
      * 解析具体时间时，根据当前时间选择最近的过去时间点
@@ -110,8 +110,8 @@ interface DeepseekResponse {
 
 interface ParsedActivity {
   type: ActivityType
-  recordTime: string | null
-  duration: number | null
+  startTime: string | null
+  endTime: string | null
   milkAmount: number | null
   hasPoop: boolean | null
   hasPee: boolean | null
@@ -221,9 +221,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Use current time if not specified
-    const recordTime = parsed.recordTime 
-      ? new Date(parsed.recordTime)
+    const startTime = parsed.startTime 
+      ? new Date(parsed.startTime)
       : new Date()
+    const endTime = parsed.endTime 
+      ? new Date(parsed.endTime)
+      : null
 
     // If confidence is low, return parsed data for confirmation
     if (parsed.confidence < CONFIDENCE_THRESHOLD) {
@@ -232,8 +235,8 @@ export async function POST(request: NextRequest) {
         needConfirmation: true,
         parsed: {
           type: parsed.type,
-          recordTime: recordTime.toISOString(),
-          duration: parsed.duration,
+          startTime: startTime.toISOString(),
+          endTime: endTime?.toISOString() || null,
           milkAmount: parsed.milkAmount,
           hasPoop: parsed.hasPoop,
           hasPee: parsed.hasPee,
@@ -251,8 +254,8 @@ export async function POST(request: NextRequest) {
     const activity = await prisma.activity.create({
       data: {
         type: parsed.type,
-        recordTime,
-        duration: parsed.duration,
+        startTime,
+        endTime,
         milkAmount: parsed.milkAmount,
         hasPoop: parsed.hasPoop,
         hasPee: parsed.hasPee,
@@ -290,6 +293,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Calculate duration in minutes from startTime and endTime
+function calculateDuration(startTime: string | null, endTime: string | null): number | null {
+  if (!startTime || !endTime) return null
+  const start = new Date(startTime)
+  const end = new Date(endTime)
+  return Math.round((end.getTime() - start.getTime()) / (60 * 1000))
+}
+
 // Generate a human-readable confirmation message
 function generateConfirmationMessage(parsed: ParsedActivity): string {
   const typeLabels: Record<ActivityType, string> = {
@@ -307,8 +318,9 @@ function generateConfirmationMessage(parsed: ParsedActivity): string {
 
   let message = `已记录: ${typeLabels[parsed.type]}`
 
-  if (parsed.duration) {
-    message += `，时长 ${parsed.duration} 分钟`
+  const duration = calculateDuration(parsed.startTime, parsed.endTime)
+  if (duration) {
+    message += `，时长 ${duration} 分钟`
   }
 
   if (parsed.milkAmount) {

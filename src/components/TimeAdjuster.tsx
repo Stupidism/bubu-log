@@ -1,8 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { format, addMinutes, differenceInMinutes } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
+import { formatTime, formatDateChinese, formatWeekday, addMinutes, differenceInMinutes } from '@/lib/dayjs'
 
 interface TimeAdjusterProps {
   time: Date
@@ -107,11 +106,11 @@ export function TimeAdjuster({
             compact ? 'text-3xl' : 'text-5xl'
           }`}
         >
-          {format(time, 'HH:mm', { locale: zhCN })}
+          {formatTime(time)}
         </button>
         {showDate && (
           <p className="text-lg text-gray-500 dark:text-gray-400 mt-2">
-            {format(time, 'M月d日 EEEE', { locale: zhCN })}
+            {formatDateChinese(time)} {formatWeekday(time)}
           </p>
         )}
         {!compact && (

@@ -11,10 +11,11 @@ import { UpdatePrompt } from '@/components/UpdatePrompt'
 import { useVersionCheck } from '@/hooks/useVersionCheck'
 import { useModalParams } from '@/hooks/useModalParams'
 import Link from 'next/link'
-import { format, subDays } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
+import { calculateDurationMinutes, formatDateChinese, formatWeekday } from '@/lib/dayjs'
 import { BarChart3, ChevronLeft, ChevronRight, Moon, Milk, Baby, Loader2 } from 'lucide-react'
 import { useActivities, type Activity } from '@/lib/api/hooks'
+import { PreviousEveningSummary } from '@/components/PreviousEveningSummary'
+import { dayjs } from '@/lib/dayjs'
 
 // 每日统计
 interface DaySummary {
@@ -28,17 +29,22 @@ interface DaySummary {
 
 export default function Home() {
   const queryClient = useQueryClient()
-  const [selectedDate, setSelectedDate] = useState(new Date())
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const timelineRef = useRef<DayTimelineRef>(null)
   
-  // URL 参数管理
-  const { openActivityDetail } = useModalParams()
+  // URL 参数管理（包括日期）
+  const { openActivityDetail, selectedDate, selectedDateStr, setSelectedDate } = useModalParams()
 
   // 获取活动数据
-  const dateStr = format(selectedDate, 'yyyy-MM-dd')
   const { data: activities = [], isLoading: activitiesLoading } = useActivities({
-    date: dateStr,
+    date: selectedDateStr,
+    limit: 100,
+  })
+  
+  // 获取前一天的活动数据（用于显示前一天晚上的喂奶和睡眠）
+  const previousDateStr = dayjs(selectedDate).subtract(1, 'day').format('YYYY-MM-DD')
+  const { data: previousDayActivities = [] } = useActivities({
+    date: previousDateStr,
     limit: 100,
   })
   
@@ -59,9 +65,10 @@ export default function Home() {
     for (const activity of activities) {
       switch (activity.type) {
         case 'SLEEP':
-          if (activity.duration) {
+          // 有 endTime 才计为完整睡眠
+          if (activity.endTime) {
             result.sleepCount++
-            result.totalSleepMinutes += activity.duration
+            result.totalSleepMinutes += calculateDurationMinutes(activity.startTime, activity.endTime)
           }
           break
         case 'BREASTFEED':
@@ -94,12 +101,13 @@ export default function Home() {
   }
 
   // 日期导航
-  const navigateDate = (days: number) => {
-    setSelectedDate((prev) => subDays(prev, -days))
-  }
+  const navigateDate = useCallback((days: number) => {
+    const newDate = dayjs(selectedDate).add(days, 'day').toDate()
+    setSelectedDate(newDate)
+  }, [selectedDate, setSelectedDate])
 
   // 是否是今天
-  const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+  const isToday = selectedDateStr === dayjs().format('YYYY-MM-DD')
 
   // 自动滚动到当前时间
   useEffect(() => {
@@ -165,10 +173,10 @@ export default function Home() {
             </button>
             <div className="text-center min-w-[80px]">
               <p className="text-base font-bold text-gray-800 dark:text-gray-100">
-                {isToday ? '今天' : format(selectedDate, 'M月d日', { locale: zhCN })}
+                {isToday ? '今天' : formatDateChinese(selectedDate)}
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500">
-                {format(selectedDate, 'EEEE', { locale: zhCN })}
+                {formatWeekday(selectedDate)}
               </p>
             </div>
             <button
@@ -182,7 +190,7 @@ export default function Home() {
           
           {/* 右侧：数据入口 */}
           <Link 
-            href="/stats" 
+            href={isToday ? '/stats' : `/stats?date=${selectedDateStr}`}
             className="px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium text-sm hover:bg-primary/20 transition-colors flex items-center gap-1"
           >
             <BarChart3 size={14} />
@@ -230,19 +238,29 @@ export default function Home() {
             <div className="flex items-center justify-center py-16">
               <Loader2 size={32} className="animate-spin text-gray-400" />
             </div>
-          ) : activities.length === 0 ? (
+          ) : activities.length === 0 && previousDayActivities.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <p className="text-lg mb-2">还没有记录</p>
               <p className="text-sm">点击右下角的 + 按钮添加活动</p>
             </div>
           ) : (
-            <DayTimeline
-              ref={timelineRef}
-              activities={activities}
-              date={selectedDate}
-              onActivityClick={handleActivityClick}
-              showCurrentTime={isToday}
-            />
+            <>
+              {/* 前一天晚上的摘要 */}
+              <PreviousEveningSummary
+                activities={previousDayActivities}
+                date={selectedDate}
+                onActivityClick={handleActivityClick}
+              />
+              
+              {/* 当天时间线 */}
+              <DayTimeline
+                ref={timelineRef}
+                activities={activities}
+                date={selectedDate}
+                onActivityClick={handleActivityClick}
+                showCurrentTime={isToday}
+              />
+            </>
           )}
         </div>
 

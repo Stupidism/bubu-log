@@ -25,17 +25,17 @@
 
 ```bash
 # 安装依赖
-npm install
+pnpm install
 
 # 配置环境变量
 cp .env.example .env.local
 # 编辑 .env.local 添加数据库连接
 
 # 初始化数据库
-npx prisma db push
+pnpm prisma db push
 
 # 运行开发服务器
-npm run dev
+pnpm dev
 ```
 
 ## 访问地址

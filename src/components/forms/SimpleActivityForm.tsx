@@ -8,19 +8,19 @@ import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 interface SimpleActivityFormProps {
   type: ActivityType
   onSubmit: (data: {
-    recordTime: Date
+    startTime: Date
   }) => void
   onCancel: () => void
   initialValues?: {
-    recordTime?: Date
+    startTime?: Date
   }
 }
 
 export function SimpleActivityForm({ type, onSubmit, onCancel, initialValues }: SimpleActivityFormProps) {
-  const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
+  const [startTime, setStartTime] = useState(initialValues?.startTime || new Date())
 
   const handleSubmit = () => {
-    onSubmit({ recordTime })
+    onSubmit({ startTime })
   }
 
   // 根据活动类型选择颜色
@@ -49,7 +49,7 @@ export function SimpleActivityForm({ type, onSubmit, onCancel, initialValues }: 
         </h3>
       </div>
 
-      <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
+      <TimeAdjuster time={startTime} onTimeChange={setStartTime} />
 
       {/* 操作按钮 */}
       <div className="grid grid-cols-2 gap-3 pt-4">

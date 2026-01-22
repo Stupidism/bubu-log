@@ -446,7 +446,7 @@ components:
       required:
         - id
         - type
-        - recordTime
+        - startTime
         - createdAt
         - updatedAt
       properties:
@@ -454,9 +454,15 @@ components:
           type: string
         type:
           $ref: '#/components/schemas/ActivityType'
-        recordTime:
+        startTime:
           type: string
           format: date-time
+          description: 活动开始时间
+        endTime:
+          type: string
+          format: date-time
+          nullable: true
+          description: 活动结束时间（正在进行的活动没有结束时间）
         createdAt:
           type: string
           format: date-time
@@ -479,9 +485,6 @@ components:
         burpSuccess:
           type: boolean
           nullable: true
-        duration:
-          type: integer
-          nullable: true
         milkAmount:
           type: integer
           nullable: true
@@ -493,13 +496,18 @@ components:
       type: object
       required:
         - type
-        - recordTime
+        - startTime
       properties:
         type:
           $ref: '#/components/schemas/ActivityType'
-        recordTime:
+        startTime:
           type: string
           format: date-time
+          description: 活动开始时间
+        endTime:
+          type: string
+          format: date-time
+          description: 活动结束时间（可选）
         hasPoop:
           type: boolean
         hasPee:
@@ -512,8 +520,6 @@ components:
           $ref: '#/components/schemas/PeeAmount'
         burpSuccess:
           type: boolean
-        duration:
-          type: integer
         milkAmount:
           type: integer
         notes:
@@ -524,9 +530,14 @@ components:
       properties:
         type:
           $ref: '#/components/schemas/ActivityType'
-        recordTime:
+        startTime:
           type: string
           format: date-time
+          description: 活动开始时间
+        endTime:
+          type: string
+          format: date-time
+          description: 活动结束时间
         hasPoop:
           type: boolean
         hasPee:
@@ -539,8 +550,6 @@ components:
           $ref: '#/components/schemas/PeeAmount'
         burpSuccess:
           type: boolean
-        duration:
-          type: integer
         milkAmount:
           type: integer
         notes:
