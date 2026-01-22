@@ -170,6 +170,18 @@ export function ActivityFAB({
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) {
       // 浏览器不支持语音识别，切换到文字输入
+      setResult({ type: 'error', message: '此浏览器不支持语音识别' })
+      setMode('text')
+      setTimeout(() => inputRef.current?.focus(), 100)
+      return
+    }
+
+    // 检查是否为 HTTPS（非 localhost）
+    if (typeof window !== 'undefined' && 
+        window.location.protocol !== 'https:' && 
+        !window.location.hostname.includes('localhost') &&
+        window.location.hostname !== '127.0.0.1') {
+      setResult({ type: 'error', message: '语音识别需要 HTTPS 连接' })
       setMode('text')
       setTimeout(() => inputRef.current?.focus(), 100)
       return
@@ -182,7 +194,9 @@ export function ActivityFAB({
       recognition.interimResults = true
 
       recognition.onstart = () => {
+        console.log('Speech recognition started')
         setIsListening(true)
+        setResult(null) // 清除之前的错误
       }
 
       recognition.onresult = (event) => {
@@ -202,29 +216,45 @@ export function ActivityFAB({
         console.error('Speech recognition error:', event.error)
         setIsListening(false)
         
-        // 只有权限相关错误才切换到文字输入
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          setResult({ type: 'error', message: '麦克风权限被拒绝，请使用文字输入' })
-          setMode('text')
-          setTimeout(() => inputRef.current?.focus(), 100)
-        } else if (event.error === 'no-speech') {
-          // 没有检测到语音，不切换模式，让用户重试
-          setResult({ type: 'error', message: '没有检测到语音，请重试' })
-        } else if (event.error === 'network') {
-          setResult({ type: 'error', message: '网络错误，请检查网络连接' })
+        // 根据错误类型给出具体提示
+        switch (event.error) {
+          case 'not-allowed':
+          case 'service-not-allowed':
+            setResult({ type: 'error', message: '麦克风权限被拒绝，请在浏览器设置中允许麦克风访问' })
+            setMode('text')
+            setTimeout(() => inputRef.current?.focus(), 100)
+            break
+          case 'no-speech':
+            setResult({ type: 'error', message: '没有检测到语音，请靠近麦克风重试' })
+            break
+          case 'network':
+            setResult({ type: 'error', message: '网络错误，语音识别需要网络连接' })
+            break
+          case 'audio-capture':
+            setResult({ type: 'error', message: '无法访问麦克风，请检查设备设置' })
+            setMode('text')
+            setTimeout(() => inputRef.current?.focus(), 100)
+            break
+          case 'aborted':
+            // 用户取消，不显示错误
+            break
+          default:
+            setResult({ type: 'error', message: `语音识别错误: ${event.error}` })
         }
-        // 其他错误（如 aborted）不显示消息
       }
 
       recognition.onend = () => {
+        console.log('Speech recognition ended')
         setIsListening(false)
       }
 
       recognitionRef.current = recognition
       recognition.start()
+      console.log('Speech recognition start() called')
     } catch (error) {
       console.error('Failed to start speech recognition:', error)
-      setResult({ type: 'error', message: '语音识别启动失败，请使用文字输入' })
+      const errorMessage = error instanceof Error ? error.message : '未知错误'
+      setResult({ type: 'error', message: `语音识别启动失败: ${errorMessage}` })
       setMode('text')
       setTimeout(() => inputRef.current?.focus(), 100)
     }
