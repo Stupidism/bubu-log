@@ -118,7 +118,7 @@ interface ParseError {
   originalText: string
 }
 
-async function callDeepseek(text: string): Promise<ParsedActivity | ParseError> {
+async function callDeepseek(text: string, userLocalTime: string): Promise<ParsedActivity | ParseError> {
   const apiKey = process.env.DEEPSEEK_API_KEY
   
   if (!apiKey) {
@@ -127,7 +127,7 @@ async function callDeepseek(text: string): Promise<ParsedActivity | ParseError> 
 
   const messages: DeepseekMessage[] = [
     { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: `当前时间: ${new Date().toISOString()}\n用户输入: ${text}` }
+    { role: 'user', content: `用户当前本地时间: ${userLocalTime}\n用户输入: ${text}` }
   ]
 
   const response = await fetch(DEEPSEEK_API_URL, {
@@ -173,7 +173,7 @@ const CONFIDENCE_THRESHOLD = 0.75
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { text } = body
+    const { text, localTime } = body
 
     if (!text || typeof text !== 'string') {
       return NextResponse.json(
@@ -182,8 +182,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Use provided localTime or fallback to server time
+    // localTime should be in format like "2024-01-22 15:30" (user's local time)
+    const userLocalTime = localTime || new Date().toISOString()
+
     // Parse the text using Deepseek
-    const parsed = await callDeepseek(text)
+    const parsed = await callDeepseek(text, userLocalTime)
 
     // Check if parsing failed
     if ('error' in parsed) {

@@ -134,10 +134,14 @@ export function ActivityFAB({
     setResult(null)
 
     try {
+      // 发送用户本地时间，格式：2024-01-22 15:30:00
+      const now = new Date()
+      const localTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+      
       const response = await fetch('/api/voice-input', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: textToSubmit.trim() }),
+        body: JSON.stringify({ text: textToSubmit.trim(), localTime }),
       })
 
       const data: VoiceInputResponse = await response.json()
