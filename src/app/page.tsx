@@ -23,8 +23,8 @@ interface DaySummary {
   totalSleepMinutes: number
   feedingCount: number
   totalMilkAmount: number
+  totalBreastfeedMinutes: number
   diaperCount: number
-  poopCount: number
 }
 
 export default function Home() {
@@ -58,8 +58,8 @@ export default function Home() {
       totalSleepMinutes: 0,
       feedingCount: 0,
       totalMilkAmount: 0,
+      totalBreastfeedMinutes: 0,
       diaperCount: 0,
-      poopCount: 0,
     }
 
     for (const activity of activities) {
@@ -72,6 +72,12 @@ export default function Home() {
           }
           break
         case 'BREASTFEED':
+          result.feedingCount++
+          // 计算亲喂时长
+          if (activity.endTime) {
+            result.totalBreastfeedMinutes += calculateDurationMinutes(activity.startTime, activity.endTime)
+          }
+          break
         case 'BOTTLE':
           result.feedingCount++
           if (activity.milkAmount) {
@@ -80,9 +86,6 @@ export default function Home() {
           break
         case 'DIAPER':
           result.diaperCount++
-          if (activity.hasPoop) {
-            result.poopCount++
-          }
           break
       }
     }
@@ -213,7 +216,14 @@ export default function Home() {
               <p className="text-lg font-bold text-pink-600 dark:text-pink-400">
                 {summary.totalMilkAmount > 0 ? `${summary.totalMilkAmount}ml` : '-'}
               </p>
-              <p className="text-xs text-gray-500">{summary.feedingCount}次</p>
+              <p className="text-xs text-gray-500">瓶喂</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-2.5 text-center shadow-sm">
+              <Milk size={18} className="mx-auto text-pink-500 mb-1" />
+              <p className="text-lg font-bold text-pink-600 dark:text-pink-400">
+                {summary.totalBreastfeedMinutes > 0 ? formatDuration(summary.totalBreastfeedMinutes) : '-'}
+              </p>
+              <p className="text-xs text-gray-500">亲喂</p>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-xl p-2.5 text-center shadow-sm">
               <Baby size={18} className="mx-auto text-teal-500 mb-1" />
@@ -221,13 +231,6 @@ export default function Home() {
                 {summary.diaperCount}
               </p>
               <p className="text-xs text-gray-500">换尿布</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-2.5 text-center shadow-sm">
-              <span className="text-lg block mb-1">💩</span>
-              <p className="text-lg font-bold text-amber-600 dark:text-amber-400">
-                {summary.poopCount}
-              </p>
-              <p className="text-xs text-gray-500">大便</p>
             </div>
           </div>
         </div>

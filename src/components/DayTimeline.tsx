@@ -18,11 +18,11 @@ export interface DayTimelineRef {
 }
 
 // 活动类型对应的颜色
-const activityColors: Record<string, { bg: string; border: string; text: string }> = {
+const activityColors: Record<string, { bg: string; border: string; text: string; divider?: string }> = {
   SLEEP: { bg: 'bg-indigo-100 dark:bg-indigo-900/40', border: 'border-indigo-400', text: 'text-indigo-700 dark:text-indigo-300' },
   BREASTFEED: { bg: 'bg-pink-100 dark:bg-pink-900/40', border: 'border-pink-400', text: 'text-pink-700 dark:text-pink-300' },
   BOTTLE: { bg: 'bg-blue-100 dark:bg-blue-900/40', border: 'border-blue-400', text: 'text-blue-700 dark:text-blue-300' },
-  DIAPER: { bg: 'bg-teal-100 dark:bg-teal-900/40', border: 'border-teal-400', text: 'text-teal-700 dark:text-teal-300' },
+  DIAPER: { bg: 'bg-teal-100 dark:bg-teal-900/40', border: 'border-teal-400', text: 'text-teal-700 dark:text-teal-300', divider: 'bg-yellow-400' },
   HEAD_LIFT: { bg: 'bg-amber-100 dark:bg-amber-900/40', border: 'border-amber-400', text: 'text-amber-700 dark:text-amber-300' },
   PASSIVE_EXERCISE: { bg: 'bg-green-100 dark:bg-green-900/40', border: 'border-green-400', text: 'text-green-700 dark:text-green-300' },
   GAS_EXERCISE: { bg: 'bg-lime-100 dark:bg-lime-900/40', border: 'border-lime-400', text: 'text-lime-700 dark:text-lime-300' },
@@ -36,7 +36,7 @@ const defaultColor = { bg: 'bg-gray-100 dark:bg-gray-800', border: 'border-gray-
 // 每小时的高度（像素）
 const HOUR_HEIGHT = 60
 // 有时长活动的最小高度（确保能显示内容）
-const MIN_DURATION_BLOCK_HEIGHT = 24
+const MIN_DURATION_BLOCK_HEIGHT = 15
 // 线条类型活动（换尿布）不需要时长
 
 export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
@@ -234,7 +234,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
                     style={{ top: activity.top - 1 }}
                   >
                     {/* 水平线 */}
-                    <div className={`h-0.5 flex-1 ${colors.border.replace('border-', 'bg-')} group-hover:h-1 transition-all`} />
+                    <div className={`h-0.5 flex-1 ${colors.divider} group-hover:h-1 transition-all`} />
                     {/* 标签 */}
                     <div className={`ml-1 flex items-center gap-1 px-2 py-0.5 rounded-full ${colors.bg} ${colors.border} border shadow-sm group-hover:shadow-md transition-all`}>
                       <ActivityIcon
