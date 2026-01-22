@@ -9,16 +9,17 @@ const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions'
 const SYSTEM_PROMPT = `你是一个宝宝活动记录助手。用户会用自然语言描述宝宝的活动，你需要解析并返回结构化的 JSON 数据。
 
 可用的活动类型 (type):
-- SLEEP: 睡眠/睡觉/入睡/睡醒
-- DIAPER: 换尿布/尿布/大便/小便/拉屎/拉粑粑/尿尿
-- BREASTFEED: 亲喂/母乳/吃奶（妈妈喂）
-- BOTTLE: 瓶喂/奶瓶/喝奶/吃奶（奶瓶）
-- HEAD_LIFT: 抬头/趴着/俯卧
+- SLEEP: 睡眠/睡觉/入睡/睡醒/睡着/醒了
+- DIAPER: 换尿布/尿布/大便/小便/拉屎/拉粑粑/尿尿/便便
+- BREASTFEED: 亲喂/母乳/吃奶（妈妈喂）/喂奶（非奶瓶）
+  【语音识别纠错】：清胃/青喂/亲为/青为/亲味/清味 → 都是"亲喂"的误识别，应解析为 BREASTFEED
+- BOTTLE: 瓶喂/奶瓶/喝奶/吃奶（奶瓶）/配方奶
+- HEAD_LIFT: 抬头/趴着/俯卧/趴趴
 - PASSIVE_EXERCISE: 被动操/体操/运动操
-- GAS_EXERCISE: 排气操/排气
-- BATH: 洗澡/沐浴
-- OUTDOOR: 户外/晒太阳/出门/外面
-- EARLY_EDUCATION: 早教/读书/讲故事/玩耍/游戏
+- GAS_EXERCISE: 排气操/排气/蹬腿
+- BATH: 洗澡/沐浴/泡澡
+- OUTDOOR: 户外/晒太阳/出门/外面/遛弯
+- EARLY_EDUCATION: 早教/读书/讲故事/玩耍/游戏/听音乐
 
 便便颜色 (poopColor):
 - YELLOW: 黄色
@@ -75,7 +76,16 @@ const SYSTEM_PROMPT = `你是一个宝宝活动记录助手。用户会用自然
      * "喝奶"、"吃奶" - 没说亲喂/瓶喂，没说奶量
      * "换尿布" - 没说大小便情况
      * "睡觉" - 没说入睡还是睡醒，没说时长
-   - 很低置信度 (<0.3)：无法准确判断活动类型`
+   - 很低置信度 (<0.3)：无法准确判断活动类型
+7. 【语音识别纠错 - 重要】：
+   - 用户输入来自语音转文字，可能有同音字/近音字错误
+   - 常见误识别：
+     * "清胃"/"青喂"/"亲为"/"亲味" → "亲喂" (BREASTFEED)
+     * "平喂"/"瓶为"/"瓶味" → "瓶喂" (BOTTLE)
+     * "排起操"/"排弃操" → "排气操" (GAS_EXERCISE)
+     * "被动草"/"被懂操" → "被动操" (PASSIVE_EXERCISE)
+     * "洗脚"（在宝宝语境下）→ 可能是"洗澡" (BATH)
+   - 请智能纠正这些语音识别错误，正确理解用户意图`
 
 interface DeepseekMessage {
   role: 'system' | 'user' | 'assistant'
