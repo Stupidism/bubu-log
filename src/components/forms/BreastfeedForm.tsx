@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { TimeRangeInput } from '../TimeRangeInput'
+import { useState, useEffect } from 'react'
+import { TimeAdjuster } from '../TimeAdjuster'
+import { SliderInput } from '../SliderInput'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { Check } from 'lucide-react'
-import { subMinutes, differenceInMinutes } from 'date-fns'
 
 interface BreastfeedFormProps {
   onSubmit: (data: {
@@ -38,22 +38,9 @@ const DEFAULT_PREFERENCES: Preferences = {
 
 export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }: BreastfeedFormProps) {
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES)
-  
-  // 如果有初始值，根据 recordTime 和 duration 计算开始和结束时间
-  const initialEndTime = initialValues?.recordTime 
-    ? new Date(initialValues.recordTime.getTime() + (initialValues.duration || 20) * 60 * 1000)
-    : new Date()
-  const initialStartTime = initialValues?.recordTime || subMinutes(new Date(), 20)
-  
-  const [startTime, setStartTime] = useState(initialStartTime)
-  const [endTime, setEndTime] = useState(initialEndTime)
+  const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
+  const [duration, setDuration] = useState<number>(initialValues?.duration || 20)
   const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialValues?.burpSuccess)
-
-  // 计算时长
-  const duration = useMemo(() => {
-    const mins = differenceInMinutes(endTime, startTime)
-    return Math.max(0, mins)
-  }, [startTime, endTime])
 
   // 加载偏好设置（仅在新建时）
   useEffect(() => {
@@ -64,10 +51,7 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
         const savedPrefs = JSON.parse(saved) as Preferences
         setPreferences(savedPrefs)
         if (savedPrefs.rememberSelection && !initialValues) {
-          // 根据默认时长设置开始时间
-          const now = new Date()
-          setEndTime(now)
-          setStartTime(subMinutes(now, savedPrefs.defaultDuration))
+          setDuration(savedPrefs.defaultDuration)
           setBurpSuccess(savedPrefs.defaultBurpSuccess)
         }
       }
@@ -94,7 +78,7 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
   const handleSubmit = () => {
     if (duration <= 0) return
     onSubmit({
-      recordTime: startTime, // 开始时间作为记录时间
+      recordTime,
       duration,
       burpSuccess,
     })
@@ -110,15 +94,20 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
         </h3>
       </div>
 
-      {/* 时间范围输入 */}
-      <TimeRangeInput
-        startTime={startTime}
-        endTime={endTime}
-        onStartTimeChange={setStartTime}
-        onEndTimeChange={setEndTime}
-        startLabel="开始喂奶"
-        endLabel="结束喂奶"
+      {/* 开始时间 */}
+      <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
+
+      {/* 喂奶时长 - 滑块输入 */}
+      <SliderInput
+        value={duration}
+        onChange={setDuration}
+        min={5}
+        max={60}
+        step={1}
+        unit="分钟"
+        label="喂奶时长"
         color="pink"
+        allowExceedMax
       />
 
       {/* 拍嗝是否成功 */}

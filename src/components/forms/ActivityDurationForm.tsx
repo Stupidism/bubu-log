@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { TimeRangeInput } from '../TimeRangeInput'
+import { useState, useEffect } from 'react'
+import { TimeAdjuster } from '../TimeAdjuster'
+import { SliderInput } from '../SliderInput'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { Check } from 'lucide-react'
-import { subMinutes, differenceInMinutes } from 'date-fns'
 
 interface ActivityDurationFormProps {
   type: ActivityType
@@ -21,42 +21,58 @@ interface ActivityDurationFormProps {
   isEditing?: boolean
 }
 
-// 各活动类型的配置：默认时长
+// 各活动类型的配置：默认时长、最小间隔、范围
 interface ActivityConfig {
   defaultDuration: number
-  color: 'pink' | 'blue' | 'amber' | 'green' | 'gray'
+  step: number
+  min: number
+  max: number
 }
 
 const ACTIVITY_CONFIGS: Partial<Record<ActivityType, ActivityConfig>> = {
   [ActivityType.HEAD_LIFT]: {
     defaultDuration: 5,
-    color: 'amber',
+    step: 1,    // 抬头：1分钟间隔
+    min: 1,
+    max: 30,
   },
   [ActivityType.PASSIVE_EXERCISE]: {
     defaultDuration: 10,
-    color: 'green',
+    step: 2,    // 被动操：2分钟间隔
+    min: 2,
+    max: 30,
   },
   [ActivityType.GAS_EXERCISE]: {
     defaultDuration: 10,
-    color: 'green',
+    step: 2,    // 排气操：2分钟间隔
+    min: 2,
+    max: 30,
   },
   [ActivityType.BATH]: {
     defaultDuration: 15,
-    color: 'blue',
+    step: 5,    // 洗澡：5分钟间隔
+    min: 5,
+    max: 60,
   },
   [ActivityType.OUTDOOR]: {
     defaultDuration: 30,
-    color: 'green',
+    step: 5,    // 晒太阳：5分钟间隔
+    min: 5,
+    max: 120,
   },
   [ActivityType.EARLY_EDUCATION]: {
     defaultDuration: 20,
-    color: 'pink',
+    step: 5,    // 早教：5分钟间隔
+    min: 5,
+    max: 60,
   },
 }
 
 const DEFAULT_CONFIG: ActivityConfig = {
   defaultDuration: 10,
-  color: 'amber',
+  step: 5,
+  min: 5,
+  max: 60,
 }
 
 const STORAGE_KEY_PREFIX = 'activity_duration_'
@@ -64,21 +80,9 @@ const STORAGE_KEY_PREFIX = 'activity_duration_'
 export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, isEditing }: ActivityDurationFormProps) {
   const config = ACTIVITY_CONFIGS[type] || DEFAULT_CONFIG
   
-  // 如果有初始值，根据 recordTime 和 duration 计算开始和结束时间
-  const initialEndTime = initialValues?.recordTime 
-    ? new Date(initialValues.recordTime.getTime() + (initialValues.duration || config.defaultDuration) * 60 * 1000)
-    : new Date()
-  const initialStartTime = initialValues?.recordTime || subMinutes(new Date(), config.defaultDuration)
-  
-  const [startTime, setStartTime] = useState(initialStartTime)
-  const [endTime, setEndTime] = useState(initialEndTime)
+  const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
+  const [duration, setDuration] = useState<number>(initialValues?.duration || config.defaultDuration)
   const [rememberSelection, setRememberSelection] = useState(false)
-
-  // 计算时长
-  const duration = useMemo(() => {
-    const mins = differenceInMinutes(endTime, startTime)
-    return Math.max(0, mins)
-  }, [startTime, endTime])
 
   // 加载保存的偏好设置（仅在新建时）
   useEffect(() => {
@@ -88,26 +92,18 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
       if (saved) {
         const savedData = JSON.parse(saved)
         if (savedData.rememberSelection && !initialValues) {
-          const now = new Date()
-          setEndTime(now)
-          setStartTime(subMinutes(now, savedData.duration))
+          setDuration(savedData.duration)
           setRememberSelection(true)
         } else if (!initialValues) {
-          const now = new Date()
-          setEndTime(now)
-          setStartTime(subMinutes(now, config.defaultDuration))
+          setDuration(config.defaultDuration)
         }
       } else if (!initialValues) {
-        const now = new Date()
-        setEndTime(now)
-        setStartTime(subMinutes(now, config.defaultDuration))
+        setDuration(config.defaultDuration)
       }
     } catch (e) {
       console.error('Failed to load preferences:', e)
       if (!initialValues) {
-        const now = new Date()
-        setEndTime(now)
-        setStartTime(subMinutes(now, config.defaultDuration))
+        setDuration(config.defaultDuration)
       }
     }
   }, [type, config.defaultDuration, isEditing, initialValues])
@@ -130,7 +126,7 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
 
   const handleSubmit = () => {
     onSubmit({
-      recordTime: startTime, // 开始时间作为记录时间
+      recordTime,
       duration,
     })
   }
@@ -155,17 +151,20 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
         </h3>
       </div>
 
-      {/* 时间范围输入 */}
+      <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
+
+      {/* 时长选择 - 使用滑块 */}
       {needsDuration && (
         <div className="space-y-3">
-          <TimeRangeInput
-            startTime={startTime}
-            endTime={endTime}
-            onStartTimeChange={setStartTime}
-            onEndTimeChange={setEndTime}
-            startLabel="开始时间"
-            endLabel="结束时间"
-            color={config.color}
+          <SliderInput
+            value={duration}
+            onChange={setDuration}
+            min={config.min}
+            max={config.max}
+            step={config.step}
+            unit="分钟"
+            label="持续时长"
+            color="amber"
           />
 
           {/* 记住选择 */}
