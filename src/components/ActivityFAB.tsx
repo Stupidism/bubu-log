@@ -5,6 +5,8 @@ import { Plus, X, Moon, Sun, Milk, Baby, Target, Droplet, Mic, Keyboard, Send, L
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { ActivityIcon } from './ActivityIcon'
 import { useQueryClient } from '@tanstack/react-query'
+import { useModalParams, activityTypeToModalType, type ModalType } from '@/hooks/useModalParams'
+import { useSleepState } from '@/lib/api/hooks'
 
 // Parsed voice input data for confirmation
 export interface VoiceParsedData {
@@ -21,19 +23,6 @@ export interface VoiceParsedData {
   originalText: string
 }
 
-interface ActivityFABProps {
-  onActivitySelect: (type: ActivityType | 'wake') => void
-  onDiaperSelect: (type: 'poop' | 'pee' | 'both') => void
-  onVoiceInput?: () => void
-  isSleeping?: boolean
-  sleepLoading?: boolean
-  isVoiceOpen?: boolean
-  onVoiceClose?: () => void
-  onVoiceSuccess?: (message: string) => void
-  onVoiceError?: (message: string) => void
-  onNeedConfirmation?: (parsed: VoiceParsedData) => void
-}
-
 interface VoiceInputResponse {
   success: boolean
   message: string
@@ -46,16 +35,14 @@ interface VoiceInputResponse {
   error?: string
 }
 
+interface ActivityFABProps {
+  onVoiceSuccess?: (message: string) => void
+  onVoiceError?: (message: string) => void
+}
+
 export function ActivityFAB({ 
-  onActivitySelect, 
-  onDiaperSelect,
-  isSleeping = false,
-  sleepLoading = false,
-  isVoiceOpen = false,
-  onVoiceClose,
   onVoiceSuccess,
   onVoiceError,
-  onNeedConfirmation,
 }: ActivityFABProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [voiceDialogOpen, setVoiceDialogOpen] = useState(false)
@@ -68,19 +55,15 @@ export function ActivityFAB({
   const inputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const queryClient = useQueryClient()
+  
+  const { openModal } = useModalParams()
+  const { isSleeping, isFetching: sleepLoading } = useSleepState()
 
   // 检查是否支持语音识别
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     setSpeechSupported(!!SpeechRecognition)
   }, [])
-
-  // 同步外部状态
-  useEffect(() => {
-    if (isVoiceOpen !== undefined) {
-      setVoiceDialogOpen(isVoiceOpen)
-    }
-  }, [isVoiceOpen])
 
   // 关闭语音面板时重置状态
   useEffect(() => {
@@ -98,18 +81,49 @@ export function ActivityFAB({
   // 关闭语音对话框
   const closeVoiceDialog = useCallback(() => {
     setVoiceDialogOpen(false)
-    onVoiceClose?.()
-  }, [onVoiceClose])
+  }, [])
 
+  // 选择活动类型 - 通过 URL 打开对应的弹窗
   const handleSelect = useCallback((type: ActivityType | 'wake') => {
     setIsOpen(false)
-    onActivitySelect(type)
-  }, [onActivitySelect])
+    const modalType = activityTypeToModalType[type]
+    openModal(modalType)
+  }, [openModal])
 
-  const handleDiaperSelect = useCallback((type: 'poop' | 'pee' | 'both') => {
+  // 选择换尿布类型
+  const handleDiaperSelect = useCallback((diaperType: 'poop' | 'pee' | 'both') => {
     setIsOpen(false)
-    onDiaperSelect(type)
-  }, [onDiaperSelect])
+    openModal('diaper', {
+      params: {
+        hasPoop: (diaperType === 'poop' || diaperType === 'both').toString(),
+        hasPee: (diaperType === 'pee' || diaperType === 'both').toString(),
+      }
+    })
+  }, [openModal])
+
+  // 处理语音输入需要确认的情况 - 打开对应的表单弹窗
+  const handleNeedConfirmation = useCallback((parsed: VoiceParsedData) => {
+    // 确定要打开的弹窗类型
+    let modalType: ModalType
+    if (parsed.type === ActivityType.SLEEP) {
+      modalType = parsed.duration ? 'sleep_end' : 'sleep_start'
+    } else {
+      modalType = activityTypeToModalType[parsed.type]
+    }
+    
+    // 构建初始值参数
+    const params: Record<string, string> = {
+      recordTime: parsed.recordTime,
+    }
+    if (parsed.duration !== null) params.duration = parsed.duration.toString()
+    if (parsed.milkAmount !== null) params.milkAmount = parsed.milkAmount.toString()
+    if (parsed.hasPoop !== null) params.hasPoop = parsed.hasPoop.toString()
+    if (parsed.hasPee !== null) params.hasPee = parsed.hasPee.toString()
+    if (parsed.poopColor !== null) params.poopColor = parsed.poopColor
+    if (parsed.peeAmount !== null) params.peeAmount = parsed.peeAmount
+    
+    openModal(modalType, { params })
+  }, [openModal])
 
   // 提交语音/文字输入
   const handleSubmit = useCallback(async (inputText?: string) => {
@@ -130,13 +144,13 @@ export function ActivityFAB({
 
       if (response.ok && data.success) {
         // Check if needs confirmation (low confidence)
-        if (data.needConfirmation && data.parsed && onNeedConfirmation) {
+        if (data.needConfirmation && data.parsed) {
           setResult({ type: 'success', message: data.message })
           setText('')
           // Close dialog and open form for confirmation
           setTimeout(() => {
             closeVoiceDialog()
-            onNeedConfirmation(data.parsed!)
+            handleNeedConfirmation(data.parsed!)
           }, 500)
         } else {
           // High confidence - activity was created directly
@@ -163,7 +177,7 @@ export function ActivityFAB({
     } finally {
       setIsLoading(false)
     }
-  }, [text, isLoading, onVoiceSuccess, onVoiceError, closeVoiceDialog, queryClient, onNeedConfirmation])
+  }, [text, isLoading, onVoiceSuccess, onVoiceError, closeVoiceDialog, queryClient, handleNeedConfirmation])
 
   // 开始语音识别
   const startListening = useCallback(() => {
@@ -599,4 +613,3 @@ export function ActivityFAB({
     </>
   )
 }
-

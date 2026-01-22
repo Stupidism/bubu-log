@@ -1,0 +1,326 @@
+'use client'
+
+import { useState, useCallback, useMemo } from 'react'
+import { format, addMinutes } from 'date-fns'
+import { zhCN } from 'date-fns/locale'
+import { Edit2, Trash2, Loader2 } from 'lucide-react'
+import { BottomSheet } from '@/components/BottomSheet'
+import { ActivityIcon } from '@/components/ActivityIcon'
+import { useModalParams } from '@/hooks/useModalParams'
+import { useActivity, useUpdateActivity, useDeleteActivity } from '@/lib/api/hooks'
+import { ActivityType, ActivityTypeLabels, PoopColorStyles, PoopColorLabels, PeeAmountLabels, PoopColor, PeeAmount } from '@/types/activity'
+import {
+  DiaperForm,
+  BreastfeedForm,
+  BottleForm,
+  ActivityDurationForm,
+  SleepEndForm,
+} from '@/components/forms'
+import type { components } from '@/lib/api/openapi-types'
+
+export function ActivityDetailModal() {
+  const { modalType, activityId, isEditing, closeModal, setEditing, openModal } = useModalParams()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  
+  // 只有当 modal=activity 且有 id 时才获取数据
+  const shouldFetch = modalType === 'activity' && !!activityId
+  const { data: activity, isLoading } = useActivity(activityId || '', {
+    enabled: shouldFetch,
+  })
+  
+  const updateActivity = useUpdateActivity()
+  const deleteActivityMutation = useDeleteActivity()
+  
+  const isOpen = modalType === 'activity' && !!activityId
+  
+  // 关闭弹窗
+  const handleClose = useCallback(() => {
+    setShowDeleteConfirm(false)
+    closeModal()
+  }, [closeModal])
+  
+  // 开始编辑
+  const handleEdit = useCallback(() => {
+    setEditing(true)
+  }, [setEditing])
+  
+  // 打开删除确认
+  const handleDeleteClick = useCallback(() => {
+    if (activityId) {
+      openModal('delete', { id: activityId })
+    }
+  }, [activityId, openModal])
+  
+  // 提交编辑
+  const handleSubmit = useCallback(async (data: Record<string, unknown>) => {
+    if (!activityId || updateActivity.isPending) return
+    
+    updateActivity.mutate(
+      {
+        params: { path: { id: activityId } },
+        body: {
+          recordTime: (data.recordTime as Date).toISOString(),
+          ...(data.hasPoop !== undefined && { hasPoop: data.hasPoop as boolean }),
+          ...(data.hasPee !== undefined && { hasPee: data.hasPee as boolean }),
+          ...(data.poopColor !== undefined && { poopColor: data.poopColor as components["schemas"]["PoopColor"] }),
+          ...(data.poopPhotoUrl !== undefined && { poopPhotoUrl: data.poopPhotoUrl as string }),
+          ...(data.peeAmount !== undefined && { peeAmount: data.peeAmount as components["schemas"]["PeeAmount"] }),
+          ...(data.burpSuccess !== undefined && { burpSuccess: data.burpSuccess as boolean }),
+          ...(data.duration !== undefined && { duration: data.duration as number }),
+          ...(data.milkAmount !== undefined && { milkAmount: data.milkAmount as number }),
+          ...(data.notes !== undefined && { notes: data.notes as string }),
+        },
+      },
+      {
+        onSuccess: () => {
+          handleClose()
+        },
+      }
+    )
+  }, [activityId, updateActivity, handleClose])
+  
+  // 格式化时间范围
+  const formatTimeRange = (startTime: Date | string, duration: number) => {
+    const start = new Date(startTime)
+    const end = addMinutes(start, duration)
+    return `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`
+  }
+
+  // 格式化时长
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    if (hours > 0) {
+      return `${hours}小时${mins > 0 ? mins + '分钟' : ''}`
+    }
+    return `${mins}分钟`
+  }
+  
+  // 渲染活动详情
+  const renderDetails = () => {
+    if (!activity) return null
+    
+    switch (activity.type) {
+      case 'SLEEP':
+        return activity.duration ? (
+          <p className="text-lg text-gray-700 dark:text-gray-300">
+            {formatTimeRange(activity.recordTime, activity.duration)} · {formatDuration(activity.duration)}
+          </p>
+        ) : (
+          <p className="text-lg text-amber-600 dark:text-amber-400">正在睡觉...</p>
+        )
+      
+      case 'BREASTFEED':
+        return (
+          <p className="text-lg text-gray-700 dark:text-gray-300">
+            {activity.duration ? formatDuration(activity.duration) : '未记录时长'}
+            {activity.burpSuccess !== null && (
+              <span className={activity.burpSuccess ? 'text-green-600' : 'text-red-600'}>
+                {' · '}{activity.burpSuccess ? '拍嗝成功' : '拍嗝未成功'}
+              </span>
+            )}
+          </p>
+        )
+      
+      case 'BOTTLE':
+        return (
+          <div className="space-y-1">
+            <p className="text-lg text-gray-700 dark:text-gray-300">
+              {activity.milkAmount ? `${activity.milkAmount}ml` : '未记录奶量'}
+              {activity.duration ? ` · ${formatDuration(activity.duration)}` : ''}
+            </p>
+            {activity.burpSuccess !== null && (
+              <p className={activity.burpSuccess ? 'text-green-600' : 'text-red-600'}>
+                {activity.burpSuccess ? '拍嗝成功' : '拍嗝未成功'}
+              </p>
+            )}
+          </div>
+        )
+      
+      case 'DIAPER':
+        return (
+          <div className="space-y-2">
+            {activity.hasPoop && (
+              <div className="flex items-center gap-2">
+                <span className="text-lg">大便</span>
+                {activity.poopColor && (
+                  <span className="flex items-center gap-2">
+                    <span 
+                      className={`w-4 h-4 rounded-full ${PoopColorStyles[activity.poopColor as PoopColor] || ''}`}
+                    />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {PoopColorLabels[activity.poopColor as PoopColor] || activity.poopColor}
+                    </span>
+                  </span>
+                )}
+              </div>
+            )}
+            {activity.hasPee && (
+              <p className="text-lg text-gray-700 dark:text-gray-300">
+                小便{activity.peeAmount ? ` - ${PeeAmountLabels[activity.peeAmount as PeeAmount]}` : ''}
+              </p>
+            )}
+            {!activity.hasPoop && !activity.hasPee && (
+              <p className="text-lg text-gray-500">只换尿布</p>
+            )}
+          </div>
+        )
+      
+      default:
+        return activity.duration ? (
+          <p className="text-lg text-gray-700 dark:text-gray-300">
+            {formatTimeRange(activity.recordTime, activity.duration)} · {formatDuration(activity.duration)}
+          </p>
+        ) : null
+    }
+  }
+  
+  // 渲染编辑表单
+  const renderEditForm = () => {
+    if (!activity) return null
+    
+    const activityType = activity.type as ActivityType
+    const baseValues = {
+      recordTime: new Date(activity.recordTime),
+      duration: activity.duration || undefined,
+      milkAmount: activity.milkAmount || undefined,
+      hasPoop: activity.hasPoop ?? undefined,
+      hasPee: activity.hasPee ?? undefined,
+      poopColor: activity.poopColor as PoopColor | undefined,
+      peeAmount: activity.peeAmount as PeeAmount | undefined,
+      burpSuccess: activity.burpSuccess ?? undefined,
+    }
+    
+    switch (activityType) {
+      case ActivityType.DIAPER:
+        return (
+          <DiaperForm
+            onSubmit={handleSubmit}
+            onCancel={handleClose}
+            initialValues={baseValues}
+            isEditing
+          />
+        )
+      case ActivityType.BREASTFEED:
+        return (
+          <BreastfeedForm
+            onSubmit={handleSubmit}
+            onCancel={handleClose}
+            initialValues={baseValues}
+            isEditing
+          />
+        )
+      case ActivityType.BOTTLE:
+        return (
+          <BottleForm
+            onSubmit={handleSubmit}
+            onCancel={handleClose}
+            initialValues={baseValues}
+            isEditing
+          />
+        )
+      case ActivityType.SLEEP:
+        return (
+          <SleepEndForm
+            onSubmit={handleSubmit}
+            onCancel={handleClose}
+            initialValues={baseValues}
+            isEditing
+          />
+        )
+      case ActivityType.HEAD_LIFT:
+      case ActivityType.PASSIVE_EXERCISE:
+      case ActivityType.GAS_EXERCISE:
+      case ActivityType.BATH:
+      case ActivityType.OUTDOOR:
+      case ActivityType.EARLY_EDUCATION:
+        return (
+          <ActivityDurationForm
+            type={activityType}
+            onSubmit={handleSubmit}
+            onCancel={handleClose}
+            initialValues={baseValues}
+            isEditing
+          />
+        )
+      default:
+        return null
+    }
+  }
+  
+  if (!isOpen) return null
+  
+  return (
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={isEditing ? '编辑记录' : (activity ? ActivityTypeLabels[activity.type as ActivityType] : '加载中...')}
+    >
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        </div>
+      ) : activity ? (
+        isEditing ? (
+          renderEditForm()
+        ) : (
+          <div className="space-y-6">
+            {/* 活动信息 */}
+            <div className="text-center">
+              <ActivityIcon 
+                type={activity.type as ActivityType} 
+                size={56} 
+                className="text-gray-600 dark:text-gray-300 mx-auto" 
+              />
+              <h3 className="text-2xl font-bold mt-3 text-gray-800 dark:text-gray-100">
+                {ActivityTypeLabels[activity.type as ActivityType]}
+              </h3>
+              <p className="text-xl text-gray-500 dark:text-gray-400 mt-1">
+                {format(new Date(activity.recordTime), 'M月d日 HH:mm', { locale: zhCN })}
+              </p>
+            </div>
+
+            {/* 详细信息 */}
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4">
+              {renderDetails()}
+              {activity.notes && (
+                <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
+                  备注: {activity.notes}
+                </p>
+              )}
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                onClick={handleEdit}
+                className="p-4 rounded-2xl bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold text-lg flex items-center justify-center gap-2"
+              >
+                <Edit2 size={22} />
+                编辑
+              </button>
+              <button
+                onClick={handleDeleteClick}
+                className="p-4 rounded-2xl bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-semibold text-lg flex items-center justify-center gap-2"
+              >
+                <Trash2 size={22} />
+                删除
+              </button>
+              <button
+                onClick={handleClose}
+                className="p-4 rounded-2xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-lg"
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        )
+      ) : (
+        <div className="text-center py-12 text-gray-500">
+          未找到活动记录
+        </div>
+      )}
+    </BottomSheet>
+  )
+}
+

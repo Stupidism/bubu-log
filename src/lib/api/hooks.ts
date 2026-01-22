@@ -28,9 +28,10 @@ export function useLatestActivity(types: string) {
   });
 }
 
-export function useActivity(id: string) {
+export function useActivity(id: string, options?: { enabled?: boolean }) {
   return $api.useQuery("get", "/activities/{id}", {
     params: { path: { id } },
+    ...options,
   });
 }
 

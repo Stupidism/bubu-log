@@ -1,0 +1,63 @@
+---
+alwaysApply: true
+---
+
+前端代码里面永远不要使用 enum，永远不要使用 enum，永远不要使用 enum 重要的事情说三遍, 使用 string union 代替。
+
+```typescript
+// 比如 ActivityType
+const activityTypes = ['SLEEP', 'DIAPER', 'BREASTFEED', 'BOTTLE', 'HEAD_LIFT', 'PASSIVE_EXERCISE', 'GAS_EXERCISE', 'BATH', 'OUTDOOR', 'EARLY_EDUCATION'] as const;
+
+type ActivityType = typeof activityTypes[number];
+
+// Usages:
+const activityType: ActivityType = 'SLEEP';
+
+const labelByActivityType: Record<ActivityType, string> = {
+    'SLEEP': '睡眠',
+    'DIAPER': '换尿布',
+    'BREASTFEED': '亲喂',
+    'BOTTLE': '瓶喂',
+    'HEAD_LIFT': '抬头',
+    'PASSIVE_EXERCISE': '被动操',
+    'GAS_EXERCISE': '排气操',
+    'BATH': '洗澡',
+    'OUTDOOR': '户外',
+    'EARLY_EDUCATION': '早教',
+}
+```
+
+而不是
+```typescript
+// Bad example
+enum ActivityType {
+  SLEEP = 'SLEEP',
+  DIAPER = 'DIAPER',
+  BREASTFEED = 'BREASTFEED',
+  BOTTLE = 'BOTTLE',
+  HEAD_LIFT = 'HEAD_LIFT',
+  PASSIVE_EXERCISE = 'PASSIVE_EXERCISE',
+  GAS_EXERCISE = 'GAS_EXERCISE',
+  BATH = 'BATH',
+  OUTDOOR = 'OUTDOOR',
+  EARLY_EDUCATION = 'EARLY_EDUCATION',
+}
+
+// Usages:
+// Bad example
+const activityType: ActivityType = ActivityType.SLEEP;
+
+// Bad example
+const labelByActivityType: Record<ActivityType, string> = {
+    [ActivityType.SLEEP]: '睡眠',
+    [ActivityType.DIAPER]: '换尿布',
+    [ActivityType.BREASTFEED]: '亲喂',
+    [ActivityType.BOTTLE]: '瓶喂',
+    [ActivityType.HEAD_LIFT]: '抬头',
+    [ActivityType.PASSIVE_EXERCISE]: '被动操',
+    [ActivityType.GAS_EXERCISE]: '排气操',
+    [ActivityType.BATH]: '洗澡',
+    [ActivityType.OUTDOOR]: '户外',
+    [ActivityType.EARLY_EDUCATION]: '早教',
+}
+```
