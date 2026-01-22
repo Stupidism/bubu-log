@@ -35,8 +35,9 @@ const defaultColor = { bg: 'bg-gray-100 dark:bg-gray-800', border: 'border-gray-
 
 // 每小时的高度（像素）
 const HOUR_HEIGHT = 60
-// 最小活动块高度
-const MIN_BLOCK_HEIGHT = 28
+// 有时长活动的最小高度（确保能显示内容）
+const MIN_DURATION_BLOCK_HEIGHT = 24
+// 线条类型活动（换尿布）不需要时长
 
 export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
   function DayTimeline({ activities, date, onActivityClick, showCurrentTime = false }, ref) {
@@ -84,11 +85,18 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
         const minutesFromStart = startTime.diff(dayStart, 'minute')
         const top = (minutesFromStart / 60) * HOUR_HEIGHT
         
-        // 计算时长：有 endTime 则计算差值，否则默认 5 分钟
+        // 换尿布是瞬时事件，显示为线条
+        const isLineType = activity.type === 'DIAPER'
+        
+        // 计算时长：有 endTime 则计算差值，否则默认 5 分钟（非线条类型）
         const duration = activity.endTime 
           ? calculateDurationMinutes(activity.startTime, activity.endTime) 
-          : 5
-        const height = Math.max((duration / 60) * HOUR_HEIGHT, MIN_BLOCK_HEIGHT)
+          : (isLineType ? 0 : 5)
+        
+        // 线条类型固定高度为 2px，其他按时长计算（有最小高度确保可点击）
+        const height = isLineType 
+          ? 2 
+          : Math.max((duration / 60) * HOUR_HEIGHT, MIN_DURATION_BLOCK_HEIGHT)
         
         return {
           ...activity,
@@ -97,6 +105,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
           startTimeDate: startTime.toDate(),
           endTimeDate: activity.endTime ? dayjs(activity.endTime).toDate() : startTime.toDate(),
           duration,
+          isLineType,
         }
       }).sort((a, b) => a.top - b.top)
     }, [activities, date])
@@ -106,9 +115,15 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
       const result: Array<typeof positionedActivities[0] & { left: number; width: number }> = []
       
       for (const activity of positionedActivities) {
-        // 检查是否与已有活动重叠
+        // 线条类型不参与重叠计算，始终全宽
+        if (activity.isLineType) {
+          result.push({ ...activity, left: 0, width: 100 })
+          continue
+        }
+        
+        // 检查是否与已有的非线条活动重叠
         const overlapping = result.filter(
-          a => !(activity.top >= a.top + a.height || activity.top + activity.height <= a.top)
+          a => !a.isLineType && !(activity.top >= a.top + a.height || activity.top + activity.height <= a.top)
         )
         
         // 简单处理：如果重叠，缩小宽度并偏移
@@ -209,6 +224,36 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
                 notes: activity.notes,
               }
               
+              // 线条类型（换尿布）：显示为水平线 + 标签
+              if (activity.isLineType) {
+                return (
+                  <button
+                    key={activity.id}
+                    onClick={() => onActivityClick?.(originalActivity)}
+                    className="absolute left-0 right-0 flex items-center group z-10 hover:z-20"
+                    style={{ top: activity.top - 1 }}
+                  >
+                    {/* 水平线 */}
+                    <div className={`h-0.5 flex-1 ${colors.border.replace('border-', 'bg-')} group-hover:h-1 transition-all`} />
+                    {/* 标签 */}
+                    <div className={`ml-1 flex items-center gap-1 px-2 py-0.5 rounded-full ${colors.bg} ${colors.border} border shadow-sm group-hover:shadow-md transition-all`}>
+                      <ActivityIcon
+                        type={activity.type as ActivityType}
+                        size={12}
+                        className={colors.text}
+                      />
+                      <span className={`text-xs font-medium whitespace-nowrap ${colors.text}`}>
+                        {getActivityLabel(activity)}
+                      </span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
+                        {formatTime(activity.startTimeDate)}
+                      </span>
+                    </div>
+                  </button>
+                )
+              }
+              
+              // 块类型（睡眠、喂奶等）：严格按时长显示高度
               return (
                 <button
                   key={activity.id}
