@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ActivityType } from '@/types/activity'
+import { startOfDayChina, endOfDayChina, previousDayTimeChina } from '@/lib/dayjs'
 
 // GET: 获取活动列表
 export async function GET(request: NextRequest) {
@@ -21,15 +22,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (date) {
-      const startOfDay = new Date(date)
-      startOfDay.setHours(0, 0, 0, 0)
-      const endOfDay = new Date(date)
-      endOfDay.setHours(23, 59, 59, 999)
+      // 使用中国时区计算当天的开始和结束时间
+      const startOfDay = startOfDayChina(date)
+      const endOfDay = endOfDayChina(date)
       
-      // 前一天晚上 18:00（用于包含前一天晚上的活动）
-      const previousEvening = new Date(startOfDay)
-      previousEvening.setDate(previousEvening.getDate() - 1)
-      previousEvening.setHours(18, 0, 0, 0)
+      // 前一天晚上 18:00（中国时区，用于包含前一天晚上的活动）
+      const previousEvening = previousDayTimeChina(date, 18)
 
       // 查询条件：活动与指定日期有交集，或前一天晚上18:00之后的活动
       // 1. startTime 在指定日期内，或者

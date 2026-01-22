@@ -32,11 +32,36 @@ cp .env.example .env.local
 # 编辑 .env.local 添加数据库连接
 
 # 初始化数据库
-pnpm prisma db push
+pnpm db:push
 
 # 运行开发服务器
 pnpm dev
 ```
+
+## 部署到 Vercel
+
+### 数据库迁移
+
+当修改了 Prisma schema 后，需要在生产环境运行迁移：
+
+```bash
+# 方法 1: 使用脚本（推荐）
+pnpm db:migrate:prod
+
+# 方法 2: 手动操作
+# 1. 从 Vercel 拉取环境变量
+vercel env pull .env.production
+
+# 2. 设置环境变量并运行迁移
+export DATABASE_URL=$(grep DATABASE_URL .env.production | cut -d '=' -f2-)
+export DATABASE_URL_UNPOOLED=$(grep DATABASE_URL_UNPOOLED .env.production | cut -d '=' -f2-)
+pnpm prisma db push
+
+# 3. 清理临时文件
+rm .env.production
+```
+
+**注意**: 确保已安装并登录 Vercel CLI: `pnpm add -g vercel && vercel login`
 
 ## 访问地址
 

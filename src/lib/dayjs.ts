@@ -2,13 +2,20 @@ import dayjs from 'dayjs'
 import duration from 'dayjs/plugin/duration'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import weekday from 'dayjs/plugin/weekday'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
 import 'dayjs/locale/zh-cn'
 
 // 扩展 dayjs
 dayjs.extend(duration)
 dayjs.extend(relativeTime)
 dayjs.extend(weekday)
+dayjs.extend(utc)
+dayjs.extend(timezone)
 dayjs.locale('zh-cn')
+
+// 中国时区
+export const CHINA_TIMEZONE = 'Asia/Shanghai'
 
 export { dayjs }
 
@@ -121,17 +128,49 @@ export function isToday(date: Date | string): boolean {
 }
 
 /**
- * 获取指定日期的开始时间（00:00:00）
+ * 获取指定日期的开始时间（00:00:00）- 本地时区
  */
 export function startOfDay(date: Date | string): Date {
   return dayjs(date).startOf('day').toDate()
 }
 
 /**
- * 获取指定日期的结束时间（23:59:59）
+ * 获取指定日期的结束时间（23:59:59）- 本地时区
  */
 export function endOfDay(date: Date | string): Date {
   return dayjs(date).endOf('day').toDate()
+}
+
+/**
+ * 获取指定日期在中国时区的开始时间（00:00:00 CST）
+ * 用于服务器端按中国时区过滤数据
+ */
+export function startOfDayChina(dateStr: string): Date {
+  // 解析 YYYY-MM-DD 格式的日期字符串，按中国时区设置为当天 00:00:00
+  return dayjs.tz(`${dateStr} 00:00:00`, CHINA_TIMEZONE).toDate()
+}
+
+/**
+ * 获取指定日期在中国时区的结束时间（23:59:59.999 CST）
+ * 用于服务器端按中国时区过滤数据
+ */
+export function endOfDayChina(dateStr: string): Date {
+  // 解析 YYYY-MM-DD 格式的日期字符串，按中国时区设置为当天 23:59:59.999
+  return dayjs.tz(`${dateStr} 23:59:59`, CHINA_TIMEZONE).millisecond(999).toDate()
+}
+
+/**
+ * 获取指定日期前一天某个时间点（中国时区）
+ * 用于获取"昨晚摘要"的开始时间
+ */
+export function previousDayTimeChina(dateStr: string, hour: number): Date {
+  return dayjs.tz(`${dateStr} 00:00:00`, CHINA_TIMEZONE)
+    .subtract(1, 'day')
+    .hour(hour)
+    .minute(0)
+    .second(0)
+    .millisecond(0)
+    .toDate()
 }
 
 /**

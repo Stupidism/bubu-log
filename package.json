@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "generate:api": "openapi-typescript openapi.yaml -o src/lib/api/openapi-types.d.ts"
+    "generate:api": "openapi-typescript openapi.yaml -o src/lib/api/openapi-types.d.ts",
+    "db:push": "prisma db push",
+    "db:migrate:prod": "bash scripts/migrate-production.sh"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
