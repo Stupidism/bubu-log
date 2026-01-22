@@ -35,23 +35,50 @@ function HomeContent() {
   // URL 参数管理（包括日期）
   const { openActivityDetail, selectedDate, selectedDateStr, setSelectedDate } = useModalParams()
 
-  // 获取活动数据
+  // 获取活动数据（包含当天和前一天晚上的活动）
   const { data: activities = [], isLoading: activitiesLoading } = useActivities({
     date: selectedDateStr,
-    limit: 100,
+    limit: 200, // 增加限制以包含前一天晚上的活动
   })
   
-  // 获取前一天的活动数据（用于显示前一天晚上的喂奶和睡眠）
-  const previousDateStr = dayjs(selectedDate).subtract(1, 'day').format('YYYY-MM-DD')
-  const { data: previousDayActivities = [] } = useActivities({
-    date: previousDateStr,
-    limit: 100,
-  })
+  // 从查询结果中筛选出前一天晚上的活动（用于"昨晚摘要"）
+  const previousDayActivities = useMemo(() => {
+    const currentDayStart = dayjs(selectedDate).startOf('day')
+    const previousDay = currentDayStart.subtract(1, 'day')
+    const eveningStart = previousDay.hour(18).minute(0).second(0)
+    
+    return activities.filter(activity => {
+      const activityTime = dayjs(activity.startTime)
+      // 筛选前一天晚上18:00之后开始的活动
+      return activityTime.isAfter(eveningStart) && activityTime.isBefore(currentDayStart)
+    })
+  }, [activities, selectedDate])
+  
+  // 筛选出当天的活动（用于时间轴显示）
+  // 包括：1. 当天开始的活动 2. 跨夜到当天的活动
+  const todayActivities = useMemo(() => {
+    const currentDayStart = dayjs(selectedDate).startOf('day')
+    
+    return activities.filter(activity => {
+      const activityTime = dayjs(activity.startTime)
+      // 活动开始时间在当天，或者是跨夜活动（开始时间在前一天但结束时间在当天或之后）
+      if (!activityTime.isBefore(currentDayStart)) {
+        return true // 当天开始的活动
+      }
+      // 跨夜活动：开始时间在前一天，但结束时间在当天或之后
+      if (activity.endTime) {
+        const endTime = dayjs(activity.endTime)
+        return !endTime.isBefore(currentDayStart)
+      }
+      // 进行中的跨夜活动（endTime 为 null）
+      return false // 这些已经在 previousDayActivities 中了
+    })
+  }, [activities, selectedDate])
   
   // 版本检测 - 每分钟检查一次新版本
   const { hasNewVersion, refresh: refreshPage, dismiss: dismissUpdate } = useVersionCheck(60000)
 
-  // 计算每日统计
+  // 计算每日统计（使用当天的活动，包括跨夜活动）
   const summary = useMemo<DaySummary>(() => {
     const result: DaySummary = {
       sleepCount: 0,
@@ -62,7 +89,8 @@ function HomeContent() {
       diaperCount: 0,
     }
 
-    for (const activity of activities) {
+    // 使用 todayActivities 进行统计
+    for (const activity of todayActivities) {
       switch (activity.type) {
         case 'SLEEP':
           // 有 endTime 才计为完整睡眠
@@ -91,7 +119,7 @@ function HomeContent() {
     }
 
     return result
-  }, [activities])
+  }, [todayActivities])
 
   // 格式化分钟为小时和分钟
   const formatDuration = (minutes: number) => {
@@ -241,7 +269,7 @@ function HomeContent() {
             <div className="flex items-center justify-center py-16">
               <Loader2 size={32} className="animate-spin text-gray-400" />
             </div>
-          ) : activities.length === 0 && previousDayActivities.length === 0 ? (
+          ) : todayActivities.length === 0 && previousDayActivities.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <p className="text-lg mb-2">还没有记录</p>
               <p className="text-sm">点击右下角的 + 按钮添加活动</p>
@@ -258,7 +286,7 @@ function HomeContent() {
               {/* 当天时间线 */}
               <DayTimeline
                 ref={timelineRef}
-                activities={activities}
+                activities={todayActivities}
                 date={selectedDate}
                 onActivityClick={handleActivityClick}
                 showCurrentTime={isToday}

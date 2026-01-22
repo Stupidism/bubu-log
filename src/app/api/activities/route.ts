@@ -25,11 +25,57 @@ export async function GET(request: NextRequest) {
       startOfDay.setHours(0, 0, 0, 0)
       const endOfDay = new Date(date)
       endOfDay.setHours(23, 59, 59, 999)
+      
+      // 前一天晚上 18:00（用于包含前一天晚上的活动）
+      const previousEvening = new Date(startOfDay)
+      previousEvening.setDate(previousEvening.getDate() - 1)
+      previousEvening.setHours(18, 0, 0, 0)
 
-      where.startTime = {
-        gte: startOfDay,
-        lte: endOfDay,
-      }
+      // 查询条件：活动与指定日期有交集，或前一天晚上18:00之后的活动
+      // 1. startTime 在指定日期内，或者
+      // 2. startTime 在指定日期之前，但 endTime 在指定日期内或之后（跨夜活动），或者
+      // 3. startTime 在指定日期之前，且 endTime 为 null（进行中的跨夜活动），或者
+      // 4. startTime 在前一天晚上18:00之后（用于显示"昨晚摘要"）
+      where.OR = [
+        {
+          // 活动开始时间在指定日期内
+          startTime: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+        {
+          // 跨夜活动：开始时间在指定日期之前，结束时间在指定日期内或之后
+          AND: [
+            {
+              startTime: {
+                lt: startOfDay,
+              },
+            },
+            {
+              OR: [
+                {
+                  endTime: {
+                    gte: startOfDay,
+                  },
+                },
+                {
+                  // 进行中的跨夜活动（endTime 为 null）
+                  endTime: null,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          // 前一天晚上18:00之后开始的活动（用于"昨晚摘要"）
+          // 这些活动可能完全在前一天，也可能跨到当天
+          startTime: {
+            gte: previousEvening,
+            lt: startOfDay,
+          },
+        },
+      ]
     }
 
     const activities = await prisma.activity.findMany({
