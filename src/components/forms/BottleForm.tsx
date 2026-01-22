@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { SliderInput } from '../SliderInput'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { Check } from 'lucide-react'
+import { differenceInMinutes, addMinutes } from 'date-fns'
 
 interface BottleFormProps {
   onSubmit: (data: {
@@ -35,17 +36,42 @@ interface Preferences {
 
 const DEFAULT_PREFERENCES: Preferences = {
   rememberSelection: false,
-  defaultDuration: 90,
+  defaultDuration: 15,
   defaultMilkAmount: 90,
   defaultBurpSuccess: true,
 }
 
 export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: BottleFormProps) {
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES)
-  const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
-  const [duration, setDuration] = useState<number>(initialValues?.duration || 90)
+  
+  // 计算初始的开始时间和结束时间
+  const initialEndTime = useMemo(() => initialValues?.recordTime || new Date(), [initialValues?.recordTime])
+  const initialStartTime = useMemo(() => {
+    const duration = initialValues?.duration || 15
+    return addMinutes(initialEndTime, -duration)
+  }, [initialEndTime, initialValues?.duration])
+  
+  const [startTime, setStartTime] = useState(initialStartTime)
+  const [endTime, setEndTime] = useState(initialEndTime)
   const [milkAmount, setMilkAmount] = useState<number>(initialValues?.milkAmount || 90)
   const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialValues?.burpSuccess)
+
+  // 计算时长
+  const duration = Math.max(0, differenceInMinutes(endTime, startTime))
+
+  // 格式化时长显示
+  const formatDuration = (mins: number) => {
+    if (mins <= 0) return '0分钟'
+    const hours = Math.floor(mins / 60)
+    const minutes = mins % 60
+    if (hours > 0 && minutes > 0) {
+      return `${hours}小时${minutes}分钟`
+    } else if (hours > 0) {
+      return `${hours}小时`
+    } else {
+      return `${minutes}分钟`
+    }
+  }
 
   // 加载偏好设置（仅在新建时）
   useEffect(() => {
@@ -56,7 +82,10 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
         const savedPrefs = JSON.parse(saved) as Preferences
         setPreferences(savedPrefs)
         if (savedPrefs.rememberSelection && !initialValues) {
-          setDuration(savedPrefs.defaultDuration)
+          // 设置默认时长对应的开始时间
+          const now = new Date()
+          setEndTime(now)
+          setStartTime(addMinutes(now, -savedPrefs.defaultDuration))
           setMilkAmount(savedPrefs.defaultMilkAmount)
           setBurpSuccess(savedPrefs.defaultBurpSuccess)
         }
@@ -85,11 +114,26 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
   const handleSubmit = () => {
     if (duration <= 0 || milkAmount <= 0) return
     onSubmit({
-      recordTime,
+      recordTime: startTime,
       duration,
       milkAmount,
       burpSuccess,
     })
+  }
+
+  // 当开始时间改变时，确保结束时间不早于开始时间
+  const handleStartTimeChange = (newStartTime: Date) => {
+    setStartTime(newStartTime)
+    if (newStartTime > endTime) {
+      setEndTime(newStartTime)
+    }
+  }
+
+  // 当结束时间改变时，确保不早于开始时间
+  const handleEndTimeChange = (newEndTime: Date) => {
+    if (newEndTime >= startTime) {
+      setEndTime(newEndTime)
+    }
   }
 
   return (
@@ -103,7 +147,29 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
       </div>
 
       {/* 开始时间 */}
-      <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
+      <TimeAdjuster 
+        time={startTime} 
+        onTimeChange={handleStartTimeChange}
+        label="开始时间"
+        maxTime={endTime}
+      />
+
+      {/* 结束时间 */}
+      <TimeAdjuster 
+        time={endTime} 
+        onTimeChange={handleEndTimeChange}
+        label="结束时间"
+        minTime={startTime}
+        compact
+      />
+
+      {/* 时长显示 */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 text-center">
+        <p className="text-base text-blue-600 dark:text-blue-400 mb-1">喂奶时长</p>
+        <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+          {formatDuration(duration)}
+        </p>
+      </div>
 
       {/* 奶量 - 滑块输入，10ml 间隔 */}
       <SliderInput
@@ -115,19 +181,6 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
         unit="ml"
         label="奶量"
         color="blue"
-      />
-
-      {/* 喂奶时长 - 滑块输入 */}
-      <SliderInput
-        value={duration}
-        onChange={setDuration}
-        min={5}
-        max={60}
-        step={1}
-        unit="分钟"
-        label="喂奶时长"
-        color="gray"
-        allowExceedMax
       />
 
       {/* 拍嗝是否成功 */}

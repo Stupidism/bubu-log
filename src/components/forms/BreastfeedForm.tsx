@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
-import { SliderInput } from '../SliderInput'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { Check } from 'lucide-react'
+import { differenceInMinutes, addMinutes } from 'date-fns'
 
 interface BreastfeedFormProps {
   onSubmit: (data: {
@@ -38,9 +38,34 @@ const DEFAULT_PREFERENCES: Preferences = {
 
 export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }: BreastfeedFormProps) {
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES)
-  const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
-  const [duration, setDuration] = useState<number>(initialValues?.duration || 20)
+  
+  // 计算初始的开始时间和结束时间
+  const initialEndTime = useMemo(() => initialValues?.recordTime || new Date(), [initialValues?.recordTime])
+  const initialStartTime = useMemo(() => {
+    const duration = initialValues?.duration || 20
+    return addMinutes(initialEndTime, -duration)
+  }, [initialEndTime, initialValues?.duration])
+  
+  const [startTime, setStartTime] = useState(initialStartTime)
+  const [endTime, setEndTime] = useState(initialEndTime)
   const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialValues?.burpSuccess)
+
+  // 计算时长
+  const duration = Math.max(0, differenceInMinutes(endTime, startTime))
+
+  // 格式化时长显示
+  const formatDuration = (mins: number) => {
+    if (mins <= 0) return '0分钟'
+    const hours = Math.floor(mins / 60)
+    const minutes = mins % 60
+    if (hours > 0 && minutes > 0) {
+      return `${hours}小时${minutes}分钟`
+    } else if (hours > 0) {
+      return `${hours}小时`
+    } else {
+      return `${minutes}分钟`
+    }
+  }
 
   // 加载偏好设置（仅在新建时）
   useEffect(() => {
@@ -51,7 +76,10 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
         const savedPrefs = JSON.parse(saved) as Preferences
         setPreferences(savedPrefs)
         if (savedPrefs.rememberSelection && !initialValues) {
-          setDuration(savedPrefs.defaultDuration)
+          // 设置默认时长对应的开始时间
+          const now = new Date()
+          setEndTime(now)
+          setStartTime(addMinutes(now, -savedPrefs.defaultDuration))
           setBurpSuccess(savedPrefs.defaultBurpSuccess)
         }
       }
@@ -78,10 +106,25 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
   const handleSubmit = () => {
     if (duration <= 0) return
     onSubmit({
-      recordTime,
+      recordTime: startTime,
       duration,
       burpSuccess,
     })
+  }
+
+  // 当开始时间改变时，确保结束时间不早于开始时间
+  const handleStartTimeChange = (newStartTime: Date) => {
+    setStartTime(newStartTime)
+    if (newStartTime > endTime) {
+      setEndTime(newStartTime)
+    }
+  }
+
+  // 当结束时间改变时，确保不早于开始时间
+  const handleEndTimeChange = (newEndTime: Date) => {
+    if (newEndTime >= startTime) {
+      setEndTime(newEndTime)
+    }
   }
 
   return (
@@ -95,20 +138,29 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
       </div>
 
       {/* 开始时间 */}
-      <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
-
-      {/* 喂奶时长 - 滑块输入 */}
-      <SliderInput
-        value={duration}
-        onChange={setDuration}
-        min={5}
-        max={60}
-        step={1}
-        unit="分钟"
-        label="喂奶时长"
-        color="pink"
-        allowExceedMax
+      <TimeAdjuster 
+        time={startTime} 
+        onTimeChange={handleStartTimeChange} 
+        label="开始时间"
+        maxTime={endTime}
       />
+
+      {/* 结束时间 */}
+      <TimeAdjuster 
+        time={endTime} 
+        onTimeChange={handleEndTimeChange}
+        label="结束时间"
+        minTime={startTime}
+        compact
+      />
+
+      {/* 时长显示 */}
+      <div className="bg-pink-50 dark:bg-pink-900/20 rounded-2xl p-4 text-center">
+        <p className="text-base text-pink-600 dark:text-pink-400 mb-1">喂奶时长</p>
+        <p className="text-3xl font-bold text-pink-700 dark:text-pink-300">
+          {formatDuration(duration)}
+        </p>
+      </div>
 
       {/* 拍嗝是否成功 */}
       <div>

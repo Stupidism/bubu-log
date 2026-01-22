@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
-import { SliderInput } from '../SliderInput'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { Check } from 'lucide-react'
+import { differenceInMinutes, addMinutes } from 'date-fns'
 
 interface ActivityDurationFormProps {
   type: ActivityType
@@ -21,68 +21,76 @@ interface ActivityDurationFormProps {
   isEditing?: boolean
 }
 
-// 各活动类型的配置：默认时长、最小间隔、范围
+// 各活动类型的配置：默认时长
 interface ActivityConfig {
   defaultDuration: number
-  step: number
-  min: number
-  max: number
+  color: string
 }
 
 const ACTIVITY_CONFIGS: Partial<Record<ActivityType, ActivityConfig>> = {
   [ActivityType.HEAD_LIFT]: {
     defaultDuration: 5,
-    step: 1,    // 抬头：1分钟间隔
-    min: 1,
-    max: 30,
+    color: 'amber',
   },
   [ActivityType.PASSIVE_EXERCISE]: {
     defaultDuration: 10,
-    step: 2,    // 被动操：2分钟间隔
-    min: 2,
-    max: 30,
+    color: 'green',
   },
   [ActivityType.GAS_EXERCISE]: {
     defaultDuration: 10,
-    step: 2,    // 排气操：2分钟间隔
-    min: 2,
-    max: 30,
+    color: 'lime',
   },
   [ActivityType.BATH]: {
     defaultDuration: 15,
-    step: 5,    // 洗澡：5分钟间隔
-    min: 5,
-    max: 60,
+    color: 'cyan',
   },
   [ActivityType.OUTDOOR]: {
     defaultDuration: 30,
-    step: 5,    // 晒太阳：5分钟间隔
-    min: 5,
-    max: 120,
+    color: 'emerald',
   },
   [ActivityType.EARLY_EDUCATION]: {
     defaultDuration: 20,
-    step: 5,    // 早教：5分钟间隔
-    min: 5,
-    max: 60,
+    color: 'purple',
   },
 }
 
 const DEFAULT_CONFIG: ActivityConfig = {
   defaultDuration: 10,
-  step: 5,
-  min: 5,
-  max: 60,
+  color: 'amber',
 }
 
 const STORAGE_KEY_PREFIX = 'activity_duration_'
 
 export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, isEditing }: ActivityDurationFormProps) {
   const config = ACTIVITY_CONFIGS[type] || DEFAULT_CONFIG
-  
-  const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
-  const [duration, setDuration] = useState<number>(initialValues?.duration || config.defaultDuration)
   const [rememberSelection, setRememberSelection] = useState(false)
+  
+  // 计算初始的开始时间和结束时间
+  const initialEndTime = useMemo(() => initialValues?.recordTime || new Date(), [initialValues?.recordTime])
+  const initialStartTime = useMemo(() => {
+    const duration = initialValues?.duration || config.defaultDuration
+    return addMinutes(initialEndTime, -duration)
+  }, [initialEndTime, initialValues?.duration, config.defaultDuration])
+  
+  const [startTime, setStartTime] = useState(initialStartTime)
+  const [endTime, setEndTime] = useState(initialEndTime)
+
+  // 计算时长
+  const duration = Math.max(0, differenceInMinutes(endTime, startTime))
+
+  // 格式化时长显示
+  const formatDuration = (mins: number) => {
+    if (mins <= 0) return '0分钟'
+    const hours = Math.floor(mins / 60)
+    const minutes = mins % 60
+    if (hours > 0 && minutes > 0) {
+      return `${hours}小时${minutes}分钟`
+    } else if (hours > 0) {
+      return `${hours}小时`
+    } else {
+      return `${minutes}分钟`
+    }
+  }
 
   // 加载保存的偏好设置（仅在新建时）
   useEffect(() => {
@@ -92,18 +100,26 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
       if (saved) {
         const savedData = JSON.parse(saved)
         if (savedData.rememberSelection && !initialValues) {
-          setDuration(savedData.duration)
+          const now = new Date()
+          setEndTime(now)
+          setStartTime(addMinutes(now, -savedData.duration))
           setRememberSelection(true)
         } else if (!initialValues) {
-          setDuration(config.defaultDuration)
+          const now = new Date()
+          setEndTime(now)
+          setStartTime(addMinutes(now, -config.defaultDuration))
         }
       } else if (!initialValues) {
-        setDuration(config.defaultDuration)
+        const now = new Date()
+        setEndTime(now)
+        setStartTime(addMinutes(now, -config.defaultDuration))
       }
     } catch (e) {
       console.error('Failed to load preferences:', e)
       if (!initialValues) {
-        setDuration(config.defaultDuration)
+        const now = new Date()
+        setEndTime(now)
+        setStartTime(addMinutes(now, -config.defaultDuration))
       }
     }
   }, [type, config.defaultDuration, isEditing, initialValues])
@@ -126,9 +142,24 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
 
   const handleSubmit = () => {
     onSubmit({
-      recordTime,
+      recordTime: startTime,
       duration,
     })
+  }
+
+  // 当开始时间改变时，确保结束时间不早于开始时间
+  const handleStartTimeChange = (newStartTime: Date) => {
+    setStartTime(newStartTime)
+    if (newStartTime > endTime) {
+      setEndTime(newStartTime)
+    }
+  }
+
+  // 当结束时间改变时，确保不早于开始时间
+  const handleEndTimeChange = (newEndTime: Date) => {
+    if (newEndTime >= startTime) {
+      setEndTime(newEndTime)
+    }
   }
 
   // 根据活动类型决定是否需要选择时长
@@ -141,6 +172,21 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
     ActivityType.EARLY_EDUCATION,
   ].includes(type)
 
+  // 获取颜色样式
+  const getColorStyles = () => {
+    const colorMap: Record<string, { bg: string; text: string; textDark: string }> = {
+      amber: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-600 dark:text-amber-400', textDark: 'text-amber-700 dark:text-amber-300' },
+      green: { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-600 dark:text-green-400', textDark: 'text-green-700 dark:text-green-300' },
+      lime: { bg: 'bg-lime-50 dark:bg-lime-900/20', text: 'text-lime-600 dark:text-lime-400', textDark: 'text-lime-700 dark:text-lime-300' },
+      cyan: { bg: 'bg-cyan-50 dark:bg-cyan-900/20', text: 'text-cyan-600 dark:text-cyan-400', textDark: 'text-cyan-700 dark:text-cyan-300' },
+      emerald: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-600 dark:text-emerald-400', textDark: 'text-emerald-700 dark:text-emerald-300' },
+      purple: { bg: 'bg-purple-50 dark:bg-purple-900/20', text: 'text-purple-600 dark:text-purple-400', textDark: 'text-purple-700 dark:text-purple-300' },
+    }
+    return colorMap[config.color] || colorMap.amber
+  }
+
+  const colorStyles = getColorStyles()
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* 活动图标和名称 */}
@@ -151,21 +197,32 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
         </h3>
       </div>
 
-      <TimeAdjuster time={recordTime} onTimeChange={setRecordTime} />
-
-      {/* 时长选择 - 使用滑块 */}
-      {needsDuration && (
-        <div className="space-y-3">
-          <SliderInput
-            value={duration}
-            onChange={setDuration}
-            min={config.min}
-            max={config.max}
-            step={config.step}
-            unit="分钟"
-            label="持续时长"
-            color="amber"
+      {needsDuration ? (
+        <>
+          {/* 开始时间 */}
+          <TimeAdjuster 
+            time={startTime} 
+            onTimeChange={handleStartTimeChange}
+            label="开始时间"
+            maxTime={endTime}
           />
+
+          {/* 结束时间 */}
+          <TimeAdjuster 
+            time={endTime} 
+            onTimeChange={handleEndTimeChange}
+            label="结束时间"
+            minTime={startTime}
+            compact
+          />
+
+          {/* 时长显示 */}
+          <div className={`${colorStyles.bg} rounded-2xl p-4 text-center`}>
+            <p className={`text-base ${colorStyles.text} mb-1`}>持续时长</p>
+            <p className={`text-3xl font-bold ${colorStyles.textDark}`}>
+              {formatDuration(duration)}
+            </p>
+          </div>
 
           {/* 记住选择 */}
           <button
@@ -181,7 +238,9 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
               记住当前选择
             </span>
           </button>
-        </div>
+        </>
+      ) : (
+        <TimeAdjuster time={startTime} onTimeChange={setStartTime} />
       )}
 
       {/* 操作按钮 */}
