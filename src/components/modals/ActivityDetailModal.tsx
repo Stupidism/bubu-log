@@ -6,7 +6,7 @@ import { BottomSheet } from '@/components/BottomSheet'
 import { ActivityIcon } from '@/components/ActivityIcon'
 import { useModalParams } from '@/hooks/useModalParams'
 import { useActivity, useUpdateActivity, useDeleteActivity } from '@/lib/api/hooks'
-import { ActivityType, ActivityTypeLabels, PoopColorStyles, PoopColorLabels, PeeAmountLabels, PoopColor, PeeAmount } from '@/types/activity'
+import { ActivityType, ActivityTypeLabels, PoopColorStyles, PoopColorLabels, PeeAmountLabels, PoopColor, PeeAmount, BreastFirmness, BreastFirmnessLabels } from '@/types/activity'
 import {
   DiaperForm,
   BreastfeedForm,
@@ -66,6 +66,7 @@ export function ActivityDetailModal() {
           ...(data.poopPhotoUrl !== undefined && { poopPhotoUrl: data.poopPhotoUrl as string }),
           ...(data.peeAmount !== undefined && { peeAmount: data.peeAmount as components["schemas"]["PeeAmount"] }),
           ...(data.burpSuccess !== undefined && { burpSuccess: data.burpSuccess as boolean }),
+          ...(data.breastFirmness !== undefined && { breastFirmness: data.breastFirmness as components["schemas"]["BreastFirmness"] }),
           ...(data.milkAmount !== undefined && { milkAmount: data.milkAmount as number }),
           ...(data.notes !== undefined && { notes: data.notes as string }),
         },
@@ -104,14 +105,21 @@ export function ActivityDetailModal() {
       
       case 'BREASTFEED':
         return (
-          <p className="text-lg text-gray-700 dark:text-gray-300">
-            {duration ? formatDuration(duration) : '未记录时长'}
-            {activity.burpSuccess !== null && (
-              <span className={activity.burpSuccess ? 'text-green-600' : 'text-red-600'}>
-                {' · '}{activity.burpSuccess ? '拍嗝成功' : '拍嗝未成功'}
-              </span>
+          <div className="space-y-1">
+            <p className="text-lg text-gray-700 dark:text-gray-300">
+              {duration ? formatDuration(duration) : '未记录时长'}
+              {activity.burpSuccess !== null && (
+                <span className={activity.burpSuccess ? 'text-green-600' : 'text-red-600'}>
+                  {' · '}{activity.burpSuccess ? '拍嗝成功' : '拍嗝未成功'}
+                </span>
+              )}
+            </p>
+            {activity.breastFirmness && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                乳房硬度：{BreastFirmnessLabels[activity.breastFirmness as BreastFirmness]}
+              </p>
             )}
-          </p>
+          </div>
         )
       
       case 'BOTTLE':
@@ -181,6 +189,7 @@ export function ActivityDetailModal() {
       poopColor: activity.poopColor as PoopColor | undefined,
       peeAmount: activity.peeAmount as PeeAmount | undefined,
       burpSuccess: activity.burpSuccess ?? undefined,
+      breastFirmness: (activity.breastFirmness as BreastFirmness) || 'SOFT',
     }
     
     switch (activityType) {

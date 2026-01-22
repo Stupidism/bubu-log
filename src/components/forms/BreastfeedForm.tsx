@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { ActivityIcon } from '../ActivityIcon'
-import { ActivityType, ActivityTypeLabels } from '@/types/activity'
+import { ActivityType, ActivityTypeLabels, BreastFirmness, BreastFirmnessLabels } from '@/types/activity'
 import { Check } from 'lucide-react'
 import { dayjs, calculateDurationMinutes } from '@/lib/dayjs'
 
@@ -12,12 +12,14 @@ interface BreastfeedFormProps {
     startTime: Date
     endTime?: Date
     burpSuccess?: boolean
+    breastFirmness?: BreastFirmness
   }) => void
   onCancel: () => void
   initialValues?: {
     startTime?: Date
     endTime?: Date
     burpSuccess?: boolean
+    breastFirmness?: BreastFirmness
   }
   isEditing?: boolean
 }
@@ -28,12 +30,14 @@ interface Preferences {
   rememberSelection: boolean
   defaultDuration: number
   defaultBurpSuccess: boolean
+  defaultBreastFirmness: BreastFirmness
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
   rememberSelection: false,
   defaultDuration: 20,
   defaultBurpSuccess: true,
+  defaultBreastFirmness: 'SOFT',
 }
 
 export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }: BreastfeedFormProps) {
@@ -49,6 +53,7 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
   const [startTime, setStartTime] = useState(initialStartTime)
   const [endTime, setEndTime] = useState(initialEndTime)
   const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialValues?.burpSuccess)
+  const [breastFirmness, setBreastFirmness] = useState<BreastFirmness>(initialValues?.breastFirmness || 'SOFT')
 
   // 计算时长
   const duration = calculateDurationMinutes(startTime, endTime)
@@ -81,6 +86,7 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
           setEndTime(now.toDate())
           setStartTime(now.subtract(savedPrefs.defaultDuration, 'minute').toDate())
           setBurpSuccess(savedPrefs.defaultBurpSuccess)
+          setBreastFirmness(savedPrefs.defaultBreastFirmness || 'SOFT')
         }
       }
     } catch (e) {
@@ -93,6 +99,7 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
       rememberSelection: true,
       defaultDuration: duration,
       defaultBurpSuccess: burpSuccess ?? true,
+      defaultBreastFirmness: breastFirmness,
     }
     setPreferences(newPrefs)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newPrefs))
@@ -109,6 +116,7 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
       startTime,
       endTime,
       burpSuccess,
+      breastFirmness,
     })
   }
 
@@ -188,6 +196,28 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
           >
             未成功
           </button>
+        </div>
+      </div>
+
+      {/* 乳房硬度 */}
+      <div>
+        <p className="text-base font-medium text-gray-600 dark:text-gray-400 mb-2">
+          喂完后乳房硬度
+        </p>
+        <div className="grid grid-cols-3 gap-3">
+          {(['SOFT', 'ELASTIC', 'HARD'] as BreastFirmness[]).map((firmness) => (
+            <button
+              key={firmness}
+              onClick={() => setBreastFirmness(firmness)}
+              className={`p-4 rounded-xl text-base font-semibold transition-all ${
+                breastFirmness === firmness
+                  ? 'bg-pink-500 text-white shadow-lg scale-105'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              {BreastFirmnessLabels[firmness]}
+            </button>
+          ))}
         </div>
       </div>
 

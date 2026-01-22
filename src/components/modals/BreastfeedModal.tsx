@@ -6,7 +6,8 @@ import { BottomSheet } from '@/components/BottomSheet'
 import { BreastfeedForm } from '@/components/forms'
 import { useModalParams } from '@/hooks/useModalParams'
 import { useCreateActivity, useUpdateActivity, useActivity } from '@/lib/api/hooks'
-import { ActivityType } from '@/types/activity'
+import { ActivityType, BreastFirmness } from '@/types/activity'
+import type { components } from '@/lib/api/openapi-types'
 import { Loader2 } from 'lucide-react'
 
 export function BreastfeedModal() {
@@ -31,6 +32,7 @@ export function BreastfeedModal() {
     const startTime = searchParams.get('startTime')
     const endTime = searchParams.get('endTime')
     const burpSuccess = searchParams.get('burpSuccess')
+    const breastFirmness = searchParams.get('breastFirmness')
     
     // 使用 URL 中的时间，或者使用当前选中日期的当前时间
     const defaultTime = new Date()
@@ -40,6 +42,7 @@ export function BreastfeedModal() {
       startTime: startTime ? new Date(startTime) : defaultTime,
       endTime: endTime ? new Date(endTime) : undefined,
       burpSuccess: burpSuccess ? burpSuccess === 'true' : undefined,
+      breastFirmness: (breastFirmness as BreastFirmness) || 'SOFT',
     }
   }, [isEditing, isOpen, searchParams, selectedDate])
   
@@ -50,6 +53,7 @@ export function BreastfeedModal() {
         startTime: new Date(activity.startTime),
         endTime: activity.endTime ? new Date(activity.endTime) : undefined,
         burpSuccess: activity.burpSuccess ?? undefined,
+        breastFirmness: (activity.breastFirmness as BreastFirmness) || 'SOFT',
       }
     }
     return initialValuesFromUrl
@@ -64,6 +68,7 @@ export function BreastfeedModal() {
             startTime: (data.startTime as Date).toISOString(),
             endTime: data.endTime ? (data.endTime as Date).toISOString() : undefined,
             burpSuccess: data.burpSuccess as boolean,
+            breastFirmness: data.breastFirmness as components["schemas"]["BreastFirmness"],
           },
         },
         {
@@ -78,6 +83,7 @@ export function BreastfeedModal() {
             startTime: (data.startTime as Date).toISOString(),
             endTime: data.endTime ? (data.endTime as Date).toISOString() : undefined,
             burpSuccess: data.burpSuccess as boolean,
+            breastFirmness: data.breastFirmness as components["schemas"]["BreastFirmness"],
           },
         },
         {

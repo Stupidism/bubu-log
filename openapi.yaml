@@ -441,6 +441,13 @@ components:
         - MEDIUM
         - LARGE
 
+    BreastFirmness:
+      type: string
+      enum:
+        - SOFT    # 软
+        - ELASTIC # 弹
+        - HARD    # 硬
+
     Activity:
       type: object
       required:
@@ -488,6 +495,9 @@ components:
         milkAmount:
           type: integer
           nullable: true
+        breastFirmness:
+          $ref: '#/components/schemas/BreastFirmness'
+          nullable: true
         notes:
           type: string
           nullable: true
@@ -522,6 +532,8 @@ components:
           type: boolean
         milkAmount:
           type: integer
+        breastFirmness:
+          $ref: '#/components/schemas/BreastFirmness'
         notes:
           type: string
 
@@ -552,6 +564,8 @@ components:
           type: boolean
         milkAmount:
           type: integer
+        breastFirmness:
+          $ref: '#/components/schemas/BreastFirmness'
         notes:
           type: string
 

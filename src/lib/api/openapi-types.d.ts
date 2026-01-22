@@ -144,6 +144,8 @@ export interface components {
         PoopColor: "YELLOW" | "GREEN" | "BROWN" | "BLACK" | "WHITE" | "RED";
         /** @enum {string} */
         PeeAmount: "SMALL" | "MEDIUM" | "LARGE";
+        /** @enum {string} */
+        BreastFirmness: "SOFT" | "ELASTIC" | "HARD";
         Activity: {
             id: string;
             type: components["schemas"]["ActivityType"];
@@ -168,6 +170,7 @@ export interface components {
             peeAmount?: components["schemas"]["PeeAmount"];
             burpSuccess?: boolean | null;
             milkAmount?: number | null;
+            breastFirmness?: components["schemas"]["BreastFirmness"];
             notes?: string | null;
         };
         CreateActivityInput: {
@@ -189,6 +192,7 @@ export interface components {
             peeAmount?: components["schemas"]["PeeAmount"];
             burpSuccess?: boolean;
             milkAmount?: number;
+            breastFirmness?: components["schemas"]["BreastFirmness"];
             notes?: string;
         };
         UpdateActivityInput: {
@@ -210,6 +214,7 @@ export interface components {
             peeAmount?: components["schemas"]["PeeAmount"];
             burpSuccess?: boolean;
             milkAmount?: number;
+            breastFirmness?: components["schemas"]["BreastFirmness"];
             notes?: string;
         };
         BabyProfile: {

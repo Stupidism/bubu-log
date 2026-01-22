@@ -42,6 +42,13 @@ enum PeeAmount {
   LARGE   // 多
 }
 
+// 乳房硬度枚举（亲喂后）
+enum BreastFirmness {
+  SOFT    // 软
+  ELASTIC // 弹
+  HARD    // 硬
+}
+
 // 宝宝资料模型（单例，只存储一个宝宝的信息）
 model BabyProfile {
   id        String   @id @default("default")
@@ -71,6 +78,7 @@ model Activity {
   // 喂奶相关字段
   burpSuccess     Boolean?     // 拍嗝是否成功
   milkAmount      Int?         // 奶量（毫升）- 瓶喂专用
+  breastFirmness  BreastFirmness? // 乳房硬度（亲喂后）- 软、弹、硬
 
   // 备注
   notes           String?

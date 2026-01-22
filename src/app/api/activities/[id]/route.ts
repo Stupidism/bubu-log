@@ -48,6 +48,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       peeAmount,
       burpSuccess,
       milkAmount,
+      breastFirmness,
       notes,
     } = body
 
@@ -63,6 +64,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (peeAmount !== undefined) updateData.peeAmount = peeAmount
     if (burpSuccess !== undefined) updateData.burpSuccess = burpSuccess
     if (milkAmount !== undefined) updateData.milkAmount = milkAmount
+    if (breastFirmness !== undefined) updateData.breastFirmness = breastFirmness
     if (notes !== undefined) updateData.notes = notes
 
     const activity = await prisma.activity.update({

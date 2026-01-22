@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
       peeAmount,
       burpSuccess,
       milkAmount,
+      breastFirmness,
       notes,
     } = body
 
@@ -124,6 +125,7 @@ export async function POST(request: NextRequest) {
         peeAmount,
         burpSuccess,
         milkAmount,
+        breastFirmness,
         notes,
       },
     })

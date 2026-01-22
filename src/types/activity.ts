@@ -26,6 +26,10 @@ export enum PeeAmount {
   LARGE = 'LARGE',
 }
 
+// 乳房硬度（亲喂后）
+const breastFirmnessTypes = ['SOFT', 'ELASTIC', 'HARD'] as const
+export type BreastFirmness = typeof breastFirmnessTypes[number]
+
 export interface Activity {
   id: string
   type: ActivityType
@@ -78,6 +82,12 @@ export const PeeAmountLabels: Record<PeeAmount, string> = {
   [PeeAmount.SMALL]: '少',
   [PeeAmount.MEDIUM]: '中',
   [PeeAmount.LARGE]: '多',
+}
+
+export const BreastFirmnessLabels: Record<BreastFirmness, string> = {
+  SOFT: '软',
+  ELASTIC: '弹',
+  HARD: '硬',
 }
 
 // 活动图标名称映射（用于 Lucide React 图标）
