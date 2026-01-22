@@ -262,6 +262,66 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+  /voice-input:
+    post:
+      operationId: parseVoiceInput
+      summary: Parse voice input and create activity
+      description: |
+        Accepts natural language text (from voice input) and uses AI to parse it into a structured activity record.
+        Supports Chinese input like "宝宝喝了80毫升奶" or "刚换了尿布，有便便".
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: The voice input text to parse
+                  example: "宝宝刚才喝了60毫升奶"
+              required:
+                - text
+      responses:
+        '201':
+          description: Activity created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  activity:
+                    $ref: '#/components/schemas/Activity'
+                  parsed:
+                    type: object
+                    properties:
+                      confidence:
+                        type: number
+                        description: AI confidence level (0-1)
+                      originalText:
+                        type: string
+                  message:
+                    type: string
+                    description: Human-readable confirmation message
+        '400':
+          description: Parse failed or invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: [MISSING_TEXT, PARSE_FAILED, INVALID_TYPE]
+                  originalText:
+                    type: string
+        '500':
+          $ref: '#/components/responses/ServerError'
+
   /baby-profile:
     get:
       operationId: getBabyProfile

@@ -11,10 +11,13 @@ interface SimpleActivityFormProps {
     recordTime: Date
   }) => void
   onCancel: () => void
+  initialValues?: {
+    recordTime?: Date
+  }
 }
 
-export function SimpleActivityForm({ type, onSubmit, onCancel }: SimpleActivityFormProps) {
-  const [recordTime, setRecordTime] = useState(new Date())
+export function SimpleActivityForm({ type, onSubmit, onCancel, initialValues }: SimpleActivityFormProps) {
+  const [recordTime, setRecordTime] = useState(initialValues?.recordTime || new Date())
 
   const handleSubmit = () => {
     onSubmit({ recordTime })

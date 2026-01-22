@@ -117,3 +117,38 @@ body {
 .safe-area-top {
   padding-top: env(safe-area-inset-top, 20px);
 }
+
+/* 手机容器 - PC端使用固定定位来约束悬浮元素 */
+.phone-container {
+  /* 使用 CSS 变量存储容器信息 */
+  --phone-max-width: 28rem; /* max-w-md = 448px = 28rem */
+}
+
+/* 悬浮元素定位修复 - PC端限制在手机容器内 */
+@media (min-width: 448px) {
+  .voice-input-container {
+    left: calc(50% - var(--phone-max-width) / 2) !important;
+    right: calc(50% - var(--phone-max-width) / 2) !important;
+    max-width: var(--phone-max-width);
+  }
+  
+  .fab-button {
+    /* FAB 按钮定位在手机容器的右下角 */
+    right: calc(50% - var(--phone-max-width) / 2 + 1rem) !important;
+    left: auto !important;
+  }
+  
+  .fab-modal {
+    /* FAB 弹出菜单限制在手机容器内 */
+    left: calc(50% - var(--phone-max-width) / 2) !important;
+    right: calc(50% - var(--phone-max-width) / 2) !important;
+    max-width: var(--phone-max-width);
+  }
+  
+  .fab-overlay {
+    /* 遮罩层覆盖整个手机容器 */
+    left: calc(50% - var(--phone-max-width) / 2) !important;
+    right: calc(50% - var(--phone-max-width) / 2) !important;
+    width: var(--phone-max-width) !important;
+  }
+}

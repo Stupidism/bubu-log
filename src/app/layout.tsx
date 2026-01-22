@@ -41,7 +41,7 @@ export default function RootLayout({
       <body className="antialiased min-h-screen">
         <Providers>
           {/* Mobile-first: 限制最大宽度，PC端保持手机比例 */}
-          <div className="mx-auto max-w-md min-h-screen bg-background shadow-xl">
+          <div className="phone-container mx-auto max-w-md min-h-screen bg-background shadow-xl relative">
             {children}
           </div>
         </Providers>
