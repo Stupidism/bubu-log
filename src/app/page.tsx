@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef, Suspense } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Toast } from '@/components/Toast'
 import { AvatarUpload } from '@/components/AvatarUpload'
@@ -27,7 +27,7 @@ interface DaySummary {
   diaperCount: number
 }
 
-export default function Home() {
+function HomeContent() {
   const queryClient = useQueryClient()
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const timelineRef = useRef<DayTimelineRef>(null)
@@ -289,5 +289,17 @@ export default function Home() {
       onVoiceError={(message) => setToast({ message, type: 'error' })}
     />
     </>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 size={32} className="animate-spin text-gray-400" />
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   )
 }

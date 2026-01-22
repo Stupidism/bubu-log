@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { dayjs, calculateDurationMinutes, formatDuration as formatDurationUtil, formatDateChinese, formatWeekday } from '@/lib/dayjs'
 import {
@@ -52,7 +52,7 @@ interface DaySummary {
 type FilterType = 'all' | 'sleep' | 'feeding' | 'diaper' | 'activities'
 type ViewType = 'list' | 'timeline'
 
-export default function StatsPage() {
+function StatsPageContent() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [viewType, setViewType] = useState<ViewType>('list')
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -684,5 +684,20 @@ export default function StatsPage() {
         />
       )}
     </main>
+  )
+}
+
+export default function StatsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Calendar size={32} className="mx-auto text-gray-400 mb-2" />
+          <p className="text-gray-500">加载中...</p>
+        </div>
+      </div>
+    }>
+      <StatsPageContent />
+    </Suspense>
   )
 }
