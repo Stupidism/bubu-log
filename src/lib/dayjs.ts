@@ -187,3 +187,42 @@ export function toISOString(date: Date | string): string {
   return dayjs(date).toISOString()
 }
 
+/**
+ * 计算活动在指定日期范围内的持续时间（分钟）
+ * 用于跨天活动（如睡眠）只计算当天的部分
+ * 
+ * @param activityStartTime 活动开始时间
+ * @param activityEndTime 活动结束时间
+ * @param dayDate 指定日期
+ * @returns 在指定日期范围内的分钟数
+ * 
+ * @example
+ * // 睡眠从昨天 23:00 到今天 7:00，只计算今天 0:00 到 7:00 的部分
+ * calculateDurationInDay('2024-01-21T23:00:00', '2024-01-22T07:00:00', new Date('2024-01-22'))
+ * // 返回 420 (7小时)
+ */
+export function calculateDurationInDay(
+  activityStartTime: Date | string,
+  activityEndTime: Date | string,
+  dayDate: Date | string
+): number {
+  const dayStart = dayjs(dayDate).startOf('day')
+  const dayEnd = dayjs(dayDate).endOf('day')
+  
+  const activityStart = dayjs(activityStartTime)
+  const activityEnd = dayjs(activityEndTime)
+  
+  // 计算活动与当天的交集
+  // 实际开始时间 = max(活动开始时间, 当天开始时间)
+  const effectiveStart = activityStart.isBefore(dayStart) ? dayStart : activityStart
+  // 实际结束时间 = min(活动结束时间, 当天结束时间)
+  const effectiveEnd = activityEnd.isAfter(dayEnd) ? dayEnd : activityEnd
+  
+  // 如果没有交集，返回 0
+  if (effectiveStart.isAfter(effectiveEnd)) {
+    return 0
+  }
+  
+  return effectiveEnd.diff(effectiveStart, 'minute')
+}
+

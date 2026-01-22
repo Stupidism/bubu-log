@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, Suspense } from 'react'
 import Link from 'next/link'
-import { dayjs, calculateDurationMinutes, formatDuration as formatDurationUtil, formatDateChinese, formatWeekday } from '@/lib/dayjs'
+import { dayjs, calculateDurationMinutes, calculateDurationInDay, formatDuration as formatDurationUtil, formatDateChinese, formatWeekday } from '@/lib/dayjs'
 import {
   ActivityType,
   ActivityTypeLabels,
@@ -111,11 +111,14 @@ function StatsPageContent() {
       exerciseCount: 0,
     }
 
-    // 睡眠统计 - 有 endTime 才计为完整睡眠
+    // 睡眠统计 - 有 endTime 才计为完整睡眠，只计算当天范围内的部分
     const sleeps = activities.filter((a) => a.type === 'SLEEP' && a.endTime)
-    summary.sleepCount = sleeps.length
-    summary.totalSleepMinutes = sleeps.reduce((acc, a) => 
-      acc + (a.endTime ? calculateDurationMinutes(a.startTime, a.endTime) : 0), 0)
+    // 计算每个睡眠在当天范围内的时长，只有大于0的才计入统计
+    const sleepMinutesPerActivity = sleeps.map(a => 
+      calculateDurationInDay(a.startTime, a.endTime!, selectedDate)
+    )
+    summary.sleepCount = sleepMinutesPerActivity.filter(m => m > 0).length
+    summary.totalSleepMinutes = sleepMinutesPerActivity.reduce((acc, m) => acc + m, 0)
 
     // 尿布统计
     const diapers = activities.filter((a) => a.type === 'DIAPER')

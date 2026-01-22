@@ -11,7 +11,7 @@ import { UpdatePrompt } from '@/components/UpdatePrompt'
 import { useVersionCheck } from '@/hooks/useVersionCheck'
 import { useModalParams } from '@/hooks/useModalParams'
 import Link from 'next/link'
-import { calculateDurationMinutes, formatDateChinese, formatWeekday } from '@/lib/dayjs'
+import { calculateDurationMinutes, calculateDurationInDay, formatDateChinese, formatWeekday } from '@/lib/dayjs'
 import { BarChart3, ChevronLeft, ChevronRight, Moon, Milk, Baby, Loader2 } from 'lucide-react'
 import { useActivities, type Activity } from '@/lib/api/hooks'
 import { PreviousEveningSummary } from '@/components/PreviousEveningSummary'
@@ -100,10 +100,13 @@ function HomeContent() {
 
       switch (activity.type) {
         case 'SLEEP':
-          // 睡眠可以跨天计算，只要与当天有交集就计算整个睡眠时长
+          // 睡眠可以跨天计算，但只计算当天范围内的部分（0点到24点）
           if (activity.endTime) {
-            result.sleepCount++
-            result.totalSleepMinutes += calculateDurationMinutes(activity.startTime, activity.endTime)
+            const sleepMinutesInDay = calculateDurationInDay(activity.startTime, activity.endTime, selectedDate)
+            if (sleepMinutesInDay > 0) {
+              result.sleepCount++
+              result.totalSleepMinutes += sleepMinutesInDay
+            }
           }
           break
         case 'BREASTFEED':
