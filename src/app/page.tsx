@@ -78,7 +78,8 @@ function HomeContent() {
   // 版本检测 - 每分钟检查一次新版本
   const { hasNewVersion, refresh: refreshPage, dismiss: dismissUpdate } = useVersionCheck(60000)
 
-  // 计算每日统计（使用当天的活动，包括跨夜活动）
+  // 计算每日统计
+  // 注意：只有睡眠可以跨天计算，其他活动（奶量、尿布）需要严格按当天时间过滤
   const summary = useMemo<DaySummary>(() => {
     const result: DaySummary = {
       sleepCount: 0,
@@ -89,37 +90,56 @@ function HomeContent() {
       diaperCount: 0,
     }
 
+    const currentDayStart = dayjs(selectedDate).startOf('day')
+    const currentDayEnd = dayjs(selectedDate).endOf('day')
+
     // 使用 todayActivities 进行统计
     for (const activity of todayActivities) {
+      const activityStartTime = dayjs(activity.startTime)
+      const isActivityInToday = !activityStartTime.isBefore(currentDayStart) && !activityStartTime.isAfter(currentDayEnd)
+
       switch (activity.type) {
         case 'SLEEP':
-          // 有 endTime 才计为完整睡眠
+          // 睡眠可以跨天计算，只要与当天有交集就计算整个睡眠时长
           if (activity.endTime) {
             result.sleepCount++
             result.totalSleepMinutes += calculateDurationMinutes(activity.startTime, activity.endTime)
           }
           break
         case 'BREASTFEED':
-          result.feedingCount++
-          // 计算亲喂时长
-          if (activity.endTime) {
-            result.totalBreastfeedMinutes += calculateDurationMinutes(activity.startTime, activity.endTime)
+          // 亲喂：只统计当天发生的（startTime在当天）
+          if (isActivityInToday) {
+            result.feedingCount++
+            // 计算亲喂时长（只计算当天的部分）
+            if (activity.endTime) {
+              const endTime = dayjs(activity.endTime)
+              // 如果结束时间也在当天，计算完整时长
+              // 如果结束时间跨到第二天，只计算到当天结束的部分
+              const actualEndTime = endTime.isAfter(currentDayEnd) ? currentDayEnd.toDate() : activity.endTime
+              result.totalBreastfeedMinutes += calculateDurationMinutes(activity.startTime, actualEndTime)
+            }
           }
           break
         case 'BOTTLE':
-          result.feedingCount++
-          if (activity.milkAmount) {
-            result.totalMilkAmount += activity.milkAmount
+          // 瓶喂：只统计当天发生的（startTime在当天）
+          if (isActivityInToday) {
+            result.feedingCount++
+            if (activity.milkAmount) {
+              result.totalMilkAmount += activity.milkAmount
+            }
           }
           break
         case 'DIAPER':
-          result.diaperCount++
+          // 尿布：只统计当天发生的（startTime在当天）
+          if (isActivityInToday) {
+            result.diaperCount++
+          }
           break
       }
     }
 
     return result
-  }, [todayActivities])
+  }, [todayActivities, selectedDate])
 
   // 格式化分钟为小时和分钟
   const formatDuration = (minutes: number) => {
