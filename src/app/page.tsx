@@ -22,8 +22,8 @@ import { ActivityType, ActivityTypeLabels, PoopColor, PeeAmount } from '@/types/
 import Link from 'next/link'
 import { format, subDays, addMinutes } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { BarChart3, ChevronLeft, ChevronRight, Moon, Milk, Baby, Target, Droplet, Check, Loader2 } from 'lucide-react'
-import { useSleepState, useCreateActivity, useUpdateActivity, useActivities, type Activity } from '@/lib/api/hooks'
+import { BarChart3, ChevronLeft, ChevronRight, Moon, Milk, Baby, Target, Droplet, Check, Loader2, Edit2, Trash2 } from 'lucide-react'
+import { useSleepState, useCreateActivity, useUpdateActivity, useDeleteActivity, useActivities, type Activity } from '@/lib/api/hooks'
 import type { components } from '@/lib/api/openapi-types'
 import { ActivityIcon } from '@/components/ActivityIcon'
 
@@ -65,6 +65,7 @@ export default function Home() {
   const [currentDiaperType, setCurrentDiaperType] = useState<DiaperType | null>(null)
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [voiceInitialValues, setVoiceInitialValues] = useState<VoiceParsedData | null>(null)
   const timelineRef = useRef<DayTimelineRef>(null)
@@ -82,9 +83,10 @@ export default function Home() {
   // 版本检测 - 每分钟检查一次新版本
   const { hasNewVersion, refresh: refreshPage, dismiss: dismissUpdate } = useVersionCheck(60000)
   
-  // Mutation for creating and updating activities
+  // Mutation for creating, updating, and deleting activities
   const createActivity = useCreateActivity()
   const updateActivity = useUpdateActivity()
+  const deleteActivityMutation = useDeleteActivity()
 
   // 计算每日统计
   const summary = useMemo<DaySummary>(() => {
@@ -407,6 +409,27 @@ export default function Home() {
     setVoiceInitialValues(null)
   }, [])
 
+  // 删除活动
+  const handleDelete = useCallback(() => {
+    if (!selectedActivity) return
+    
+    deleteActivityMutation.mutate(
+      { params: { path: { id: selectedActivity.id } } },
+      {
+        onSuccess: () => {
+          setToast({ message: '删除成功！', type: 'success' })
+          setShowDeleteConfirm(false)
+          closeForm()
+        },
+        onError: (error) => {
+          console.error('Failed to delete activity:', error)
+          setToast({ message: '删除失败，请重试', type: 'error' })
+          setShowDeleteConfirm(false)
+        },
+      }
+    )
+  }, [selectedActivity, deleteActivityMutation, closeForm])
+
   // 渲染活动详情
   const renderActivityDetails = (activity: Activity) => {
     const formatTimeRange = (startTime: Date | string, duration: number) => {
@@ -719,12 +742,20 @@ export default function Home() {
               </div>
 
               {/* 操作按钮 */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   onClick={handleEdit}
-                  className="p-4 rounded-2xl bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold text-lg"
+                  className="p-4 rounded-2xl bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold text-lg flex items-center justify-center gap-2"
                 >
+                  <Edit2 size={22} />
                   编辑
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-4 rounded-2xl bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-semibold text-lg flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={22} />
+                  删除
                 </button>
                 <button
                   onClick={closeForm}
@@ -825,6 +856,34 @@ export default function Home() {
               } : undefined}
             />
           )}
+        </BottomSheet>
+
+        {/* 删除确认弹窗 */}
+        <BottomSheet
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          title="确认删除"
+        >
+          <div className="space-y-6">
+            <p className="text-center text-lg text-gray-600 dark:text-gray-400">
+              确定要删除这条记录吗？此操作无法撤销。
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="p-4 rounded-2xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-lg"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteActivityMutation.isPending}
+                className="p-4 rounded-2xl bg-red-500 text-white font-semibold text-lg"
+              >
+                {deleteActivityMutation.isPending ? '删除中...' : '确认删除'}
+              </button>
+            </div>
+          </div>
         </BottomSheet>
 
         {/* 新版本提示 */}

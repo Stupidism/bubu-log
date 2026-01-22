@@ -143,8 +143,9 @@ export function ActivityFAB({
           setResult({ type: 'success', message: data.message })
           setText('')
           onVoiceSuccess?.(data.message)
-          queryClient.invalidateQueries({ queryKey: ['activities'] })
-          queryClient.invalidateQueries({ queryKey: ['sleepState'] })
+          // 使用正确的 queryKey 格式刷新数据
+          queryClient.invalidateQueries({ queryKey: ['get', '/activities'] })
+          queryClient.invalidateQueries({ queryKey: ['get', '/activities/latest'] })
           // 1.5秒后关闭
           setTimeout(() => {
             closeVoiceDialog()
@@ -168,49 +169,65 @@ export function ActivityFAB({
   const startListening = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) {
+      // 浏览器不支持语音识别，切换到文字输入
       setMode('text')
       setTimeout(() => inputRef.current?.focus(), 100)
       return
     }
 
-    const recognition = new SpeechRecognition()
-    recognition.lang = 'zh-CN'
-    recognition.continuous = false
-    recognition.interimResults = true
+    try {
+      const recognition = new SpeechRecognition()
+      recognition.lang = 'zh-CN'
+      recognition.continuous = false
+      recognition.interimResults = true
 
-    recognition.onstart = () => {
-      setIsListening(true)
-    }
+      recognition.onstart = () => {
+        setIsListening(true)
+      }
 
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map(result => result[0].transcript)
-        .join('')
-      
-      setText(transcript)
-      
-      if (event.results[event.results.length - 1].isFinal) {
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join('')
+        
+        setText(transcript)
+        
+        if (event.results[event.results.length - 1].isFinal) {
+          setIsListening(false)
+          handleSubmit(transcript)
+        }
+      }
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error)
         setIsListening(false)
-        handleSubmit(transcript)
+        
+        // 只有权限相关错误才切换到文字输入
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setResult({ type: 'error', message: '麦克风权限被拒绝，请使用文字输入' })
+          setMode('text')
+          setTimeout(() => inputRef.current?.focus(), 100)
+        } else if (event.error === 'no-speech') {
+          // 没有检测到语音，不切换模式，让用户重试
+          setResult({ type: 'error', message: '没有检测到语音，请重试' })
+        } else if (event.error === 'network') {
+          setResult({ type: 'error', message: '网络错误，请检查网络连接' })
+        }
+        // 其他错误（如 aborted）不显示消息
       }
-    }
 
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error)
-      setIsListening(false)
-      
-      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        setMode('text')
-        setTimeout(() => inputRef.current?.focus(), 100)
+      recognition.onend = () => {
+        setIsListening(false)
       }
-    }
 
-    recognition.onend = () => {
-      setIsListening(false)
+      recognitionRef.current = recognition
+      recognition.start()
+    } catch (error) {
+      console.error('Failed to start speech recognition:', error)
+      setResult({ type: 'error', message: '语音识别启动失败，请使用文字输入' })
+      setMode('text')
+      setTimeout(() => inputRef.current?.focus(), 100)
     }
-
-    recognitionRef.current = recognition
-    recognition.start()
   }, [handleSubmit])
 
   // 停止语音识别
@@ -518,7 +535,7 @@ export function ActivityFAB({
               setVoiceDialogOpen(true)
             }
           }}
-          className={`fab-button fixed right-20 bottom-24 z-50 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
+          className={`fab-voice-button fixed right-20 bottom-24 z-50 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
             voiceDialogOpen
               ? 'bg-violet-500 scale-110'
               : 'bg-white dark:bg-gray-800 hover:bg-violet-50 dark:hover:bg-violet-900/30 border border-gray-200 dark:border-gray-700'
