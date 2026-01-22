@@ -121,7 +121,6 @@ export function SleepEndForm({ startTime: propStartTime, onSubmit, onCancel, ini
         onTimeChange={handleEndTimeChange}
         label="睡醒时间"
         minTime={sleepStartTime}
-        compact={hasFixedStartTime}
       />
 
       {/* 睡眠时长显示 */}

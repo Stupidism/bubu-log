@@ -213,7 +213,6 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
             onTimeChange={handleEndTimeChange}
             label="结束时间"
             minTime={startTime}
-            compact
           />
 
           {/* 时长显示 */}
