@@ -238,6 +238,10 @@ export function ActivityFAB({
         // 如果有 final 结果，设置延迟提交（1.5秒静默后提交）
         if (finalTranscript && finalTranscriptRef.current.trim()) {
           submitTimeoutRef.current = setTimeout(() => {
+            // 如果已经手动停止，不自动提交
+            if (manualStopRef.current) {
+              return
+            }
             const textToSubmit = finalTranscriptRef.current.trim()
             if (textToSubmit) {
               // 停止识别并提交
@@ -257,6 +261,11 @@ export function ActivityFAB({
         if (submitTimeoutRef.current) {
           clearTimeout(submitTimeoutRef.current)
           submitTimeoutRef.current = null
+        }
+        
+        // 如果是手动停止，不处理错误（已在 stopListening 中处理）
+        if (manualStopRef.current) {
+          return
         }
         
         // 根据错误类型给出具体提示
