@@ -206,6 +206,7 @@ export function ActivityFAB({
         setIsListening(true)
         setResult(null) // 清除之前的错误
         finalTranscriptRef.current = ''
+        manualStopRef.current = false  // 开始时重置手动停止标记
       }
 
       recognition.onresult = (event) => {
@@ -263,11 +264,6 @@ export function ActivityFAB({
           submitTimeoutRef.current = null
         }
         
-        // 如果是手动停止，不处理错误（已在 stopListening 中处理）
-        if (manualStopRef.current) {
-          return
-        }
-        
         // 根据错误类型给出具体提示
         switch (event.error) {
           case 'not-allowed':
@@ -277,10 +273,10 @@ export function ActivityFAB({
             setTimeout(() => inputRef.current?.focus(), 100)
             break
           case 'no-speech':
-            // 如果有已识别的文字，不显示错误，直接提交
-            if (finalTranscriptRef.current.trim()) {
+            // 如果有已识别的文字且不是手动停止，自动提交
+            if (finalTranscriptRef.current.trim() && !manualStopRef.current) {
               handleSubmit(finalTranscriptRef.current.trim())
-            } else {
+            } else if (!finalTranscriptRef.current.trim()) {
               setResult({ type: 'error', message: '没有检测到语音，请靠近麦克风重试' })
             }
             break
@@ -306,7 +302,6 @@ export function ActivityFAB({
         
         // 如果是手动停止，不自动提交（已在 stopListening 中处理）
         if (manualStopRef.current) {
-          manualStopRef.current = false
           return
         }
         
@@ -341,13 +336,9 @@ export function ActivityFAB({
       manualStopRef.current = true
       recognitionRef.current.stop()
       setIsListening(false)
-      
-      // 如果有已识别的文字，切换到文字输入模式让用户确认
-      if (finalTranscriptRef.current.trim()) {
-        setText(finalTranscriptRef.current.trim())
-        setMode('text')
-        setTimeout(() => inputRef.current?.focus(), 100)
-      }
+      setMode('text')
+      setText(finalTranscriptRef.current.trim())
+      setTimeout(() => inputRef.current?.focus(), 100)
     }
   }, [])
 
