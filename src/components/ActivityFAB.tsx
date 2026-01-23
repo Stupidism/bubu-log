@@ -53,6 +53,7 @@ export function ActivityFAB({
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const submitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const finalTranscriptRef = useRef<string>('')
+  const manualStopRef = useRef(false)  // 标记是否是用户手动停止
   const queryClient = useQueryClient()
   
   const { openModal } = useModalParams()
@@ -71,6 +72,7 @@ export function ActivityFAB({
       setMode('voice')
       setIsListening(false)
       finalTranscriptRef.current = ''
+      manualStopRef.current = false
       if (recognitionRef.current) {
         recognitionRef.current.stop()
       }
@@ -293,6 +295,12 @@ export function ActivityFAB({
         console.log('Speech recognition ended')
         setIsListening(false)
         
+        // 如果是手动停止，不自动提交（已在 stopListening 中处理）
+        if (manualStopRef.current) {
+          manualStopRef.current = false
+          return
+        }
+        
         // 如果还有未提交的文字且没有正在处理，提交它
         if (finalTranscriptRef.current.trim() && !submitTimeoutRef.current) {
           handleSubmit(finalTranscriptRef.current.trim())
@@ -320,15 +328,19 @@ export function ActivityFAB({
     }
     
     if (recognitionRef.current) {
+      // 标记为手动停止，不自动提交
+      manualStopRef.current = true
       recognitionRef.current.stop()
       setIsListening(false)
       
-      // 如果有已识别的文字，立即提交
+      // 如果有已识别的文字，切换到文字输入模式让用户确认
       if (finalTranscriptRef.current.trim()) {
-        handleSubmit(finalTranscriptRef.current.trim())
+        setText(finalTranscriptRef.current.trim())
+        setMode('text')
+        setTimeout(() => inputRef.current?.focus(), 100)
       }
     }
-  }, [handleSubmit])
+  }, [])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
