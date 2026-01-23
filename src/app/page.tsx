@@ -28,6 +28,7 @@ interface DaySummary {
   totalMilkAmount: number
   totalBreastfeedMinutes: number
   diaperCount: number
+  totalHeadLiftMinutes: number
 }
 
 function HomeContent() {
@@ -95,6 +96,7 @@ function HomeContent() {
       totalMilkAmount: 0,
       totalBreastfeedMinutes: 0,
       diaperCount: 0,
+      totalHeadLiftMinutes: 0,
     }
 
     const currentDayStart = dayjs(selectedDate).startOf('day')
@@ -143,6 +145,12 @@ function HomeContent() {
           // 尿布：只统计当天发生的（startTime在当天）
           if (isActivityInToday) {
             result.diaperCount++
+          }
+          break
+        case 'HEAD_LIFT':
+          // 抬头：只统计当天发生的（startTime在当天）
+          if (isActivityInToday && activity.endTime) {
+            result.totalHeadLiftMinutes += calculateDurationMinutes(activity.startTime, activity.endTime)
           }
           break
       }

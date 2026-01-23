@@ -45,6 +45,7 @@ interface DaySummary {
   bottleCount: number
   totalMilkAmount: number
   exerciseCount: number
+  totalHeadLiftMinutes: number
 }
 
 // FilterType 与 StatsCardList 的 StatFilter 保持一致
@@ -103,6 +104,7 @@ function StatsPageContent() {
         bottleCount: 0,
         totalMilkAmount: 0,
         exerciseCount: 0,
+        totalHeadLiftMinutes: 0,
       }
     }
 
@@ -117,6 +119,7 @@ function StatsPageContent() {
       bottleCount: 0,
       totalMilkAmount: 0,
       exerciseCount: 0,
+      totalHeadLiftMinutes: 0,
     }
 
     // 睡眠统计 - 有 endTime 才计为完整睡眠，只计算当天范围内的部分
@@ -150,6 +153,11 @@ function StatsPageContent() {
       ['HEAD_LIFT', 'PASSIVE_EXERCISE', 'GAS_EXERCISE', 'BATH', 'OUTDOOR', 'EARLY_EDUCATION'].includes(a.type)
     )
     summary.exerciseCount = exercises.length
+
+    // 抬头时间统计
+    const headLifts = activities.filter((a) => a.type === 'HEAD_LIFT' && a.endTime)
+    summary.totalHeadLiftMinutes = headLifts.reduce((acc, a) => 
+      acc + calculateDurationMinutes(a.startTime, a.endTime!), 0)
 
     return summary
   }, [activities])
@@ -494,7 +502,6 @@ function StatsPageContent() {
             summary={summary}
             activeFilter={filter}
             onStatCardClick={handleCardClick}
-            variant="detailed"
           />
         </section>
       )}
