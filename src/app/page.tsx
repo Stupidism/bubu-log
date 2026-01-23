@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect, useRef, Suspense } from 'react'
+import { useCallback, useMemo, useEffect, useRef, Suspense } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Toast } from '@/components/Toast'
+import { toast } from 'sonner'
 import { AvatarUpload } from '@/components/AvatarUpload'
 import { PullToRefresh } from '@/components/PullToRefresh'
 import { ActivityFAB } from '@/components/ActivityFAB'
@@ -29,7 +29,6 @@ interface DaySummary {
 
 function HomeContent() {
   const queryClient = useQueryClient()
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const timelineRef = useRef<DayTimelineRef>(null)
   
   // URL 参数管理（包括日期）
@@ -200,7 +199,7 @@ function HomeContent() {
   // 下拉刷新处理
   const handleRefresh = useCallback(async () => {
     await queryClient.invalidateQueries()
-    setToast({ message: '刷新成功', type: 'success' })
+    toast.success('刷新成功')
   }, [queryClient])
 
   // 点击活动查看详情 - 通过 URL 打开弹窗
@@ -322,22 +321,13 @@ function HomeContent() {
         {hasNewVersion && (
           <UpdatePrompt onRefresh={refreshPage} onDismiss={dismissUpdate} />
         )}
-
-        {/* Toast 提示 */}
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
       </main>
     </PullToRefresh>
 
     {/* 悬浮操作按钮 - 放在 PullToRefresh 外面，避免 transform 影响 fixed 定位 */}
     <ActivityFAB
-      onVoiceSuccess={(message) => setToast({ message, type: 'success' })}
-      onVoiceError={(message) => setToast({ message, type: 'error' })}
+      onVoiceSuccess={(message) => toast.success(message)}
+      onVoiceError={(message) => toast.error(message)}
     />
     </>
   )

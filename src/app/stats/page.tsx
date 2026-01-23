@@ -12,7 +12,7 @@ import {
 } from '@/types/activity'
 import { ActivityIcon } from '@/components/ActivityIcon'
 import { BottomSheet } from '@/components/BottomSheet'
-import { Toast } from '@/components/Toast'
+import { toast } from 'sonner'
 import { useActivities, useBatchDeleteActivities, type Activity } from '@/lib/api/hooks'
 import { useModalParams } from '@/hooks/useModalParams'
 import { 
@@ -55,7 +55,6 @@ type ViewType = 'list' | 'timeline'
 function StatsPageContent() {
   const [filter, setFilter] = useState<FilterType>('all')
   const [viewType, setViewType] = useState<ViewType>('list')
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   
   // 多选状态
   const [isSelectMode, setIsSelectMode] = useState(false)
@@ -231,13 +230,13 @@ function StatsPageContent() {
       { body: { ids: Array.from(selectedIds) } },
       {
         onSuccess: (data) => {
-          setToast({ message: `成功删除 ${data.count} 条记录`, type: 'success' })
+          toast.success(`成功删除 ${data.count} 条记录`)
           setShowBatchDeleteConfirm(false)
           exitSelectMode()
           refetch()
         },
         onError: () => {
-          setToast({ message: '删除失败，请重试', type: 'error' })
+          toast.error('删除失败，请重试')
         },
       }
     )
@@ -677,15 +676,6 @@ function StatsPageContent() {
           </div>
         </div>
       </BottomSheet>
-
-      {/* Toast 提示 */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
     </main>
   )
 }

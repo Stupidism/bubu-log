@@ -1,6 +1,12 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import * as React from 'react'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 
 interface BottomSheetProps {
   isOpen: boolean
@@ -10,59 +16,23 @@ interface BottomSheetProps {
 }
 
 export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetProps) {
-  const sheetRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [isOpen])
-
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center">
-      {/* 背景遮罩 */}
-      <div
-        className="absolute inset-0 bg-black/50 animate-fade-in"
-        onClick={onClose}
-      />
-
-      {/* 底部面板 - PC端限制宽度 */}
-      <div
-        ref={sheetRef}
-        className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-t-3xl animate-slide-up"
-        style={{ maxHeight: '80vh' }}
-      >
-        {/* 拖拽指示器 */}
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
-        </div>
-
-        {/* 标题 */}
+    <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DrawerContent className="max-w-md mx-auto">
         {title && (
-          <div className="px-6 pb-4 border-b border-gray-100 dark:border-gray-800">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 text-center">
+          <DrawerHeader className="border-b border-gray-100 dark:border-gray-800">
+            <DrawerTitle className="text-xl font-bold text-center">
               {title}
-            </h2>
-          </div>
+            </DrawerTitle>
+          </DrawerHeader>
         )}
-
-        {/* 内容 - 微信浏览器需要更多底部间距 */}
         <div 
-          className="px-6 pt-4 pb-32 overflow-y-auto no-scrollbar bottom-sheet-content" 
-          style={{ 
-            maxHeight: 'calc(80vh - 80px)',
-          }}
+          className="px-6 pt-4 pb-32 overflow-y-auto no-scrollbar" 
+          style={{ maxHeight: 'calc(80vh - 80px)' }}
         >
           {children}
         </div>
-      </div>
-    </div>
+      </DrawerContent>
+    </Drawer>
   )
 }

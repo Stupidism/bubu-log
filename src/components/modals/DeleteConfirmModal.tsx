@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { Loader2, AlertTriangle } from 'lucide-react'
+import { toast } from 'sonner'
 import { BottomSheet } from '@/components/BottomSheet'
-import { Toast } from '@/components/Toast'
 import { useModalParams } from '@/hooks/useModalParams'
 import { useActivity, useDeleteActivity } from '@/lib/api/hooks'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
@@ -11,7 +11,6 @@ import { formatDateTimeChinese } from '@/lib/dayjs'
 
 export function DeleteConfirmModal() {
   const { modalType, activityId, closeModal } = useModalParams()
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   
   const shouldFetch = modalType === 'delete' && !!activityId
   const { data: activity, isLoading } = useActivity(activityId || '', {
@@ -29,11 +28,11 @@ export function DeleteConfirmModal() {
       { params: { path: { id: activityId } } },
       {
         onSuccess: () => {
-          setToast({ message: '删除成功', type: 'success' })
-          setTimeout(() => closeModal(), 500)
+          toast.success('删除成功')
+          closeModal()
         },
         onError: () => {
-          setToast({ message: '删除失败，请重试', type: 'error' })
+          toast.error('删除失败，请重试')
         },
       }
     )
@@ -92,16 +91,6 @@ export function DeleteConfirmModal() {
           未找到活动记录
         </div>
       )}
-      
-      {/* Toast 提示 */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
     </BottomSheet>
   )
 }
-

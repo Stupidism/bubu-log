@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Providers } from './providers'
 import { ModalContainer } from '@/components/modals/ModalContainer'
+import { Toaster } from '@/components/ui/sonner'
 
 export const metadata: Metadata = {
   title: '宝宝日记 - Baby Care Tracker',
@@ -47,6 +48,8 @@ export default function RootLayout({
           </div>
           {/* 全局弹窗容器 - 通过 URL 参数控制 */}
           <ModalContainer />
+          {/* 全局 Toast 提示 */}
+          <Toaster />
         </Providers>
       </body>
     </html>
