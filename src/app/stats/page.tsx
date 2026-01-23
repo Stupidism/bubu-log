@@ -17,10 +17,6 @@ import { toast } from 'sonner'
 import { useActivities, useBatchDeleteActivities, type Activity } from '@/lib/api/hooks'
 import { useModalParams } from '@/hooks/useModalParams'
 import { 
-  Moon, 
-  Milk, 
-  Baby, 
-  Target, 
   BarChart3, 
   ArrowLeft, 
   ChevronLeft, 
@@ -36,6 +32,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { DayTimeline } from '@/components/DayTimeline'
+import { StatsCardList, type StatFilter } from '@/components/StatsCardList'
 
 interface DaySummary {
   sleepCount: number
@@ -50,7 +47,8 @@ interface DaySummary {
   exerciseCount: number
 }
 
-type FilterType = 'all' | 'sleep' | 'feeding' | 'diaper' | 'activities'
+// FilterType 与 StatsCardList 的 StatFilter 保持一致
+type FilterType = StatFilter
 type ViewType = 'list' | 'timeline'
 
 function StatsPageContent() {
@@ -492,86 +490,12 @@ function StatsPageContent() {
       {/* 统计概览 - 可点击过滤，多选模式下隐藏 */}
       {summary && !isSelectMode && (
         <section className="p-4">
-          <div className="grid grid-cols-2 gap-3">
-            {/* 睡眠卡片 */}
-            <button
-              onClick={() => handleCardClick('sleep')}
-              className={`bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm text-left transition-all ${
-                filter === 'sleep' ? 'ring-2 ring-indigo-500 ring-offset-2' : ''
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Moon size={28} className="text-indigo-500" />
-                <span className="font-semibold text-lg text-gray-700 dark:text-gray-300">睡眠</span>
-              </div>
-              <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-                {formatDurationUtil(summary.totalSleepMinutes)}
-              </p>
-              <p className="text-base text-gray-500 dark:text-gray-400">
-                {summary.sleepCount} 次
-              </p>
-            </button>
-
-            {/* 喂奶卡片 */}
-            <button
-              onClick={() => handleCardClick('feeding')}
-              className={`bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm text-left transition-all ${
-                filter === 'feeding' ? 'ring-2 ring-pink-500 ring-offset-2' : ''
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Milk size={28} className="text-pink-500" />
-                <span className="font-semibold text-lg text-gray-700 dark:text-gray-300">喂奶</span>
-              </div>
-              <p className="text-3xl font-bold text-pink-600 dark:text-pink-400">
-                {summary.totalMilkAmount > 0 ? `${summary.totalMilkAmount}ml` : '-'}
-              </p>
-              <p className="text-base text-gray-500 dark:text-gray-400">
-                亲喂 {summary.breastfeedCount}次 · 瓶喂 {summary.bottleCount}次
-              </p>
-            </button>
-
-            {/* 尿布卡片 */}
-            <button
-              onClick={() => handleCardClick('diaper')}
-              className={`bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm text-left transition-all ${
-                filter === 'diaper' ? 'ring-2 ring-teal-500 ring-offset-2' : ''
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Baby size={28} className="text-teal-500" />
-                <span className="font-semibold text-lg text-gray-700 dark:text-gray-300">尿布</span>
-              </div>
-              <p className="text-3xl font-bold text-teal-600 dark:text-teal-400">
-                {summary.diaperCount} 次
-              </p>
-              <p className="text-base text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                <span className="text-amber-600">{summary.poopCount}💩</span>
-                <span>·</span>
-                <span className="flex items-center gap-0.5">
-                  <Droplet size={14} className="text-blue-400" />
-                  {summary.peeCount}
-                </span>
-              </p>
-            </button>
-
-            {/* 活动卡片 */}
-            <button
-              onClick={() => handleCardClick('activities')}
-              className={`bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm text-left transition-all ${
-                filter === 'activities' ? 'ring-2 ring-amber-500 ring-offset-2' : ''
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Target size={28} className="text-amber-500" />
-                <span className="font-semibold text-lg text-gray-700 dark:text-gray-300">活动</span>
-              </div>
-              <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">
-                {summary.exerciseCount} 次
-              </p>
-              <p className="text-base text-gray-500 dark:text-gray-400">各类活动</p>
-            </button>
-          </div>
+          <StatsCardList
+            summary={summary}
+            activeFilter={filter}
+            onStatCardClick={handleCardClick}
+            variant="detailed"
+          />
         </section>
       )}
 
