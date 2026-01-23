@@ -51,6 +51,8 @@ export function ActivityFAB({
   const [speechSupported, setSpeechSupported] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const submitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const finalTranscriptRef = useRef<string>('')
   const queryClient = useQueryClient()
   
   const { openModal } = useModalParams()
@@ -68,8 +70,13 @@ export function ActivityFAB({
       setResult(null)
       setMode('voice')
       setIsListening(false)
+      finalTranscriptRef.current = ''
       if (recognitionRef.current) {
         recognitionRef.current.stop()
+      }
+      if (submitTimeoutRef.current) {
+        clearTimeout(submitTimeoutRef.current)
+        submitTimeoutRef.current = null
       }
     }
   }, [voiceDialogOpen])
@@ -189,31 +196,66 @@ export function ActivityFAB({
     try {
       const recognition = new SpeechRecognition()
       recognition.lang = 'zh-CN'
-      recognition.continuous = false
+      recognition.continuous = true  // 持续监听，允许用户说完整句子
       recognition.interimResults = true
 
       recognition.onstart = () => {
         console.log('Speech recognition started')
         setIsListening(true)
         setResult(null) // 清除之前的错误
+        finalTranscriptRef.current = ''
       }
 
       recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0].transcript)
-          .join('')
+        // 清除之前的延迟提交计时器
+        if (submitTimeoutRef.current) {
+          clearTimeout(submitTimeoutRef.current)
+          submitTimeoutRef.current = null
+        }
+
+        let interimTranscript = ''
+        let finalTranscript = ''
         
-        setText(transcript)
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript
+          } else {
+            interimTranscript += transcript
+          }
+        }
         
-        if (event.results[event.results.length - 1].isFinal) {
-          setIsListening(false)
-          handleSubmit(transcript)
+        // 累积 final 结果
+        if (finalTranscript) {
+          finalTranscriptRef.current += finalTranscript
+        }
+        
+        // 显示当前识别的文字（final + interim）
+        setText(finalTranscriptRef.current + interimTranscript)
+        
+        // 如果有 final 结果，设置延迟提交（1.5秒静默后提交）
+        if (finalTranscript && finalTranscriptRef.current.trim()) {
+          submitTimeoutRef.current = setTimeout(() => {
+            const textToSubmit = finalTranscriptRef.current.trim()
+            if (textToSubmit) {
+              // 停止识别并提交
+              recognition.stop()
+              setIsListening(false)
+              handleSubmit(textToSubmit)
+            }
+          }, 1500) // 1.5秒静默后自动提交
         }
       }
 
       recognition.onerror = (event) => {
         console.error('Speech recognition error:', event.error)
         setIsListening(false)
+        
+        // 清除延迟提交计时器
+        if (submitTimeoutRef.current) {
+          clearTimeout(submitTimeoutRef.current)
+          submitTimeoutRef.current = null
+        }
         
         // 根据错误类型给出具体提示
         switch (event.error) {
@@ -224,7 +266,12 @@ export function ActivityFAB({
             setTimeout(() => inputRef.current?.focus(), 100)
             break
           case 'no-speech':
-            setResult({ type: 'error', message: '没有检测到语音，请靠近麦克风重试' })
+            // 如果有已识别的文字，不显示错误，直接提交
+            if (finalTranscriptRef.current.trim()) {
+              handleSubmit(finalTranscriptRef.current.trim())
+            } else {
+              setResult({ type: 'error', message: '没有检测到语音，请靠近麦克风重试' })
+            }
             break
           case 'network':
             setResult({ type: 'error', message: '网络错误，语音识别需要网络连接' })
@@ -245,6 +292,11 @@ export function ActivityFAB({
       recognition.onend = () => {
         console.log('Speech recognition ended')
         setIsListening(false)
+        
+        // 如果还有未提交的文字且没有正在处理，提交它
+        if (finalTranscriptRef.current.trim() && !submitTimeoutRef.current) {
+          handleSubmit(finalTranscriptRef.current.trim())
+        }
       }
 
       recognitionRef.current = recognition
@@ -261,11 +313,22 @@ export function ActivityFAB({
 
   // 停止语音识别
   const stopListening = useCallback(() => {
+    // 清除延迟提交计时器
+    if (submitTimeoutRef.current) {
+      clearTimeout(submitTimeoutRef.current)
+      submitTimeoutRef.current = null
+    }
+    
     if (recognitionRef.current) {
       recognitionRef.current.stop()
       setIsListening(false)
+      
+      // 如果有已识别的文字，立即提交
+      if (finalTranscriptRef.current.trim()) {
+        handleSubmit(finalTranscriptRef.current.trim())
+      }
     }
-  }, [])
+  }, [handleSubmit])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

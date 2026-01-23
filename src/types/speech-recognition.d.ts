@@ -5,6 +5,7 @@
 
 interface SpeechRecognitionEvent extends Event {
   readonly results: SpeechRecognitionResultList
+  readonly resultIndex: number  // 本次事件中第一个改变的结果的索引
 }
 
 interface SpeechRecognitionResultList {
