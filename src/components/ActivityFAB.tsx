@@ -1,12 +1,10 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Plus, X, Moon, Sun, Milk, Baby, Target, Droplet, Mic, Keyboard, Send, Loader2, Check } from 'lucide-react'
-import { ActivityType, ActivityTypeLabels } from '@/types/activity'
-import { ActivityIcon } from './ActivityIcon'
+import { X, Mic, Keyboard, Send, Loader2, Check } from 'lucide-react'
+import { ActivityType } from '@/types/activity'
 import { useQueryClient } from '@tanstack/react-query'
 import { useModalParams, activityTypeToModalType, type ModalType } from '@/hooks/useModalParams'
-import { useSleepState } from '@/lib/api/hooks'
 
 // Parsed voice input data for confirmation
 export interface VoiceParsedData {
@@ -44,7 +42,6 @@ export function ActivityFAB({
   onVoiceSuccess,
   onVoiceError,
 }: ActivityFABProps) {
-  const [isOpen, setIsOpen] = useState(false)
   const [voiceDialogOpen, setVoiceDialogOpen] = useState(false)
   const [mode, setMode] = useState<'voice' | 'text'>('voice')
   const [text, setText] = useState('')
@@ -57,7 +54,6 @@ export function ActivityFAB({
   const queryClient = useQueryClient()
   
   const { openModal } = useModalParams()
-  const { isSleeping, isFetching: sleepLoading } = useSleepState()
 
   // 检查是否支持语音识别
   useEffect(() => {
@@ -82,24 +78,6 @@ export function ActivityFAB({
   const closeVoiceDialog = useCallback(() => {
     setVoiceDialogOpen(false)
   }, [])
-
-  // 选择活动类型 - 通过 URL 打开对应的弹窗
-  const handleSelect = useCallback((type: ActivityType | 'wake') => {
-    setIsOpen(false)
-    const modalType = activityTypeToModalType[type]
-    openModal(modalType)
-  }, [openModal])
-
-  // 选择换尿布类型
-  const handleDiaperSelect = useCallback((diaperType: 'poop' | 'pee' | 'both') => {
-    setIsOpen(false)
-    openModal('diaper', {
-      params: {
-        hasPoop: (diaperType === 'poop' || diaperType === 'both').toString(),
-        hasPee: (diaperType === 'pee' || diaperType === 'both').toString(),
-      }
-    })
-  }, [openModal])
 
   // 处理语音输入需要确认的情况 - 打开对应的表单弹窗
   const handleNeedConfirmation = useCallback((parsed: VoiceParsedData) => {
@@ -298,137 +276,12 @@ export function ActivityFAB({
 
   return (
     <>
-      {/* 遮罩层 - 活动选择 */}
-      {isOpen && (
-        <div 
-          className="fab-overlay fixed inset-0 bg-black/40 z-40 animate-in fade-in duration-200"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-
       {/* 遮罩层 - 语音输入 */}
       {voiceDialogOpen && (
         <div 
           className="fab-overlay fixed inset-0 bg-black/40 z-40 animate-in fade-in duration-200"
           onClick={closeVoiceDialog}
         />
-      )}
-
-      {/* 活动选择面板 */}
-      {isOpen && (
-        <div className="fab-modal fixed inset-x-0 bottom-24 z-50 px-4 animate-in slide-in-from-bottom-4 fade-in duration-200">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-4">
-            {/* 睡眠区域 */}
-            <section className="mb-4">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1 flex items-center gap-1">
-                <Moon size={14} />
-                睡眠
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => handleSelect(ActivityType.SLEEP)}
-                  disabled={isSleeping || sleepLoading}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Moon size={24} />
-                  <span className="font-medium">入睡</span>
-                </button>
-                <button
-                  onClick={() => handleSelect('wake')}
-                  disabled={sleepLoading}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 disabled:opacity-50"
-                >
-                  <Sun size={24} />
-                  <span className="font-medium">睡醒</span>
-                </button>
-              </div>
-            </section>
-
-            {/* 喂奶区域 */}
-            <section className="mb-4">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1 flex items-center gap-1">
-                <Milk size={14} />
-                喂奶
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => handleSelect(ActivityType.BREASTFEED)}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300"
-                >
-                  <ActivityIcon type={ActivityType.BREASTFEED} size={24} />
-                  <span className="font-medium">{ActivityTypeLabels[ActivityType.BREASTFEED]}</span>
-                </button>
-                <button
-                  onClick={() => handleSelect(ActivityType.BOTTLE)}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                >
-                  <ActivityIcon type={ActivityType.BOTTLE} size={24} />
-                  <span className="font-medium">{ActivityTypeLabels[ActivityType.BOTTLE]}</span>
-                </button>
-              </div>
-            </section>
-
-            {/* 换尿布区域 */}
-            <section className="mb-4">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1 flex items-center gap-1">
-                <Baby size={14} />
-                换尿布
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => handleDiaperSelect('poop')}
-                  className="flex flex-col items-center gap-1 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
-                >
-                  <span className="text-xl">💩</span>
-                  <span className="text-sm font-medium">大便</span>
-                </button>
-                <button
-                  onClick={() => handleDiaperSelect('pee')}
-                  className="flex flex-col items-center gap-1 p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300"
-                >
-                  <Droplet size={24} />
-                  <span className="text-sm font-medium">小便</span>
-                </button>
-                <button
-                  onClick={() => handleDiaperSelect('both')}
-                  className="flex flex-col items-center gap-1 p-3 rounded-xl bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300"
-                >
-                  <span className="text-xl">💩💧</span>
-                  <span className="text-sm font-medium">大小便</span>
-                </button>
-              </div>
-            </section>
-
-            {/* 其他活动区域 */}
-            <section>
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1 flex items-center gap-1">
-                <Target size={14} />
-                其他活动
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  ActivityType.HEAD_LIFT,
-                  ActivityType.PASSIVE_EXERCISE,
-                  ActivityType.GAS_EXERCISE,
-                  ActivityType.BATH,
-                  ActivityType.OUTDOOR,
-                  ActivityType.EARLY_EDUCATION,
-                ].map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => handleSelect(type)}
-                    className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
-                  >
-                    <ActivityIcon type={type} size={22} />
-                    <span className="text-xs font-medium text-center leading-tight">
-                      {ActivityTypeLabels[type]}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          </div>
-        </div>
       )}
 
       {/* 语音输入对话框 */}
@@ -576,46 +429,17 @@ export function ActivityFAB({
         </div>
       )}
 
-      {/* 语音输入按钮 - 在 FAB 左边 */}
-      {!isOpen && (
-        <button
-          onClick={() => {
-            if (voiceDialogOpen) {
-              closeVoiceDialog()
-            } else {
-              setVoiceDialogOpen(true)
-            }
-          }}
-          className={`fab-voice-button fixed right-20 bottom-24 z-50 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
-            voiceDialogOpen
-              ? 'bg-violet-500 scale-110'
-              : 'bg-white dark:bg-gray-800 hover:bg-violet-50 dark:hover:bg-violet-900/30 border border-gray-200 dark:border-gray-700'
-          }`}
-          aria-label="语音输入"
-        >
-          <Mic size={22} className={voiceDialogOpen ? 'text-white' : 'text-violet-500'} />
-        </button>
-      )}
-
-      {/* FAB 按钮 */}
+      {/* 语音输入按钮 - 唯一的 FAB */}
       <button
-        onClick={() => {
-          if (voiceDialogOpen) {
-            closeVoiceDialog()
-          }
-          setIsOpen(!isOpen)
-        }}
+        onClick={() => setVoiceDialogOpen(!voiceDialogOpen)}
         className={`fab-button fixed right-4 bottom-24 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
-          isOpen
-            ? 'bg-gray-600 rotate-45'
+          voiceDialogOpen
+            ? 'bg-violet-500 scale-110'
             : 'bg-gradient-to-br from-violet-500 to-purple-600 hover:shadow-xl hover:scale-105 active:scale-95'
         }`}
+        aria-label="语音输入"
       >
-        {isOpen ? (
-          <X size={28} className="text-white" />
-        ) : (
-          <Plus size={28} className="text-white" />
-        )}
+        <Mic size={26} className="text-white" />
       </button>
     </>
   )

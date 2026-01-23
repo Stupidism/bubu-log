@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useEffect, useRef, Suspense } from 'react'
+import { useCallback, useMemo, useEffect, useRef, Suspense, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { AvatarUpload } from '@/components/AvatarUpload'
@@ -9,13 +9,16 @@ import { ActivityFAB } from '@/components/ActivityFAB'
 import { DayTimeline, type DayTimelineRef } from '@/components/DayTimeline'
 import { UpdatePrompt } from '@/components/UpdatePrompt'
 import { useVersionCheck } from '@/hooks/useVersionCheck'
-import { useModalParams } from '@/hooks/useModalParams'
+import { useModalParams, activityTypeToModalType } from '@/hooks/useModalParams'
 import Link from 'next/link'
-import { calculateDurationMinutes, calculateDurationInDay, formatDateChinese, formatWeekday } from '@/lib/dayjs'
-import { BarChart3, ChevronLeft, ChevronRight, Moon, Milk, Baby, Loader2 } from 'lucide-react'
+import { calculateDurationMinutes, calculateDurationInDay, formatDateChinese, formatWeekday, formatTime, dayjs } from '@/lib/dayjs'
+import { BarChart3, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useActivities, type Activity } from '@/lib/api/hooks'
 import { PreviousEveningSummary } from '@/components/PreviousEveningSummary'
-import { dayjs } from '@/lib/dayjs'
+import { StatsCardList, type StatFilter } from '@/components/StatsCardList'
+import { ActivityPicker } from '@/components/ActivityPicker'
+import { ActivityType } from '@/types/activity'
+import { useRouter } from 'next/navigation'
 
 // 每日统计
 interface DaySummary {
@@ -29,10 +32,15 @@ interface DaySummary {
 
 function HomeContent() {
   const queryClient = useQueryClient()
+  const router = useRouter()
   const timelineRef = useRef<DayTimelineRef>(null)
   
+  // 活动选择器状态
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerDefaultTime, setPickerDefaultTime] = useState<Date | null>(null)
+  
   // URL 参数管理（包括日期）
-  const { openActivityDetail, selectedDate, selectedDateStr, setSelectedDate } = useModalParams()
+  const { openActivityDetail, openModal, selectedDate, selectedDateStr, setSelectedDate } = useModalParams()
 
   // 获取活动数据（包含当天和前一天晚上的活动）
   const { data: activities = [], isLoading: activitiesLoading } = useActivities({
@@ -143,16 +151,6 @@ function HomeContent() {
     return result
   }, [todayActivities, selectedDate])
 
-  // 格式化分钟为小时和分钟
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60)
-    const mins = minutes % 60
-    if (hours > 0) {
-      return `${hours}h${mins > 0 ? mins + 'm' : ''}`
-    }
-    return `${mins}m`
-  }
-
   // 日期导航
   const navigateDate = useCallback((days: number) => {
     const newDate = dayjs(selectedDate).add(days, 'day').toDate()
@@ -207,6 +205,53 @@ function HomeContent() {
     openActivityDetail(activity.id)
   }, [openActivityDetail])
 
+  // 点击统计卡片 - 跳转到 stats 页面并带上过滤条件
+  const handleStatCardClick = useCallback((filter: StatFilter) => {
+    const params = new URLSearchParams()
+    if (!isToday) {
+      params.set('date', selectedDateStr)
+    }
+    if (filter !== 'all') {
+      params.set('filter', filter)
+    }
+    const queryString = params.toString()
+    router.push(`/stats${queryString ? `?${queryString}` : ''}`)
+  }, [isToday, selectedDateStr, router])
+
+  // 长按时间轴空白处 - 打开活动选择器
+  const handleTimelineLongPress = useCallback((time: Date) => {
+    setPickerDefaultTime(time)
+    setPickerOpen(true)
+  }, [])
+
+  // 活动选择器选择活动
+  const handlePickerSelect = useCallback((type: ActivityType | 'wake') => {
+    const modalType = activityTypeToModalType[type]
+    if (pickerDefaultTime) {
+      openModal(modalType, {
+        params: {
+          startTime: pickerDefaultTime.toISOString(),
+        }
+      })
+    } else {
+      openModal(modalType)
+    }
+    setPickerOpen(false)
+  }, [openModal, pickerDefaultTime])
+
+  // 活动选择器选择尿布
+  const handlePickerDiaperSelect = useCallback((diaperType: 'poop' | 'pee' | 'both') => {
+    const params: Record<string, string> = {
+      hasPoop: (diaperType === 'poop' || diaperType === 'both').toString(),
+      hasPee: (diaperType === 'pee' || diaperType === 'both').toString(),
+    }
+    if (pickerDefaultTime) {
+      params.startTime = pickerDefaultTime.toISOString()
+    }
+    openModal('diaper', { params })
+    setPickerOpen(false)
+  }, [openModal, pickerDefaultTime])
+
   return (
     <>
     <PullToRefresh onRefresh={handleRefresh}>
@@ -251,38 +296,12 @@ function HomeContent() {
           </Link>
         </header>
 
-        {/* 今日统计卡片 */}
+        {/* 今日统计卡片 - 点击跳转到 stats 页面 */}
         <div className="px-4 py-3">
-          <div className="grid grid-cols-4 gap-2">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-2.5 text-center shadow-sm">
-              <Moon size={18} className="mx-auto text-indigo-500 mb-1" />
-              <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
-                {summary.totalSleepMinutes > 0 ? formatDuration(summary.totalSleepMinutes) : '-'}
-              </p>
-              <p className="text-xs text-gray-500">{summary.sleepCount}次</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-2.5 text-center shadow-sm">
-              <Milk size={18} className="mx-auto text-pink-500 mb-1" />
-              <p className="text-lg font-bold text-pink-600 dark:text-pink-400">
-                {summary.totalMilkAmount > 0 ? `${summary.totalMilkAmount}ml` : '-'}
-              </p>
-              <p className="text-xs text-gray-500">瓶喂</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-2.5 text-center shadow-sm">
-              <Milk size={18} className="mx-auto text-pink-500 mb-1" />
-              <p className="text-lg font-bold text-pink-600 dark:text-pink-400">
-                {summary.totalBreastfeedMinutes > 0 ? formatDuration(summary.totalBreastfeedMinutes) : '-'}
-              </p>
-              <p className="text-xs text-gray-500">亲喂</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-2.5 text-center shadow-sm">
-              <Baby size={18} className="mx-auto text-teal-500 mb-1" />
-              <p className="text-lg font-bold text-teal-600 dark:text-teal-400">
-                {summary.diaperCount}
-              </p>
-              <p className="text-xs text-gray-500">换尿布</p>
-            </div>
-          </div>
+          <StatsCardList 
+            summary={summary} 
+            onStatCardClick={handleStatCardClick}
+          />
         </div>
 
         {/* 时间线 */}
@@ -312,6 +331,7 @@ function HomeContent() {
                 date={selectedDate}
                 onActivityClick={handleActivityClick}
                 showCurrentTime={isToday}
+                onLongPressBlank={handleTimelineLongPress}
               />
             </>
           )}
@@ -328,6 +348,15 @@ function HomeContent() {
     <ActivityFAB
       onVoiceSuccess={(message) => toast.success(message)}
       onVoiceError={(message) => toast.error(message)}
+    />
+
+    {/* 活动选择器 - 长按时间轴触发 */}
+    <ActivityPicker
+      isOpen={pickerOpen}
+      onClose={() => setPickerOpen(false)}
+      onSelect={handlePickerSelect}
+      onDiaperSelect={handlePickerDiaperSelect}
+      selectedTime={pickerDefaultTime ? formatTime(pickerDefaultTime) : undefined}
     />
     </>
   )

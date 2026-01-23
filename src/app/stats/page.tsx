@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { dayjs, calculateDurationMinutes, calculateDurationInDay, formatDuration as formatDurationUtil, formatDateChinese, formatWeekday } from '@/lib/dayjs'
 import {
   ActivityType,
@@ -53,14 +54,24 @@ type FilterType = 'all' | 'sleep' | 'feeding' | 'diaper' | 'activities'
 type ViewType = 'list' | 'timeline'
 
 function StatsPageContent() {
-  const [filter, setFilter] = useState<FilterType>('all')
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  
+  // 从 URL 读取 filter
+  const filterFromUrl = searchParams.get('filter') as FilterType | null
+  const filter: FilterType = filterFromUrl && ['sleep', 'feeding', 'diaper', 'activities'].includes(filterFromUrl) 
+    ? filterFromUrl 
+    : 'all'
+  
   const [viewType, setViewType] = useState<ViewType>('list')
   
   // 多选状态
   const [isSelectMode, setIsSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false)
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressTriggered = useRef(false)
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null)
 
   // URL 参数管理（包括日期）
   const { openActivityDetail, selectedDate, selectedDateStr, setSelectedDate } = useModalParams()
@@ -167,17 +178,59 @@ function StatsPageContent() {
     return `${dayjs(startTime).format('HH:mm')} - ${dayjs(endTime).format('HH:mm')}`
   }
 
-  // 处理卡片点击过滤
-  const handleCardClick = (filterType: FilterType) => {
-    setFilter(prev => prev === filterType ? 'all' : filterType)
-  }
+  // 处理卡片点击过滤 - 更新 URL params
+  const handleCardClick = useCallback((filterType: FilterType) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (filter === filterType) {
+      // 取消过滤
+      params.delete('filter')
+    } else {
+      params.set('filter', filterType)
+    }
+    router.replace(`/stats?${params.toString()}`, { scroll: false })
+  }, [filter, searchParams, router])
 
-  // 长按开始多选
-  const handleLongPressStart = useCallback((activityId: string) => {
+  // 长按开始多选（支持滑动取消）
+  const handleLongPressStart = useCallback((activityId: string, e: React.TouchEvent | React.MouseEvent) => {
+    longPressTriggered.current = false
+    
+    // 记录起始位置
+    if ('touches' in e) {
+      touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    } else {
+      touchStartPos.current = { x: e.clientX, y: e.clientY }
+    }
+    
     longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true
       setIsSelectMode(true)
       setSelectedIds(new Set([activityId]))
     }, 500) // 500ms 长按
+  }, [])
+
+  // 长按移动检测（滑动超过 10px 取消长按）
+  const handleLongPressMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    if (!touchStartPos.current) return
+    
+    let currentX: number, currentY: number
+    if ('touches' in e) {
+      currentX = e.touches[0].clientX
+      currentY = e.touches[0].clientY
+    } else {
+      currentX = e.clientX
+      currentY = e.clientY
+    }
+    
+    const deltaX = Math.abs(currentX - touchStartPos.current.x)
+    const deltaY = Math.abs(currentY - touchStartPos.current.y)
+    
+    // 滑动超过 10px，取消长按
+    if (deltaX > 10 || deltaY > 10) {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current)
+        longPressTimer.current = null
+      }
+    }
   }, [])
 
   // 长按结束
@@ -186,6 +239,7 @@ function StatsPageContent() {
       clearTimeout(longPressTimer.current)
       longPressTimer.current = null
     }
+    touchStartPos.current = null
   }, [])
 
   // 处理活动点击
@@ -531,7 +585,11 @@ function StatsPageContent() {
           <div className="flex items-center gap-2">
             {filter !== 'all' && !isSelectMode && (
               <button
-                onClick={() => setFilter('all')}
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString())
+                  params.delete('filter')
+                  router.replace(`/stats?${params.toString()}`, { scroll: false })
+                }}
                 className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-base flex items-center gap-1"
               >
                 <X size={16} />
@@ -592,11 +650,20 @@ function StatsPageContent() {
               {filteredActivities.map((activity) => (
                 <button
                   key={activity.id}
-                  onClick={() => handleActivityClick(activity)}
-                  onTouchStart={() => handleLongPressStart(activity.id)}
+                  onClick={() => {
+                    // 如果刚触发了长按，不执行点击
+                    if (longPressTriggered.current) {
+                      longPressTriggered.current = false
+                      return
+                    }
+                    handleActivityClick(activity)
+                  }}
+                  onTouchStart={(e) => handleLongPressStart(activity.id, e)}
+                  onTouchMove={handleLongPressMove}
                   onTouchEnd={handleLongPressEnd}
                   onTouchCancel={handleLongPressEnd}
-                  onMouseDown={() => handleLongPressStart(activity.id)}
+                  onMouseDown={(e) => handleLongPressStart(activity.id, e)}
+                  onMouseMove={handleLongPressMove}
                   onMouseUp={handleLongPressEnd}
                   onMouseLeave={handleLongPressEnd}
                   className={`w-full bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm flex items-start gap-4 text-left transition-all ${
