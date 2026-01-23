@@ -28,10 +28,7 @@ import {
   X,
   CheckSquare,
   Square,
-  List,
-  Calendar,
 } from 'lucide-react'
-import { DayTimeline } from '@/components/DayTimeline'
 import { StatsCardList, type StatFilter } from '@/components/StatsCardList'
 
 interface DaySummary {
@@ -50,7 +47,6 @@ interface DaySummary {
 
 // FilterType 与 StatsCardList 的 StatFilter 保持一致
 type FilterType = StatFilter
-type ViewType = 'list' | 'timeline'
 
 function StatsPageContent() {
   const searchParams = useSearchParams()
@@ -61,8 +57,6 @@ function StatsPageContent() {
   const filter: FilterType = filterFromUrl && ['sleep', 'feeding', 'diaper', 'activities'].includes(filterFromUrl) 
     ? filterFromUrl 
     : 'all'
-  
-  const [viewType, setViewType] = useState<ViewType>('list')
   
   // 多选状态
   const [isSelectMode, setIsSelectMode] = useState(false)
@@ -527,33 +521,6 @@ function StatsPageContent() {
                 清除筛选
               </button>
             )}
-            {/* 视图切换 */}
-            {!isSelectMode && (
-              <div className="flex rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
-                <button
-                  onClick={() => setViewType('list')}
-                  className={`p-1.5 rounded transition-all ${
-                    viewType === 'list'
-                      ? 'bg-white dark:bg-gray-700 shadow-sm text-primary'
-                      : 'text-gray-500'
-                  }`}
-                  title="列表视图"
-                >
-                  <List size={18} />
-                </button>
-                <button
-                  onClick={() => setViewType('timeline')}
-                  className={`p-1.5 rounded transition-all ${
-                    viewType === 'timeline'
-                      ? 'bg-white dark:bg-gray-700 shadow-sm text-primary'
-                      : 'text-gray-500'
-                  }`}
-                  title="时间线视图"
-                >
-                  <Calendar size={18} />
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -561,15 +528,7 @@ function StatsPageContent() {
           <div className="text-center py-8 text-gray-500 text-lg">加载中...</div>
         ) : filteredActivities.length === 0 ? (
           <div className="text-center py-8 text-gray-500 text-lg">暂无记录</div>
-        ) : viewType === 'timeline' ? (
-          /* 时间线视图 */
-          <DayTimeline
-            activities={filteredActivities}
-            date={selectedDate}
-            onActivityClick={handleActivityClick}
-          />
         ) : (
-          /* 列表视图 */
           <>
             {/* 长按提示 */}
             {!isSelectMode && (
@@ -683,7 +642,7 @@ export default function StatsPage() {
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Calendar size={32} className="mx-auto text-gray-400 mb-2" />
+          <BarChart3 size={32} className="mx-auto text-gray-400 mb-2 animate-pulse" />
           <p className="text-gray-500">加载中...</p>
         </div>
       </div>
