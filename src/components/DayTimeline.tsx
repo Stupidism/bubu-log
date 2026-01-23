@@ -317,13 +317,13 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
                   <button
                     key={activity.id}
                     onClick={() => onActivityClick?.(originalActivity)}
-                    className="absolute left-0 right-0 flex items-center group z-10 hover:z-20"
-                    style={{ top: activity.top - 1 }}
+                    className="absolute left-0 right-0 group z-10 hover:z-20"
+                    style={{ top: activity.top }}
                   >
-                    {/* 水平线 */}
-                    <div className={`h-0.5 flex-1 ${colors.divider} group-hover:h-1 transition-all`} />
-                    {/* 标签 */}
-                    <div className={`ml-1 flex items-center gap-1 px-2 py-0.5 rounded-full ${colors.bg} ${colors.border} border shadow-sm group-hover:shadow-md transition-all`}>
+                    {/* 水平线 - 绝对定位在顶部，确保线条对准时间点 */}
+                    <div className={`absolute left-0 right-0 top-0 h-0.5 ${colors.divider} group-hover:h-1 transition-all -translate-y-1/2`} />
+                    {/* 标签 - 在线条右侧，垂直居中于线条 */}
+                    <div className={`absolute right-0 top-0 -translate-y-1/2 flex items-center gap-1 px-2 py-0.5 rounded-full ${colors.bg} ${colors.border} border shadow-sm group-hover:shadow-md transition-all`}>
                       <ActivityIcon
                         type={activity.type as ActivityType}
                         size={12}
