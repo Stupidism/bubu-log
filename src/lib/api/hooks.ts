@@ -51,9 +51,11 @@ export function useUpdateActivity() {
   const queryClient = useQueryClient();
   
   return $api.useMutation("patch", "/activities/{id}", {
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["get", "/activities"] });
       queryClient.invalidateQueries({ queryKey: ["get", "/activities/latest"] });
+      // 同时刷新单个活动的查询，确保编辑时数据是最新的
+      queryClient.invalidateQueries({ queryKey: ["get", "/activities/{id}", { params: { path: { id: variables.params.path.id } } }] });
     },
   });
 }

@@ -83,6 +83,9 @@ export function ActivityFAB({
     }
   }, [voiceDialogOpen])
 
+  // 用于标记是否需要自动开始语音识别
+  const shouldAutoStartRef = useRef(false)
+
   // 关闭语音对话框
   const closeVoiceDialog = useCallback(() => {
     setVoiceDialogOpen(false)
@@ -154,10 +157,7 @@ export function ActivityFAB({
           // 使用正确的 queryKey 格式刷新数据
           queryClient.invalidateQueries({ queryKey: ['get', '/activities'] })
           queryClient.invalidateQueries({ queryKey: ['get', '/activities/latest'] })
-          // 1.5秒后关闭
-          setTimeout(() => {
-            closeVoiceDialog()
-          }, 1500)
+          // 不关闭弹窗，用户可以继续输入
         }
       } else {
         const errorMsg = data.error || '解析失败'
@@ -322,6 +322,18 @@ export function ActivityFAB({
       setTimeout(() => inputRef.current?.focus(), 100)
     }
   }, [handleSubmit])
+
+  // 打开弹窗时自动开始语音识别
+  useEffect(() => {
+    if (voiceDialogOpen && shouldAutoStartRef.current && speechSupported && mode === 'voice' && !isListening && !isLoading) {
+      shouldAutoStartRef.current = false
+      // 延迟一点以确保 UI 已渲染
+      const timer = setTimeout(() => {
+        startListening()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [voiceDialogOpen, speechSupported, mode, isListening, isLoading, startListening])
 
   // 停止语音识别
   const stopListening = useCallback(() => {
@@ -506,7 +518,15 @@ export function ActivityFAB({
 
       {/* 语音输入按钮 - 唯一的 FAB */}
       <button
-        onClick={() => setVoiceDialogOpen(!voiceDialogOpen)}
+        onClick={() => {
+          if (!voiceDialogOpen) {
+            // 打开弹窗时标记需要自动开始语音识别
+            shouldAutoStartRef.current = true
+            setVoiceDialogOpen(true)
+          } else {
+            setVoiceDialogOpen(false)
+          }
+        }}
         className={`fab-button fixed right-4 bottom-24 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
           voiceDialogOpen
             ? 'bg-violet-500 scale-110'

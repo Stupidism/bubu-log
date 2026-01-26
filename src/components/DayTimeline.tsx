@@ -197,9 +197,15 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
           continue
         }
         
-        // 检查是否与已有的非线条活动重叠
+        // 户外活动总是在右边（因为户外时可以睡觉、换尿布等）
+        if (activity.type === 'OUTDOOR') {
+          result.push({ ...activity, left: 50, width: 48 })
+          continue
+        }
+        
+        // 检查是否与已有的非线条、非户外活动重叠
         const overlapping = result.filter(
-          a => !a.isLineType && !(activity.top >= a.top + a.height || activity.top + activity.height <= a.top)
+          a => !a.isLineType && a.type !== 'OUTDOOR' && !(activity.top >= a.top + a.height || activity.top + activity.height <= a.top)
         )
         
         // 简单处理：如果重叠，缩小宽度并偏移
@@ -341,16 +347,23 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
               }
               
               // 块类型（睡眠、喂奶等）：严格按时长显示高度
+              // 户外活动：虚线边框、半透明、悬浮在其他色块之上但在换尿布线下面
+              const isOutdoor = activity.type === 'OUTDOOR'
               return (
                 <button
                   key={activity.id}
                   onClick={() => onActivityClick?.(originalActivity)}
-                  className={`absolute rounded-lg border-l-4 px-2 py-1 overflow-hidden transition-all hover:shadow-md hover:z-10 ${colors.bg} ${colors.border}`}
+                  className={`absolute rounded-lg px-2 py-1 overflow-hidden transition-all hover:shadow-md ${colors.bg} ${
+                    isOutdoor 
+                      ? `border-2 border-dashed ${colors.border} z-[5] hover:z-[6]` 
+                      : `border-l-4 ${colors.border} hover:z-10`
+                  }`}
                   style={{
                     top: activity.top,
                     height: activity.height,
                     left: `${activity.left}%`,
                     width: `${activity.width}%`,
+                    ...(isOutdoor ? { opacity: 0.7 } : {}),
                   }}
                 >
                   <div className="flex items-center gap-1 h-full">

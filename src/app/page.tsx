@@ -232,15 +232,34 @@ function HomeContent() {
     setPickerOpen(true)
   }, [])
 
+  // 各活动类型的默认时长（分钟）
+  const DEFAULT_DURATIONS: Partial<Record<ActivityType | 'wake', number>> = {
+    [ActivityType.HEAD_LIFT]: 5,
+    [ActivityType.PASSIVE_EXERCISE]: 10,
+    [ActivityType.GAS_EXERCISE]: 10,
+    [ActivityType.BATH]: 15,
+    [ActivityType.OUTDOOR]: 30,
+    [ActivityType.EARLY_EDUCATION]: 20,
+    [ActivityType.BOTTLE]: 15,
+    [ActivityType.BREASTFEED]: 15,
+    'wake': 60, // 睡醒默认 1 小时
+  }
+
   // 活动选择器选择活动
   const handlePickerSelect = useCallback((type: ActivityType | 'wake') => {
     const modalType = activityTypeToModalType[type]
     if (pickerDefaultTime) {
-      openModal(modalType, {
-        params: {
-          startTime: pickerDefaultTime.toISOString(),
-        }
-      })
+      const defaultDuration = DEFAULT_DURATIONS[type]
+      const params: Record<string, string> = {
+        startTime: pickerDefaultTime.toISOString(),
+      }
+      // 对于有时长的活动，设置结束时间
+      // 排除尿布（点事件）和入睡（只有开始时间）
+      if (defaultDuration && type !== ActivityType.DIAPER && type !== ActivityType.SLEEP) {
+        const endTime = dayjs(pickerDefaultTime).add(defaultDuration, 'minute').toDate()
+        params.endTime = endTime.toISOString()
+      }
+      openModal(modalType, { params })
     } else {
       openModal(modalType)
     }
