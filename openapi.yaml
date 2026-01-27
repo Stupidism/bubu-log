@@ -472,6 +472,7 @@ components:
         - BATH
         - OUTDOOR
         - EARLY_EDUCATION
+        - SUPPLEMENT
 
     PoopColor:
       type: string
@@ -496,6 +497,12 @@ components:
         - SOFT    # 软
         - ELASTIC # 弹
         - HARD    # 硬
+
+    SupplementType:
+      type: string
+      enum:
+        - AD    # 维生素AD
+        - D3    # 维生素D3
 
     InputMethod:
       type: string
@@ -619,6 +626,9 @@ components:
         breastFirmness:
           $ref: '#/components/schemas/BreastFirmness'
           nullable: true
+        supplementType:
+          $ref: '#/components/schemas/SupplementType'
+          nullable: true
         notes:
           type: string
           nullable: true
@@ -655,6 +665,8 @@ components:
           type: integer
         breastFirmness:
           $ref: '#/components/schemas/BreastFirmness'
+        supplementType:
+          $ref: '#/components/schemas/SupplementType'
         notes:
           type: string
 
@@ -687,6 +699,8 @@ components:
           type: integer
         breastFirmness:
           $ref: '#/components/schemas/BreastFirmness'
+        supplementType:
+          $ref: '#/components/schemas/SupplementType'
         notes:
           type: string
 

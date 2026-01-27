@@ -211,6 +211,7 @@ const typeLabelsForLog: Record<ActivityType, string> = {
   [ActivityType.BATH]: '洗澡',
   [ActivityType.OUTDOOR]: '户外',
   [ActivityType.EARLY_EDUCATION]: '早教',
+  [ActivityType.SUPPLEMENT]: '补剂',
 }
 
 // POST: Parse voice input and create activity
@@ -446,6 +447,7 @@ function generateConfirmationMessage(parsed: ParsedActivity): string {
     [ActivityType.BATH]: '洗澡',
     [ActivityType.OUTDOOR]: '户外',
     [ActivityType.EARLY_EDUCATION]: '早教',
+    [ActivityType.SUPPLEMENT]: '补剂',
   }
 
   let message = `已记录: ${typeLabels[parsed.type]}`

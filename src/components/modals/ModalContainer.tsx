@@ -9,6 +9,7 @@ import { BottleModal } from './BottleModal'
 import { SleepStartModal } from './SleepStartModal'
 import { SleepEndModal } from './SleepEndModal'
 import { ActivityDurationModal } from './ActivityDurationModal'
+import { SupplementModal } from './SupplementModal'
 
 /**
  * ModalContainer 渲染所有弹窗组件
@@ -42,6 +43,9 @@ export function ModalContainer() {
       
       {/* 其他活动弹窗（抬头、被动操、排气操、洗澡、户外、早教） */}
       <ActivityDurationModal />
+      
+      {/* 补剂弹窗 */}
+      <SupplementModal />
     </Suspense>
   )
 }

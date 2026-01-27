@@ -279,6 +279,18 @@ function HomeContent() {
     setPickerOpen(false)
   }, [openModal, pickerDefaultTime])
 
+  // 活动选择器选择补剂
+  const handlePickerSupplementSelect = useCallback((supplementType: 'AD' | 'D3') => {
+    const params: Record<string, string> = {
+      supplementType,
+    }
+    if (pickerDefaultTime) {
+      params.startTime = pickerDefaultTime.toISOString()
+    }
+    openModal('supplement', { params })
+    setPickerOpen(false)
+  }, [openModal, pickerDefaultTime])
+
   return (
     <>
     <PullToRefresh onRefresh={handleRefresh}>
@@ -383,6 +395,7 @@ function HomeContent() {
       onClose={() => setPickerOpen(false)}
       onSelect={handlePickerSelect}
       onDiaperSelect={handlePickerDiaperSelect}
+      onSupplementSelect={handlePickerSupplementSelect}
       selectedTime={pickerDefaultTime ? formatTime(pickerDefaultTime) : undefined}
     />
     </>

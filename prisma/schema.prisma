@@ -23,6 +23,13 @@ enum ActivityType {
   BATH             // 洗澡
   OUTDOOR          // 户外晒太阳
   EARLY_EDUCATION  // 早教
+  SUPPLEMENT       // 补剂（AD或D3）
+}
+
+// 补剂类型枚举
+enum SupplementType {
+  AD    // AD（维生素AD）
+  D3    // D3（维生素D3）
 }
 
 // 大便颜色枚举
@@ -79,6 +86,9 @@ model Activity {
   burpSuccess     Boolean?     // 拍嗝是否成功
   milkAmount      Int?         // 奶量（毫升）- 瓶喂专用
   breastFirmness  BreastFirmness? // 乳房硬度（亲喂后）- 软、弹、硬
+
+  // 补剂相关字段
+  supplementType  SupplementType? // 补剂类型（AD或D3）
 
   // 备注
   notes           String?

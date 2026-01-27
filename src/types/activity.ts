@@ -9,6 +9,7 @@ export enum ActivityType {
   BATH = 'BATH',
   OUTDOOR = 'OUTDOOR',
   EARLY_EDUCATION = 'EARLY_EDUCATION',
+  SUPPLEMENT = 'SUPPLEMENT',
 }
 
 export enum PoopColor {
@@ -30,6 +31,10 @@ export enum PeeAmount {
 const breastFirmnessTypes = ['SOFT', 'ELASTIC', 'HARD'] as const
 export type BreastFirmness = typeof breastFirmnessTypes[number]
 
+// 补剂类型
+const supplementTypes = ['AD', 'D3'] as const
+export type SupplementType = typeof supplementTypes[number]
+
 export interface Activity {
   id: string
   type: ActivityType
@@ -44,6 +49,7 @@ export interface Activity {
   burpSuccess?: boolean | null
   duration?: number | null
   milkAmount?: number | null
+  supplementType?: SupplementType | null
   notes?: string | null
 }
 
@@ -58,6 +64,7 @@ export const ActivityTypeLabels: Record<ActivityType, string> = {
   [ActivityType.BATH]: '洗澡',
   [ActivityType.OUTDOOR]: '户外晒太阳',
   [ActivityType.EARLY_EDUCATION]: '早教',
+  [ActivityType.SUPPLEMENT]: '补剂',
 }
 
 export const PoopColorLabels: Record<PoopColor, string> = {
@@ -90,6 +97,11 @@ export const BreastFirmnessLabels: Record<BreastFirmness, string> = {
   HARD: '硬',
 }
 
+export const SupplementTypeLabels: Record<SupplementType, string> = {
+  AD: 'AD',
+  D3: 'D3',
+}
+
 // 活动图标名称映射（用于 Lucide React 图标）
 export const ActivityIconNames: Record<ActivityType, string> = {
   [ActivityType.SLEEP]: 'Moon',
@@ -102,6 +114,7 @@ export const ActivityIconNames: Record<ActivityType, string> = {
   [ActivityType.BATH]: 'Bath',
   [ActivityType.OUTDOOR]: 'SunMedium',
   [ActivityType.EARLY_EDUCATION]: 'BookOpen',
+  [ActivityType.SUPPLEMENT]: 'Pill',
 }
 
 // 活动分类（用于过滤）
@@ -109,6 +122,7 @@ export const ActivityCategories = {
   sleep: [ActivityType.SLEEP],
   feeding: [ActivityType.BREASTFEED, ActivityType.BOTTLE],
   diaper: [ActivityType.DIAPER],
+  supplement: [ActivityType.SUPPLEMENT],
   activities: [
     ActivityType.HEAD_LIFT,
     ActivityType.PASSIVE_EXERCISE,

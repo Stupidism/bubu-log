@@ -156,13 +156,15 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        ActivityType: "SLEEP" | "DIAPER" | "BREASTFEED" | "BOTTLE" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION";
+        ActivityType: "SLEEP" | "DIAPER" | "BREASTFEED" | "BOTTLE" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION" | "SUPPLEMENT";
         /** @enum {string} */
         PoopColor: "YELLOW" | "GREEN" | "BROWN" | "BLACK" | "WHITE" | "RED";
         /** @enum {string} */
         PeeAmount: "SMALL" | "MEDIUM" | "LARGE";
         /** @enum {string} */
         BreastFirmness: "SOFT" | "ELASTIC" | "HARD";
+        /** @enum {string} */
+        SupplementType: "AD" | "D3";
         /** @enum {string} */
         InputMethod: "TEXT" | "VOICE";
         /** @enum {string} */
@@ -221,6 +223,7 @@ export interface components {
             burpSuccess?: boolean | null;
             milkAmount?: number | null;
             breastFirmness?: components["schemas"]["BreastFirmness"];
+            supplementType?: components["schemas"]["SupplementType"];
             notes?: string | null;
         };
         CreateActivityInput: {
@@ -243,6 +246,7 @@ export interface components {
             burpSuccess?: boolean;
             milkAmount?: number;
             breastFirmness?: components["schemas"]["BreastFirmness"];
+            supplementType?: components["schemas"]["SupplementType"];
             notes?: string;
         };
         UpdateActivityInput: {
@@ -265,6 +269,7 @@ export interface components {
             burpSuccess?: boolean;
             milkAmount?: number;
             breastFirmness?: components["schemas"]["BreastFirmness"];
+            supplementType?: components["schemas"]["SupplementType"];
             notes?: string;
         };
         BabyProfile: {

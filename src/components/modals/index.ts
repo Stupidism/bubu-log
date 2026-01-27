@@ -6,4 +6,5 @@ export { BottleModal } from './BottleModal'
 export { SleepStartModal } from './SleepStartModal'
 export { SleepEndModal } from './SleepEndModal'
 export { ActivityDurationModal } from './ActivityDurationModal'
+export { SupplementModal } from './SupplementModal'
 

@@ -31,6 +31,7 @@ const activityColors: Record<string, { bg: string; border: string; text: string;
   BATH: { bg: 'bg-cyan-100 dark:bg-cyan-900/40', border: 'border-cyan-400', text: 'text-cyan-700 dark:text-cyan-300' },
   OUTDOOR: { bg: 'bg-emerald-100 dark:bg-emerald-900/40', border: 'border-emerald-400', text: 'text-emerald-700 dark:text-emerald-300' },
   EARLY_EDUCATION: { bg: 'bg-purple-100 dark:bg-purple-900/40', border: 'border-purple-400', text: 'text-purple-700 dark:text-purple-300' },
+  SUPPLEMENT: { bg: 'bg-orange-100 dark:bg-orange-900/40', border: 'border-orange-400', text: 'text-orange-700 dark:text-orange-300', divider: 'bg-orange-400' },
 }
 
 const defaultColor = { bg: 'bg-gray-100 dark:bg-gray-800', border: 'border-gray-400', text: 'text-gray-700 dark:text-gray-300' }
@@ -161,8 +162,8 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
         const minutesFromStart = startTime.diff(dayStart, 'minute')
         const top = (minutesFromStart / 60) * HOUR_HEIGHT
         
-        // 换尿布是瞬时事件，显示为线条
-        const isLineType = activity.type === 'DIAPER'
+        // 换尿布和补剂是瞬时事件，显示为线条
+        const isLineType = activity.type === 'DIAPER' || activity.type === 'SUPPLEMENT'
         
         // 计算时长：有 endTime 则计算差值，否则默认 5 分钟（非线条类型）
         const duration = activity.endTime 
@@ -231,6 +232,11 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
           label = '大便'
         } else if (activity.hasPee) {
           label = '小便'
+        }
+      } else if (activity.type === 'SUPPLEMENT') {
+        // 显示补剂类型
+        if (activity.supplementType) {
+          label = activity.supplementType
         }
       } else if (activity.duration && activity.duration > 0) {
         label += ` ${activity.duration}分钟`
@@ -314,6 +320,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
                 hasPee: activity.hasPee,
                 poopColor: activity.poopColor,
                 peeAmount: activity.peeAmount,
+                supplementType: activity.supplementType,
                 notes: activity.notes,
               }
               

@@ -1,7 +1,8 @@
 'use client'
 
-import { Moon, Sun, Milk, Baby, Target, Droplet } from 'lucide-react'
+import { Moon, Sun, Milk, Baby, Target, Droplet, Pill } from 'lucide-react'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
+import type { SupplementType } from '@/types/activity'
 import { ActivityIcon } from './ActivityIcon'
 import { useSleepState } from '@/lib/api/hooks'
 
@@ -10,6 +11,7 @@ interface ActivityPickerProps {
   onClose: () => void
   onSelect: (type: ActivityType | 'wake') => void
   onDiaperSelect: (diaperType: 'poop' | 'pee' | 'both') => void
+  onSupplementSelect: (supplementType: SupplementType) => void
   /** 选中的默认时间（显示用） */
   selectedTime?: string
 }
@@ -19,6 +21,7 @@ export function ActivityPicker({
   onClose,
   onSelect,
   onDiaperSelect,
+  onSupplementSelect,
   selectedTime,
 }: ActivityPickerProps) {
   const { isSleeping, isFetching: sleepLoading } = useSleepState()
@@ -143,6 +146,36 @@ export function ActivityPicker({
               >
                 <span className="text-xl">💩💧</span>
                 <span className="text-sm font-medium">大小便</span>
+              </button>
+            </div>
+          </section>
+
+          {/* 补剂区域 */}
+          <section className="mb-4">
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1 flex items-center gap-1">
+              <Pill size={14} />
+              补剂
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  onSupplementSelect('AD')
+                  onClose()
+                }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
+              >
+                <Pill size={24} />
+                <span className="font-medium">AD</span>
+              </button>
+              <button
+                onClick={() => {
+                  onSupplementSelect('D3')
+                  onClose()
+                }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300"
+              >
+                <Pill size={24} />
+                <span className="font-medium">D3</span>
               </button>
             </div>
           </section>
