@@ -1,12 +1,41 @@
-# 宝宝日记 Baby Care Tracker
+# 宝宝日记 Monorepo
+
+一个使用 Turborepo 管理的 monorepo，包含宝宝护理记录应用及共享 UI 组件库。
+
+## 📦 项目结构
+
+```
+├── apps/
+│   └── web/          # 宝宝日记 Next.js 应用
+├── packages/
+│   ├── ui/           # 共享 UI 组件库 (基于 shadcn/ui)
+│   └── typescript-config/  # 共享 TypeScript 配置
+```
+
+## 🚀 快速开始
+
+```bash
+# 安装依赖
+pnpm install
+
+# 运行所有应用的开发服务器
+pnpm dev
+
+# 只运行 web 应用
+pnpm dev:web
+
+# 构建所有项目
+pnpm build
+
+# 代码检查
+pnpm lint
+```
+
+## 📱 宝宝日记 (apps/web)
 
 一个简单易用的婴儿护理记录应用，专为月嫂阿姨和家长设计。
 
-## 📱 设计理念
-
-**Mobile-First** - 主要用户使用手机记录，PC 端限制宽度保持手机比例。
-
-## 功能
+### 功能
 
 - 🌙 **睡眠** - 入睡/睡醒记录
 - 🍼 **喂奶** - 亲喂/瓶喂，时长和奶量
@@ -15,27 +44,33 @@
 
 > 详细功能规格见 `.cursor/rules/features/`
 
-## 技术栈
+### 技术栈
 
 - Next.js 16 + Tailwind CSS 4
 - PostgreSQL + Prisma ORM
 - Vercel (Blob Storage + 部署)
+- Turborepo (monorepo 管理)
 
-## 快速开始
+### 配置
 
 ```bash
-# 安装依赖
-pnpm install
-
 # 配置环境变量
-cp .env.example .env.local
+cp apps/web/.env.example apps/web/.env.local
 # 编辑 .env.local 添加数据库连接
 
 # 初始化数据库
-pnpm db:push
+cd apps/web && pnpm db:push
+```
 
-# 运行开发服务器
-pnpm dev
+## 🎨 UI 组件库 (packages/ui)
+
+基于 shadcn/ui 的共享 React 组件库，可在多个应用间复用。
+
+### 使用方式
+
+```tsx
+import { Button, cn } from '@bubu-log/ui'
+import { Drawer, DrawerContent } from '@bubu-log/ui'
 ```
 
 ## 部署到 Vercel
@@ -46,7 +81,7 @@ pnpm dev
 
 ```bash
 # 方法 1: 使用脚本（推荐）
-pnpm db:migrate:prod
+cd apps/web && pnpm db:migrate:prod
 
 # 方法 2: 手动操作
 # 1. 从 Vercel 拉取环境变量
@@ -55,7 +90,7 @@ vercel env pull .env.production
 # 2. 设置环境变量并运行迁移
 export DATABASE_URL=$(grep DATABASE_URL .env.production | cut -d '=' -f2-)
 export DATABASE_URL_UNPOOLED=$(grep DATABASE_URL_UNPOOLED .env.production | cut -d '=' -f2-)
-pnpm prisma db push
+cd apps/web && pnpm prisma db push
 
 # 3. 清理临时文件
 rm .env.production

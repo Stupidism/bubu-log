@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules
 .pnpm-store
 /.pnp
 .pnp.*
@@ -12,17 +12,18 @@
 !.yarn/versions
 
 # testing
-/coverage
-/playwright-report/
-/test-results/
-/demo-screenshots/
+coverage
+playwright-report/
+test-results/
+demo-screenshots/
 
 # next.js
-/.next/
-/out/
+.next/
+out/
 
 # production
-/build
+build
+dist
 
 # misc
 .DS_Store
@@ -36,6 +37,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.env*.local
 
 # vercel
 .vercel
@@ -44,6 +46,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/src/generated/prisma
+# prisma generated
+**/generated/prisma
+
+# turborepo
+.turbo
+
+# playwright
 .playwright-mcp/
-.env*.local
