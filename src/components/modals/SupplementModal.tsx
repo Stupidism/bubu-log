@@ -5,11 +5,12 @@ import { useSearchParams } from 'next/navigation'
 import { BottomSheet } from '@/components/BottomSheet'
 import { SupplementForm } from '@/components/forms'
 import { useModalParams } from '@/hooks/useModalParams'
-import { useCreateActivity, useUpdateActivity, useActivity } from '@/lib/api/hooks'
+import { useCreateActivityWithConflictCheck, useUpdateActivity, useActivity } from '@/lib/api/hooks'
 import { ActivityType } from '@/types/activity'
 import type { SupplementType } from '@/types/activity'
 import type { components } from '@/lib/api/openapi-types'
 import { Loader2 } from 'lucide-react'
+import { OverlapConfirmModal } from './OverlapConfirmModal'
 
 export function SupplementModal() {
   const { modalType, activityId, closeModal, selectedDate } = useModalParams()
@@ -23,7 +24,7 @@ export function SupplementModal() {
     enabled: isEditing && isOpen,
   })
   
-  const createActivity = useCreateActivity()
+  const createActivity = useCreateActivityWithConflictCheck()
   const updateActivity = useUpdateActivity()
   
   // 解析 URL 中的初始值（来自语音输入或活动选择器）
@@ -70,14 +71,12 @@ export function SupplementModal() {
         }
       )
     } else {
-      // 创建新活动
+      // 创建新活动（带冲突检查）
       createActivity.mutate(
         {
-          body: {
-            type: ActivityType.SUPPLEMENT,
-            startTime: (data.startTime as Date).toISOString(),
-            supplementType: data.supplementType as components["schemas"]["SupplementType"],
-          },
+          type: ActivityType.SUPPLEMENT,
+          startTime: (data.startTime as Date).toISOString(),
+          supplementType: data.supplementType as components["schemas"]["SupplementType"],
         },
         {
           onSuccess: () => closeModal(),
@@ -85,27 +84,45 @@ export function SupplementModal() {
       )
     }
   }, [isEditing, activityId, createActivity, updateActivity, closeModal])
+
+  // 处理强制创建（确认重叠后）
+  const handleForceCreate = useCallback(() => {
+    createActivity.forceCreate({
+      onSuccess: () => closeModal(),
+    })
+  }, [createActivity, closeModal])
   
   if (!isOpen) return null
   
   return (
-    <BottomSheet
-      isOpen={isOpen}
-      onClose={closeModal}
-      title={isEditing ? '编辑补剂' : '补剂'}
-    >
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-        </div>
-      ) : (
-        <SupplementForm
-          onSubmit={handleSubmit}
-          onCancel={closeModal}
-          initialValues={initialValues}
-          isEditing={isEditing}
-        />
-      )}
-    </BottomSheet>
+    <>
+      <BottomSheet
+        isOpen={isOpen}
+        onClose={closeModal}
+        title={isEditing ? '编辑补剂' : '补剂'}
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <SupplementForm
+            onSubmit={handleSubmit}
+            onCancel={closeModal}
+            initialValues={initialValues}
+            isEditing={isEditing}
+          />
+        )}
+      </BottomSheet>
+
+      {/* 时间重叠确认弹窗 */}
+      <OverlapConfirmModal
+        isOpen={createActivity.hasPendingConflict}
+        conflictError={createActivity.conflictError}
+        onConfirm={handleForceCreate}
+        onCancel={createActivity.cancelConflict}
+        isLoading={createActivity.isLoading}
+      />
+    </>
   )
 }

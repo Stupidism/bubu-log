@@ -248,6 +248,8 @@ export interface components {
             breastFirmness?: components["schemas"]["BreastFirmness"];
             supplementType?: components["schemas"]["SupplementType"];
             notes?: string;
+            /** @description Force create even if there's an overlap warning (not for duplicates) */
+            force?: boolean;
         };
         UpdateActivityInput: {
             type?: components["schemas"]["ActivityType"];
@@ -291,6 +293,17 @@ export interface components {
         };
         Error: {
             error: string;
+        };
+        ActivityConflictError: {
+            /** @description Human-readable error message */
+            error: string;
+            /**
+             * @description DUPLICATE_ACTIVITY - Same type activity exists at same time (cannot be overridden)
+             *     OVERLAP_ACTIVITY - Time overlaps with another activity (can be overridden with force=true)
+             * @enum {string}
+             */
+            code: "DUPLICATE_ACTIVITY" | "OVERLAP_ACTIVITY";
+            conflictingActivity?: components["schemas"]["Activity"];
         };
     };
     responses: {
@@ -359,6 +372,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Activity"];
+                };
+            };
+            /** @description Time conflict with existing activity */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityConflictError"];
                 };
             };
             500: components["responses"]["ServerError"];

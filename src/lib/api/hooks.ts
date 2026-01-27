@@ -1,7 +1,8 @@
 import { $api } from "./client";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { components } from "./openapi-types";
+import { toast } from "sonner";
 
 // Re-export types for convenience
 export type Activity = components["schemas"]["Activity"];
@@ -49,6 +50,106 @@ export function useCreateActivity() {
       queryClient.invalidateQueries({ queryKey: ["get", "/activities/latest"] });
     },
   });
+}
+
+// Activity conflict error type
+export type ActivityConflictError = components["schemas"]["ActivityConflictError"];
+
+// Enhanced hook with conflict handling
+export function useCreateActivityWithConflictCheck() {
+  const queryClient = useQueryClient();
+  const [pendingData, setPendingData] = useState<CreateActivityInput | null>(null);
+  const [conflictError, setConflictError] = useState<ActivityConflictError | null>(null);
+  
+  const mutation = $api.useMutation("post", "/activities", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get", "/activities"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/activities/latest"] });
+      setPendingData(null);
+      setConflictError(null);
+    },
+    onError: () => {
+      // Error handling is done in the mutate wrapper
+    },
+  });
+  
+  const mutate = useCallback(async (
+    data: CreateActivityInput,
+    options?: {
+      onSuccess?: () => void;
+      onError?: (error: unknown) => void;
+    }
+  ) => {
+    try {
+      const response = await fetch('/api/activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      
+      if (response.status === 409) {
+        const errorData = await response.json() as ActivityConflictError;
+        
+        if (errorData.code === 'DUPLICATE_ACTIVITY') {
+          // Duplicate - cannot override, show error
+          toast.error(errorData.error);
+          options?.onError?.(errorData);
+          return { error: errorData };
+        } else if (errorData.code === 'OVERLAP_ACTIVITY') {
+          // Overlap - can override, show confirmation
+          setPendingData(data);
+          setConflictError(errorData);
+          return { conflict: errorData };
+        }
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast.error(errorData.error || '创建失败');
+        options?.onError?.(errorData);
+        return { error: errorData };
+      }
+      
+      const result = await response.json();
+      // Invalidate queries manually since we're not using the mutation
+      queryClient.invalidateQueries({ queryKey: ["get", "/activities"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/activities/latest"] });
+      options?.onSuccess?.();
+      return { data: result };
+    } catch (error) {
+      toast.error('创建失败');
+      options?.onError?.(error);
+      return { error };
+    }
+  }, [queryClient]);
+  
+  // Force create (bypass overlap warning)
+  const forceCreate = useCallback(async (options?: { onSuccess?: () => void }) => {
+    if (!pendingData) return;
+    
+    const dataWithForce = { ...pendingData, force: true };
+    const result = await mutate(dataWithForce, options);
+    if (!result.error && !result.conflict) {
+      setPendingData(null);
+      setConflictError(null);
+    }
+    return result;
+  }, [pendingData, mutate]);
+  
+  // Cancel the pending operation
+  const cancelConflict = useCallback(() => {
+    setPendingData(null);
+    setConflictError(null);
+  }, []);
+  
+  return {
+    mutate,
+    forceCreate,
+    cancelConflict,
+    isLoading: mutation.isPending,
+    conflictError,
+    hasPendingConflict: !!conflictError,
+  };
 }
 
 export function useUpdateActivity() {

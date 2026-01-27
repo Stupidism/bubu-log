@@ -5,10 +5,11 @@ import { useSearchParams } from 'next/navigation'
 import { BottomSheet } from '@/components/BottomSheet'
 import { BreastfeedForm } from '@/components/forms'
 import { useModalParams } from '@/hooks/useModalParams'
-import { useCreateActivity, useUpdateActivity, useActivity } from '@/lib/api/hooks'
+import { useCreateActivityWithConflictCheck, useUpdateActivity, useActivity } from '@/lib/api/hooks'
 import { ActivityType, BreastFirmness } from '@/types/activity'
 import type { components } from '@/lib/api/openapi-types'
 import { Loader2 } from 'lucide-react'
+import { OverlapConfirmModal } from './OverlapConfirmModal'
 
 export function BreastfeedModal() {
   const { modalType, activityId, closeModal, selectedDate } = useModalParams()
@@ -22,7 +23,7 @@ export function BreastfeedModal() {
     enabled: isEditing && isOpen,
   })
   
-  const createActivity = useCreateActivity()
+  const createActivity = useCreateActivityWithConflictCheck()
   const updateActivity = useUpdateActivity()
   
   // 解析 URL 中的初始值（来自语音输入）
@@ -76,15 +77,14 @@ export function BreastfeedModal() {
         }
       )
     } else {
+      // 创建新活动（带冲突检查）
       createActivity.mutate(
         {
-          body: {
-            type: ActivityType.BREASTFEED,
-            startTime: (data.startTime as Date).toISOString(),
-            endTime: data.endTime ? (data.endTime as Date).toISOString() : undefined,
-            burpSuccess: data.burpSuccess as boolean,
-            breastFirmness: data.breastFirmness as components["schemas"]["BreastFirmness"],
-          },
+          type: ActivityType.BREASTFEED,
+          startTime: (data.startTime as Date).toISOString(),
+          endTime: data.endTime ? (data.endTime as Date).toISOString() : undefined,
+          burpSuccess: data.burpSuccess as boolean,
+          breastFirmness: data.breastFirmness as components["schemas"]["BreastFirmness"],
         },
         {
           onSuccess: () => closeModal(),
@@ -92,28 +92,46 @@ export function BreastfeedModal() {
       )
     }
   }, [isEditing, activityId, createActivity, updateActivity, closeModal])
+
+  // 处理强制创建（确认重叠后）
+  const handleForceCreate = useCallback(() => {
+    createActivity.forceCreate({
+      onSuccess: () => closeModal(),
+    })
+  }, [createActivity, closeModal])
   
   if (!isOpen) return null
   
   return (
-    <BottomSheet
-      isOpen={isOpen}
-      onClose={closeModal}
-      title={isEditing ? '编辑亲喂记录' : '亲喂'}
-    >
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-        </div>
-      ) : (
-        <BreastfeedForm
-          onSubmit={handleSubmit}
-          onCancel={closeModal}
-          initialValues={initialValues}
-          isEditing={isEditing}
-        />
-      )}
-    </BottomSheet>
+    <>
+      <BottomSheet
+        isOpen={isOpen}
+        onClose={closeModal}
+        title={isEditing ? '编辑亲喂记录' : '亲喂'}
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <BreastfeedForm
+            onSubmit={handleSubmit}
+            onCancel={closeModal}
+            initialValues={initialValues}
+            isEditing={isEditing}
+          />
+        )}
+      </BottomSheet>
+
+      {/* 时间重叠确认弹窗 */}
+      <OverlapConfirmModal
+        isOpen={createActivity.hasPendingConflict}
+        conflictError={createActivity.conflictError}
+        onConfirm={handleForceCreate}
+        onCancel={createActivity.cancelConflict}
+        isLoading={createActivity.isLoading}
+      />
+    </>
   )
 }
 

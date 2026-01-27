@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
+import { Prisma, ActivityType as PrismaActivityType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { startOfDayChina, endOfDayChina, previousDayTimeChina } from '@/lib/dayjs'
@@ -93,6 +93,90 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// 点事件类型（没有时长的活动）
+const POINT_EVENT_TYPES = ['DIAPER', 'SUPPLEMENT']
+// 喂奶类型（互斥的活动）
+const FEEDING_TYPES = ['BREASTFEED', 'BOTTLE']
+// 时间容差（毫秒）- 1分钟内视为相同时间
+const TIME_TOLERANCE_MS = 60 * 1000
+
+// 检查时间重叠
+async function checkTimeOverlap(
+  type: string,
+  startTime: Date,
+  endTime: Date | null,
+  excludeId?: string
+): Promise<{ code: string; message: string; conflictingActivity?: unknown } | null> {
+  const isPointEvent = POINT_EVENT_TYPES.includes(type)
+  const isFeeding = FEEDING_TYPES.includes(type)
+  
+  // 1. 点事件：检查同类型同时间（1分钟容差）
+  if (isPointEvent) {
+    const startMin = new Date(startTime.getTime() - TIME_TOLERANCE_MS)
+    const startMax = new Date(startTime.getTime() + TIME_TOLERANCE_MS)
+    
+    const duplicate = await prisma.activity.findFirst({
+      where: {
+        type: type as PrismaActivityType,
+        startTime: {
+          gte: startMin,
+          lte: startMax,
+        },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+    })
+    
+    if (duplicate) {
+      return {
+        code: 'DUPLICATE_ACTIVITY',
+        message: `该时间点已存在相同类型的记录`,
+        conflictingActivity: duplicate,
+      }
+    }
+  }
+  
+  // 2. 喂奶类型：检查与其他喂奶活动的时间重叠
+  if (isFeeding) {
+    const activityEnd = endTime || new Date(startTime.getTime() + 30 * 60 * 1000) // 默认30分钟
+    
+    // 查找重叠的喂奶活动
+    // 重叠条件：新活动的开始时间 < 现有活动的结束时间 AND 新活动的结束时间 > 现有活动的开始时间
+    const overlapping = await prisma.activity.findFirst({
+      where: {
+        type: { in: FEEDING_TYPES as PrismaActivityType[] },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+        OR: [
+          {
+            // 现有活动有结束时间
+            AND: [
+              { startTime: { lt: activityEnd } },
+              { endTime: { gt: startTime } },
+            ],
+          },
+          {
+            // 现有活动没有结束时间（进行中）
+            AND: [
+              { endTime: null },
+              { startTime: { lt: activityEnd } },
+            ],
+          },
+        ],
+      },
+    })
+    
+    if (overlapping) {
+      const overlappingType = overlapping.type === 'BREASTFEED' ? '亲喂' : '瓶喂'
+      return {
+        code: 'OVERLAP_ACTIVITY',
+        message: `该时间段与已有的${overlappingType}记录重叠`,
+        conflictingActivity: overlapping,
+      }
+    }
+  }
+  
+  return null
+}
+
 // POST: 创建新活动
 export async function POST(request: NextRequest) {
   try {
@@ -109,14 +193,35 @@ export async function POST(request: NextRequest) {
       burpSuccess,
       milkAmount,
       breastFirmness,
+      supplementType,
       notes,
+      force, // 强制创建（忽略重叠警告）
     } = body
+
+    const startTimeDate = new Date(startTime)
+    const endTimeDate = endTime ? new Date(endTime) : null
+
+    // 检查时间重叠
+    const overlap = await checkTimeOverlap(type, startTimeDate, endTimeDate)
+    if (overlap) {
+      // DUPLICATE_ACTIVITY 始终阻止，OVERLAP_ACTIVITY 可以通过 force 绕过
+      if (overlap.code === 'DUPLICATE_ACTIVITY' || !force) {
+        return NextResponse.json(
+          {
+            error: overlap.message,
+            code: overlap.code,
+            conflictingActivity: overlap.conflictingActivity,
+          },
+          { status: 409 }
+        )
+      }
+    }
 
     const activity = await prisma.activity.create({
       data: {
         type,
-        startTime: new Date(startTime),
-        endTime: endTime ? new Date(endTime) : null,
+        startTime: startTimeDate,
+        endTime: endTimeDate,
         hasPoop,
         hasPee,
         poopColor,
@@ -125,6 +230,7 @@ export async function POST(request: NextRequest) {
         burpSuccess,
         milkAmount,
         breastFirmness,
+        supplementType,
         notes,
       },
     })

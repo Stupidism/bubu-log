@@ -62,6 +62,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Activity'
+        '409':
+          description: Time conflict with existing activity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityConflictError'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -669,6 +675,9 @@ components:
           $ref: '#/components/schemas/SupplementType'
         notes:
           type: string
+        force:
+          type: boolean
+          description: Force create even if there's an overlap warning (not for duplicates)
 
     UpdateActivityInput:
       type: object
@@ -748,6 +757,26 @@ components:
       properties:
         error:
           type: string
+
+    ActivityConflictError:
+      type: object
+      required:
+        - error
+        - code
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          enum:
+            - DUPLICATE_ACTIVITY
+            - OVERLAP_ACTIVITY
+          description: |
+            DUPLICATE_ACTIVITY - Same type activity exists at same time (cannot be overridden)
+            OVERLAP_ACTIVITY - Time overlaps with another activity (can be overridden with force=true)
+        conflictingActivity:
+          $ref: '#/components/schemas/Activity'
 
   responses:
     ServerError:
