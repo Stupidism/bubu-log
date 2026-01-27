@@ -83,7 +83,51 @@ model Activity {
   // 备注
   notes           String?
 
+  // 审计日志关联
+  auditLogs       AuditLog[]
+
   @@index([type])
   @@index([startTime])
   @@index([createdAt])
+}
+
+// 输入方式枚举
+enum InputMethod {
+  TEXT   // 文字输入
+  VOICE  // 语音输入
+}
+
+// 操作类型枚举
+enum AuditAction {
+  CREATE  // 创建
+  UPDATE  // 修改
+  DELETE  // 删除
+}
+
+// 资源类型枚举
+enum ResourceType {
+  ACTIVITY  // 活动记录
+}
+
+// 审计日志模型 - 记录用户的操作历史
+model AuditLog {
+  id             String        @id @default(cuid())
+  action         AuditAction   @default(CREATE) // 操作类型
+  resourceType   ResourceType  @default(ACTIVITY) // 资源类型
+  resourceId     String?       // 资源ID（删除后可能为空）
+  inputMethod    InputMethod   // 输入方式
+  inputText      String?       // 原始输入内容（语音转文字后的内容）
+  description    String?       // 简短描述
+  success        Boolean       @default(true) // 是否成功
+  errorMessage   String?       // 错误信息（失败时记录）
+  beforeData     Json?         // 修改前的资源内容
+  afterData      Json?         // 修改后的资源内容
+  activityId     String?       // 关联的活动ID（可选）
+  activity       Activity?     @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now()) // 操作时间
+  
+  @@index([createdAt])
+  @@index([action])
+  @@index([resourceType])
+  @@index([success])
 }

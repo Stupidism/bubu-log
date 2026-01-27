@@ -9,6 +9,10 @@ export type ActivityType = components["schemas"]["ActivityType"];
 export type BabyProfile = components["schemas"]["BabyProfile"];
 export type CreateActivityInput = components["schemas"]["CreateActivityInput"];
 export type UpdateActivityInput = components["schemas"]["UpdateActivityInput"];
+export type AuditLog = components["schemas"]["AuditLog"];
+export type InputMethod = components["schemas"]["InputMethod"];
+export type AuditAction = components["schemas"]["AuditAction"];
+export type ResourceType = components["schemas"]["ResourceType"];
 
 // Activities hooks
 export function useActivities(params?: {
@@ -126,4 +130,18 @@ export function useSleepState() {
     getCurrentSleepActivity,
     sleepData: sleepQuery.data,
   };
+}
+
+// Audit log hooks
+export function useAudits(params?: {
+  limit?: number;
+  offset?: number;
+  action?: AuditAction;
+  resourceType?: ResourceType;
+  success?: boolean;
+}, options?: { enabled?: boolean }) {
+  return $api.useQuery("get", "/audits", {
+    params: { query: params },
+    ...options,
+  });
 }

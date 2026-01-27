@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { ActivityType } from '@/types/activity'
+import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { startOfDayChina, endOfDayChina, previousDayTimeChina } from '@/lib/dayjs'
 
 // GET: 获取活动列表
@@ -128,6 +129,29 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Generate description for audit log
+    const typeLabel = ActivityTypeLabels[type as ActivityType] || type
+    let description = `创建${typeLabel}`
+    if (milkAmount) {
+      description += ` ${milkAmount}ml`
+    }
+
+    // Record audit log
+    await prisma.auditLog.create({
+      data: {
+        action: 'CREATE',
+        resourceType: 'ACTIVITY',
+        resourceId: activity.id,
+        inputMethod: 'TEXT',
+        inputText: null,
+        description,
+        success: true,
+        beforeData: Prisma.JsonNull,
+        afterData: activity as Prisma.InputJsonValue,
+        activityId: activity.id,
+      },
+    })
+
     return NextResponse.json(activity, { status: 201 })
   } catch (error) {
     console.error('Failed to create activity:', error)
@@ -151,11 +175,44 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
+    // 获取要删除的活动完整信息
+    const activities = await prisma.activity.findMany({
+      where: { id: { in: ids } },
+    })
+
     const result = await prisma.activity.deleteMany({
       where: {
         id: { in: ids },
       },
     })
+
+    // 统计删除的活动类型
+    const typeCounts: Record<string, number> = {}
+    activities.forEach(a => {
+      const label = ActivityTypeLabels[a.type as ActivityType] || a.type
+      typeCounts[label] = (typeCounts[label] || 0) + 1
+    })
+    const typeDesc = Object.entries(typeCounts)
+      .map(([type, count]) => `${type}${count}条`)
+      .join('、')
+
+    // 为每个删除的活动记录审计日志
+    for (const activity of activities) {
+      await prisma.auditLog.create({
+        data: {
+          action: 'DELETE',
+          resourceType: 'ACTIVITY',
+          resourceId: activity.id,
+          inputMethod: 'TEXT',
+          inputText: null,
+          description: `批量删除${ActivityTypeLabels[activity.type as ActivityType] || activity.type}`,
+          success: true,
+          beforeData: activity as Prisma.InputJsonValue,
+          afterData: Prisma.JsonNull,
+          activityId: null,
+        },
+      })
+    }
 
     return NextResponse.json({ success: true, count: result.count })
   } catch (error) {

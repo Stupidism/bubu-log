@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ActivityType, PoopColor, PeeAmount } from '@/types/activity'
 
@@ -198,6 +199,20 @@ async function callDeepseek(text: string, userLocalTime: string): Promise<Parsed
 // Confidence threshold - below this, require user confirmation
 const CONFIDENCE_THRESHOLD = 0.75
 
+// Type labels for audit log
+const typeLabelsForLog: Record<ActivityType, string> = {
+  [ActivityType.SLEEP]: '睡眠',
+  [ActivityType.DIAPER]: '换尿布',
+  [ActivityType.BREASTFEED]: '亲喂',
+  [ActivityType.BOTTLE]: '瓶喂',
+  [ActivityType.HEAD_LIFT]: '抬头',
+  [ActivityType.PASSIVE_EXERCISE]: '被动操',
+  [ActivityType.GAS_EXERCISE]: '排气操',
+  [ActivityType.BATH]: '洗澡',
+  [ActivityType.OUTDOOR]: '户外',
+  [ActivityType.EARLY_EDUCATION]: '早教',
+}
+
 // POST: Parse voice input and create activity
 export async function POST(request: NextRequest) {
   try {
@@ -220,6 +235,23 @@ export async function POST(request: NextRequest) {
 
     // Check if parsing failed
     if ('error' in parsed) {
+      // Record failed audit log
+      await prisma.auditLog.create({
+        data: {
+          action: 'CREATE',
+          resourceType: 'ACTIVITY',
+          resourceId: null,
+          inputMethod: 'VOICE',
+          inputText: text,
+          description: `语音: "${text}" - ${parsed.error}`,
+          success: false,
+          errorMessage: parsed.error,
+          beforeData: Prisma.JsonNull,
+          afterData: Prisma.JsonNull,
+          activityId: null,
+        },
+      })
+
       return NextResponse.json(
         { 
           error: parsed.error, 
@@ -232,6 +264,23 @@ export async function POST(request: NextRequest) {
 
     // Validate activity type
     if (!Object.values(ActivityType).includes(parsed.type)) {
+      // Record failed audit log
+      await prisma.auditLog.create({
+        data: {
+          action: 'CREATE',
+          resourceType: 'ACTIVITY',
+          resourceId: null,
+          inputMethod: 'VOICE',
+          inputText: text,
+          description: `语音: "${text}" - 无效类型`,
+          success: false,
+          errorMessage: `无效的活动类型: ${parsed.type}`,
+          beforeData: Prisma.JsonNull,
+          afterData: Prisma.JsonNull,
+          activityId: null,
+        },
+      })
+
       return NextResponse.json(
         { 
           error: `无效的活动类型: ${parsed.type}`,
@@ -251,6 +300,23 @@ export async function POST(request: NextRequest) {
 
     // If confidence is low, return parsed data for confirmation
     if (parsed.confidence < CONFIDENCE_THRESHOLD) {
+      // Record low confidence audit log (still counts as needing confirmation)
+      const typeLabel = typeLabelsForLog[parsed.type] || parsed.type
+      await prisma.auditLog.create({
+        data: {
+          action: 'CREATE',
+          resourceType: 'ACTIVITY',
+          resourceId: null,
+          inputMethod: 'VOICE',
+          inputText: text,
+          description: `语音: "${text}" - 待确认${typeLabel}`,
+          success: true,
+          beforeData: Prisma.JsonNull,
+          afterData: parsed as unknown as Prisma.InputJsonValue,
+          activityId: null,
+        },
+      })
+
       return NextResponse.json({
         success: true,
         needConfirmation: true,
@@ -286,6 +352,26 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Generate description for successful audit log
+    const typeLabel = typeLabelsForLog[parsed.type] || parsed.type
+    const description = `语音: "${text}" - 创建${typeLabel}`
+
+    // Record audit log for voice input
+    await prisma.auditLog.create({
+      data: {
+        action: 'CREATE',
+        resourceType: 'ACTIVITY',
+        resourceId: activity.id,
+        inputMethod: 'VOICE',
+        inputText: text,
+        description,
+        success: true,
+        beforeData: Prisma.JsonNull,
+        afterData: activity as Prisma.InputJsonValue,
+        activityId: activity.id,
+      },
+    })
+
     // Return success with activity details and parse info
     return NextResponse.json({
       success: true,
@@ -302,6 +388,31 @@ export async function POST(request: NextRequest) {
     console.error('Voice input processing failed:', error)
     
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    
+    // Try to record the error in audit log
+    try {
+      const body = await request.clone().json().catch(() => ({}))
+      const inputText = body.text || ''
+      if (inputText) {
+        await prisma.auditLog.create({
+          data: {
+            action: 'CREATE',
+            resourceType: 'ACTIVITY',
+            resourceId: null,
+            inputMethod: 'VOICE',
+            inputText,
+            description: `语音: "${inputText}" - 处理失败`,
+            success: false,
+            errorMessage,
+            beforeData: Prisma.JsonNull,
+            afterData: Prisma.JsonNull,
+            activityId: null,
+          },
+        })
+      }
+    } catch {
+      // Ignore audit log errors
+    }
     
     return NextResponse.json(
       { 

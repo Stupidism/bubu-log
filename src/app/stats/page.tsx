@@ -28,6 +28,7 @@ import {
   X,
   CheckSquare,
   Square,
+  History,
 } from 'lucide-react'
 import { StatsCardList, type StatFilter } from '@/components/StatsCardList'
 
@@ -456,7 +457,13 @@ function StatsPageContent() {
                 <BarChart3 size={22} />
                 数据统计
               </h1>
-              <div className="w-16" />
+              <Link
+                href="/audits"
+                className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-base flex items-center gap-1"
+                title="操作记录"
+              >
+                <History size={18} />
+              </Link>
             </>
           )}
         </div>
@@ -633,6 +640,7 @@ function StatsPageContent() {
           </div>
         </div>
       </BottomSheet>
+
     </main>
   )
 }

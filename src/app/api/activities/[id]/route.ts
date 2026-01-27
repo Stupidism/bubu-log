@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -37,6 +39,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
     const body = await request.json()
     
+    // 获取原活动信息用于生成描述
+    const originalActivity = await prisma.activity.findUnique({
+      where: { id },
+    })
+
     const {
       type,
       startTime,
@@ -72,6 +79,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       data: updateData,
     })
 
+    // 生成修改描述
+    const typeLabel = ActivityTypeLabels[activity.type as ActivityType] || activity.type
+    const description = `修改${typeLabel}`
+
+    // 记录审计日志
+    await prisma.auditLog.create({
+      data: {
+        action: 'UPDATE',
+        resourceType: 'ACTIVITY',
+        resourceId: activity.id,
+        inputMethod: 'TEXT',
+        inputText: null,
+        description,
+        success: true,
+        beforeData: originalActivity as object,
+        afterData: activity as object,
+        activityId: activity.id,
+      },
+    })
+
     return NextResponse.json(activity)
   } catch (error) {
     console.error('Failed to update activity:', error)
@@ -87,8 +114,38 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params
     
+    // 获取活动信息用于生成描述
+    const activity = await prisma.activity.findUnique({
+      where: { id },
+    })
+
+    if (!activity) {
+      return NextResponse.json(
+        { error: 'Activity not found' },
+        { status: 404 }
+      )
+    }
+
+    const typeLabel = ActivityTypeLabels[activity.type as ActivityType] || activity.type
+
     await prisma.activity.delete({
       where: { id },
+    })
+
+    // 记录审计日志
+    await prisma.auditLog.create({
+      data: {
+        action: 'DELETE',
+        resourceType: 'ACTIVITY',
+        resourceId: id,
+        inputMethod: 'TEXT',
+        inputText: null,
+        description: `删除${typeLabel}`,
+        success: true,
+        beforeData: activity as Prisma.InputJsonValue,
+        afterData: Prisma.JsonNull,
+        activityId: null,
+      },
     })
 
     return NextResponse.json({ success: true })

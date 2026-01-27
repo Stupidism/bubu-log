@@ -98,6 +98,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/audits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get audit logs */
+        get: operations["getAudits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/baby-profile": {
         parameters: {
             query?: never;
@@ -146,6 +163,39 @@ export interface components {
         PeeAmount: "SMALL" | "MEDIUM" | "LARGE";
         /** @enum {string} */
         BreastFirmness: "SOFT" | "ELASTIC" | "HARD";
+        /** @enum {string} */
+        InputMethod: "TEXT" | "VOICE";
+        /** @enum {string} */
+        AuditAction: "CREATE" | "UPDATE" | "DELETE";
+        /** @enum {string} */
+        ResourceType: "ACTIVITY";
+        AuditLog: {
+            id: string;
+            action: components["schemas"]["AuditAction"];
+            resourceType: components["schemas"]["ResourceType"];
+            /** @description 资源ID */
+            resourceId?: string | null;
+            inputMethod: components["schemas"]["InputMethod"];
+            /** @description 原始输入内容（语音输入） */
+            inputText?: string | null;
+            /** @description 简短描述 */
+            description?: string | null;
+            /** @description 是否成功 */
+            success: boolean;
+            /** @description 错误信息 */
+            errorMessage?: string | null;
+            /** @description 修改前的资源内容 */
+            beforeData?: Record<string, never> | null;
+            /** @description 修改后的资源内容 */
+            afterData?: Record<string, never> | null;
+            /** @description 关联的活动ID */
+            activityId?: string | null;
+            /**
+             * Format: date-time
+             * @description 操作时间
+             */
+            createdAt: string;
+        };
         Activity: {
             id: string;
             type: components["schemas"]["ActivityType"];
@@ -574,6 +624,40 @@ export interface operations {
                         /** @enum {string} */
                         code?: "MISSING_TEXT" | "PARSE_FAILED" | "INVALID_TYPE";
                         originalText?: string;
+                    };
+                };
+            };
+            500: components["responses"]["ServerError"];
+        };
+    };
+    getAudits: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description Filter by action type */
+                action?: components["schemas"]["AuditAction"];
+                /** @description Filter by resource type */
+                resourceType?: components["schemas"]["ResourceType"];
+                /** @description Filter by success status */
+                success?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Audit log list with pagination info */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AuditLog"][];
+                        total?: number;
+                        hasMore?: boolean;
                     };
                 };
             };

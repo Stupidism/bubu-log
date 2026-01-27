@@ -322,6 +322,55 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+  /audits:
+    get:
+      operationId: getAudits
+      summary: Get audit logs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: action
+          in: query
+          description: Filter by action type
+          schema:
+            $ref: '#/components/schemas/AuditAction'
+        - name: resourceType
+          in: query
+          description: Filter by resource type
+          schema:
+            $ref: '#/components/schemas/ResourceType'
+        - name: success
+          in: query
+          description: Filter by success status
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Audit log list with pagination info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+                  total:
+                    type: integer
+                  hasMore:
+                    type: boolean
+        '500':
+          $ref: '#/components/responses/ServerError'
+
   /baby-profile:
     get:
       operationId: getBabyProfile
@@ -447,6 +496,78 @@ components:
         - SOFT    # 软
         - ELASTIC # 弹
         - HARD    # 硬
+
+    InputMethod:
+      type: string
+      enum:
+        - TEXT   # 文字输入
+        - VOICE  # 语音输入
+
+    AuditAction:
+      type: string
+      enum:
+        - CREATE  # 创建
+        - UPDATE  # 修改
+        - DELETE  # 删除
+
+    ResourceType:
+      type: string
+      enum:
+        - ACTIVITY  # 活动记录
+
+    AuditLog:
+      type: object
+      required:
+        - id
+        - action
+        - resourceType
+        - inputMethod
+        - success
+        - createdAt
+      properties:
+        id:
+          type: string
+        action:
+          $ref: '#/components/schemas/AuditAction'
+        resourceType:
+          $ref: '#/components/schemas/ResourceType'
+        resourceId:
+          type: string
+          nullable: true
+          description: 资源ID
+        inputMethod:
+          $ref: '#/components/schemas/InputMethod'
+        inputText:
+          type: string
+          nullable: true
+          description: 原始输入内容（语音输入）
+        description:
+          type: string
+          nullable: true
+          description: 简短描述
+        success:
+          type: boolean
+          description: 是否成功
+        errorMessage:
+          type: string
+          nullable: true
+          description: 错误信息
+        beforeData:
+          type: object
+          nullable: true
+          description: 修改前的资源内容
+        afterData:
+          type: object
+          nullable: true
+          description: 修改后的资源内容
+        activityId:
+          type: string
+          nullable: true
+          description: 关联的活动ID
+        createdAt:
+          type: string
+          format: date-time
+          description: 操作时间
 
     Activity:
       type: object
