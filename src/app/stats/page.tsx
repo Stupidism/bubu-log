@@ -29,6 +29,7 @@ import {
   CheckSquare,
   Square,
   History,
+  ArrowUpDown,
 } from 'lucide-react'
 import { StatsCardList, type StatFilter } from '@/components/StatsCardList'
 
@@ -49,6 +50,16 @@ interface DaySummary {
 // FilterType 与 StatsCardList 的 StatFilter 保持一致
 type FilterType = StatFilter
 
+// 排序字段类型
+const sortFields = ['endTime', 'createdAt', 'updatedAt'] as const
+type SortField = typeof sortFields[number]
+
+const sortFieldLabels: Record<SortField, string> = {
+  endTime: '结束时间',
+  createdAt: '创建时间',
+  updatedAt: '修改时间',
+}
+
 function StatsPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -63,6 +74,9 @@ function StatsPageContent() {
   const [isSelectMode, setIsSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false)
+  
+  // 排序状态：默认按结束时间倒序
+  const [sortField, setSortField] = useState<SortField>('endTime')
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressTriggered = useRef(false)
   const touchStartPos = useRef<{ x: number; y: number } | null>(null)
@@ -77,13 +91,43 @@ function StatsPageContent() {
     limit: 100,
   })
 
-  // Filter activities based on selected filter
+  // Filter and sort activities based on selected filter and sort field
   const filteredActivities = useMemo(() => {
-    if (filter === 'all') return activities
+    let result = activities
     
-    const filterTypes = ActivityCategories[filter as keyof typeof ActivityCategories] || []
-    return activities.filter(a => filterTypes.includes(a.type as ActivityType))
-  }, [activities, filter])
+    // 先过滤
+    if (filter !== 'all') {
+      const filterTypes = ActivityCategories[filter as keyof typeof ActivityCategories] || []
+      result = result.filter(a => filterTypes.includes(a.type as ActivityType))
+    }
+    
+    // 再排序（倒序）
+    return [...result].sort((a, b) => {
+      let aValue: string | null | undefined
+      let bValue: string | null | undefined
+      
+      if (sortField === 'endTime') {
+        // 结束时间排序：没有 endTime 的用 startTime 代替
+        aValue = a.endTime || a.startTime
+        bValue = b.endTime || b.startTime
+      } else {
+        aValue = a[sortField]
+        bValue = b[sortField]
+      }
+      
+      // 倒序排列
+      return new Date(bValue || 0).getTime() - new Date(aValue || 0).getTime()
+    })
+  }, [activities, filter, sortField])
+  
+  // 切换排序字段
+  const cycleSortField = useCallback(() => {
+    setSortField(current => {
+      const currentIndex = sortFields.indexOf(current)
+      const nextIndex = (currentIndex + 1) % sortFields.length
+      return sortFields[nextIndex]
+    })
+  }, [])
 
   // Calculate summary from activities
   const summary = useMemo<DaySummary | null>(() => {
@@ -515,6 +559,16 @@ function StatsPageContent() {
             {getFilterLabel()}
           </h2>
           <div className="flex items-center gap-2">
+            {!isSelectMode && (
+              <button
+                onClick={cycleSortField}
+                className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-base flex items-center gap-1"
+                title={`当前排序：${sortFieldLabels[sortField]}`}
+              >
+                <ArrowUpDown size={16} />
+                {sortFieldLabels[sortField]}
+              </button>
+            )}
             {filter !== 'all' && !isSelectMode && (
               <button
                 onClick={() => {
