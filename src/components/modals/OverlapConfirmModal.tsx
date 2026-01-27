@@ -34,14 +34,14 @@ export function OverlapConfirmModal({
 
   return (
     <>
-      {/* 遮罩层 */}
+      {/* 遮罩层 - z-[60] 确保在 Drawer(z-50) 之上 */}
       <div 
-        className="fixed inset-0 bg-black/50 z-50 animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/50 z-[60] animate-in fade-in duration-200"
         onClick={onCancel}
       />
 
-      {/* 弹窗 */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* 弹窗 - z-[60] 确保在 Drawer(z-50) 之上 */}
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
         <div 
           className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200"
           onClick={(e) => e.stopPropagation()}
