@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import GitHub from "next-auth/providers/github"
+import WeChat from "./wechat-provider"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 
@@ -14,6 +15,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }),
+    WeChat({
+      clientId: process.env.WECHAT_APP_ID!,
+      clientSecret: process.env.WECHAT_APP_SECRET!,
+      platformType: "WebsiteApp", // 网页登录
     }),
   ],
   session: {
