@@ -25,7 +25,15 @@ export type AuthContext = {
  * 如果用户未登录或没有关联的宝宝，返回 null
  */
 export async function getCurrentBaby(): Promise<AuthContext | null> {
-  const session = await auth()
+  let session
+  try {
+    session = await auth()
+  } catch (error) {
+    // JWT 解析错误（可能是旧的数据库 session cookie）
+    // 返回 null，让用户重新登录
+    console.error('Session error:', error)
+    return null
+  }
   
   if (!session?.user?.id) {
     return null

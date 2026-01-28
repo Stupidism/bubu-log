@@ -90,6 +90,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(activities)
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
     console.error('Failed to fetch activities:', error)
     return NextResponse.json(
       { error: 'Failed to fetch activities' },
@@ -273,6 +279,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(activity, { status: 201 })
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
     console.error('Failed to create activity:', error)
     return NextResponse.json(
       { error: 'Failed to create activity' },
@@ -337,6 +349,12 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, count: result.count })
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
     console.error('Failed to batch delete activities:', error)
     return NextResponse.json(
       { error: 'Failed to batch delete activities' },

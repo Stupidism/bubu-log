@@ -27,6 +27,12 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(activity)
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
     console.error('Failed to fetch activity:', error)
     return NextResponse.json(
       { error: 'Failed to fetch activity' },
@@ -113,6 +119,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(activity)
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
     console.error('Failed to update activity:', error)
     return NextResponse.json(
       { error: 'Failed to update activity' },
@@ -165,6 +177,12 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
     console.error('Failed to delete activity:', error)
     return NextResponse.json(
       { error: 'Failed to delete activity' },
