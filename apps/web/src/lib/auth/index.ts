@@ -30,6 +30,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return session
     },
   },
+  events: {
+    async createUser({ user }) {
+      // 只有特定邮箱的用户自动关联到默认宝宝（卜卜）
+      const allowedEmails = ["stupidism32@gmail.com", "sunfeng32@qq.com"]
+      
+      if (user.id && user.email && allowedEmails.includes(user.email)) {
+        const defaultBaby = await prisma.baby.findFirst({
+          where: { name: "卜卜" }
+        })
+        
+        if (defaultBaby) {
+          await prisma.babyUser.create({
+            data: {
+              userId: user.id,
+              babyId: defaultBaby.id,
+              isDefault: true,
+            }
+          }).catch(() => {
+            // 如果已存在关联则忽略
+          })
+        }
+      }
+      // 其他用户需要自己创建宝宝
+    },
+  },
   pages: {
     signIn: "/login",
   },
