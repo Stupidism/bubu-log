@@ -6,13 +6,14 @@ import { BottomSheet } from '@/components/BottomSheet'
 import { ActivityIcon } from '@/components/ActivityIcon'
 import { useModalParams } from '@/hooks/useModalParams'
 import { useActivity, useUpdateActivity, useDeleteActivity } from '@/lib/api/hooks'
-import { ActivityType, ActivityTypeLabels, PoopColorStyles, PoopColorLabels, PeeAmountLabels, PoopColor, PeeAmount, BreastFirmness, BreastFirmnessLabels } from '@/types/activity'
+import { ActivityType, ActivityTypeLabels, PoopColorStyles, PoopColorLabels, PeeAmountLabels, PoopColor, PeeAmount, BreastFirmness, BreastFirmnessLabels, SupplementType, SupplementTypeLabels } from '@/types/activity'
 import {
   DiaperForm,
   BreastfeedForm,
   BottleForm,
   ActivityDurationForm,
   SleepEndForm,
+  SupplementForm,
 } from '@/components/forms'
 import type { components } from '@/lib/api/openapi-types'
 import { dayjs, calculateDurationMinutes, formatDuration, formatDateTimeChinese } from '@/lib/dayjs'
@@ -166,6 +167,13 @@ export function ActivityDetailModal() {
           </div>
         )
       
+      case 'SUPPLEMENT':
+        return (
+          <p className="text-lg text-gray-700 dark:text-gray-300">
+            {activity.supplementType ? SupplementTypeLabels[activity.supplementType as SupplementType] : '未记录类型'}
+          </p>
+        )
+      
       default:
         return activity.endTime ? (
           <p className="text-lg text-gray-700 dark:text-gray-300">
@@ -241,6 +249,18 @@ export function ActivityDetailModal() {
             onSubmit={handleSubmit}
             onCancel={handleClose}
             initialValues={baseValues}
+            isEditing
+          />
+        )
+      case ActivityType.SUPPLEMENT:
+        return (
+          <SupplementForm
+            onSubmit={handleSubmit}
+            onCancel={handleClose}
+            initialValues={{
+              ...baseValues,
+              supplementType: activity.supplementType as SupplementType | undefined,
+            }}
             isEditing
           />
         )
