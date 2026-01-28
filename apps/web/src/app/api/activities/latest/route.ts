@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ActivityType } from '@/types/activity'
+import { requireAuth } from '@/lib/auth/get-current-baby'
 
 // GET: 获取某类活动的最新记录（用于判断交替状态）
 export async function GET(request: NextRequest) {
   try {
+    const { baby } = await requireAuth()
+    
     const searchParams = request.nextUrl.searchParams
     const types = searchParams.get('types')?.split(',') as ActivityType[] | undefined
 
@@ -17,6 +20,7 @@ export async function GET(request: NextRequest) {
 
     const activity = await prisma.activity.findFirst({
       where: {
+        babyId: baby.id,
         type: { in: types },
       },
       orderBy: { startTime: 'desc' },
@@ -31,4 +35,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-

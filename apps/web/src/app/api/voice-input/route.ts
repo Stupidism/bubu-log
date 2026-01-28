@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ActivityType, PoopColor, PeeAmount } from '@/types/activity'
+import { requireAuth } from '@/lib/auth/get-current-baby'
 
 // Deepseek API configuration
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions'
@@ -217,6 +218,8 @@ const typeLabelsForLog: Record<ActivityType, string> = {
 // POST: Parse voice input and create activity
 export async function POST(request: NextRequest) {
   try {
+    const { baby, user } = await requireAuth()
+    
     const body = await request.json()
     const { text, localTime } = body
 
@@ -250,6 +253,8 @@ export async function POST(request: NextRequest) {
           beforeData: Prisma.JsonNull,
           afterData: Prisma.JsonNull,
           activityId: null,
+          babyId: baby.id,
+          userId: user.id,
         },
       })
 
@@ -279,6 +284,8 @@ export async function POST(request: NextRequest) {
           beforeData: Prisma.JsonNull,
           afterData: Prisma.JsonNull,
           activityId: null,
+          babyId: baby.id,
+          userId: user.id,
         },
       })
 
@@ -315,6 +322,8 @@ export async function POST(request: NextRequest) {
           beforeData: Prisma.JsonNull,
           afterData: parsed as unknown as Prisma.InputJsonValue,
           activityId: null,
+          babyId: baby.id,
+          userId: user.id,
         },
       })
 
@@ -344,6 +353,7 @@ export async function POST(request: NextRequest) {
         type: parsed.type,
         startTime,
         endTime,
+        babyId: baby.id,
         milkAmount: parsed.milkAmount,
         hasPoop: parsed.hasPoop,
         hasPee: parsed.hasPee,
@@ -370,6 +380,8 @@ export async function POST(request: NextRequest) {
         beforeData: Prisma.JsonNull,
         afterData: activity as Prisma.InputJsonValue,
         activityId: activity.id,
+        babyId: baby.id,
+        userId: user.id,
       },
     })
 

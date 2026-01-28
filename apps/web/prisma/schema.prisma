@@ -11,6 +11,121 @@ datasource db {
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
+// ==================== 认证相关模型 ====================
+
+// NextAuth.js 账户模型
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// NextAuth.js Session 模型
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// NextAuth.js 验证令牌模型
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// 用户角色枚举
+enum UserRole {
+  DAD           // 爸爸
+  MOM           // 妈妈
+  NANNY         // 月嫂
+  GRANDPARENT   // 祖父母/外祖父母
+  OTHER         // 其他
+}
+
+// 用户模型（爸爸、妈妈、月嫂等）
+model User {
+  id            String    @id @default(cuid())
+  name          String?   // 用户名称
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?   // 头像URL
+  role          UserRole  @default(OTHER) // 用户角色
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth 关联
+  accounts      Account[]
+  sessions      Session[]
+
+  // 关联的宝宝（多对多）
+  babies        BabyUser[]
+  
+  // 审计日志
+  auditLogs     AuditLog[]
+
+  @@index([email])
+}
+
+// ==================== 宝宝相关模型 ====================
+
+// 宝宝模型（核心资源，类似租户）
+model Baby {
+  id        String   @id @default(cuid())
+  name      String   // 宝宝名字
+  avatarUrl String?  // 头像URL（存储在Vercel Blob）
+  birthDate DateTime? // 出生日期
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联的用户（多对多）
+  users       BabyUser[]
+  
+  // 关联的数据
+  activities  Activity[]
+  dailyStats  DailyStat[]
+  auditLogs   AuditLog[]
+
+  @@index([name])
+}
+
+// 宝宝-用户关联表（多对多）
+model BabyUser {
+  id        String   @id @default(cuid())
+  babyId    String
+  userId    String
+  isDefault Boolean  @default(false) // 是否为用户的默认宝宝
+  createdAt DateTime @default(now())
+
+  baby      Baby     @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([babyId, userId])
+  @@index([babyId])
+  @@index([userId])
+}
+
+// ==================== 活动相关枚举 ====================
+
 // 活动类型枚举
 enum ActivityType {
   SLEEP            // 睡眠（startTime=入睡时间，endTime=睡醒时间，endTime为null表示正在睡）
@@ -56,15 +171,7 @@ enum BreastFirmness {
   HARD    // 硬
 }
 
-// 宝宝资料模型（单例，只存储一个宝宝的信息）
-model BabyProfile {
-  id        String   @id @default("default")
-  name      String?  // 宝宝名字
-  avatarUrl String?  // 头像URL（存储在Vercel Blob）
-  birthDate DateTime? // 出生日期
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+// ==================== 活动记录模型 ====================
 
 // 活动记录模型
 model Activity {
@@ -74,6 +181,10 @@ model Activity {
   endTime         DateTime?    // 活动结束时间（可选，正在进行的活动没有结束时间）
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+
+  // 关联的宝宝
+  babyId          String
+  baby            Baby         @relation(fields: [babyId], references: [id], onDelete: Cascade)
 
   // 尿布相关字段
   hasPoop         Boolean?     // 是否有大便
@@ -96,10 +207,13 @@ model Activity {
   // 审计日志关联
   auditLogs       AuditLog[]
 
+  @@index([babyId])
   @@index([type])
   @@index([startTime])
   @@index([createdAt])
 }
+
+// ==================== 统计相关模型 ====================
 
 // 输入方式枚举
 enum InputMethod {
@@ -122,7 +236,11 @@ enum ResourceType {
 // 每日统计模型 - 存储每天的汇总数据
 model DailyStat {
   id                    String   @id @default(cuid())
-  date                  DateTime @unique // 统计日期（只存储日期部分，时间为00:00:00）
+  date                  DateTime // 统计日期（只存储日期部分，时间为00:00:00）
+  
+  // 关联的宝宝
+  babyId                String
+  baby                  Baby     @relation(fields: [babyId], references: [id], onDelete: Cascade)
   
   // 睡眠统计
   sleepCount            Int      @default(0) // 睡眠次数
@@ -150,7 +268,19 @@ model DailyStat {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   
+  @@unique([babyId, date])
+  @@index([babyId])
   @@index([date])
+}
+
+// 保留旧的 BabyProfile 表用于迁移（之后可删除）
+model BabyProfile {
+  id        String   @id @default("default")
+  name      String?  // 宝宝名字
+  avatarUrl String?  // 头像URL（存储在Vercel Blob）
+  birthDate DateTime? // 出生日期
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // 审计日志模型 - 记录用户的操作历史
@@ -166,10 +296,23 @@ model AuditLog {
   errorMessage   String?       // 错误信息（失败时记录）
   beforeData     Json?         // 修改前的资源内容
   afterData      Json?         // 修改后的资源内容
-  activityId     String?       // 关联的活动ID（可选）
+  
+  // 关联的宝宝
+  babyId         String?
+  baby           Baby?         @relation(fields: [babyId], references: [id], onDelete: SetNull)
+  
+  // 关联的活动
+  activityId     String?
   activity       Activity?     @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  
+  // 操作用户
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
   createdAt      DateTime      @default(now()) // 操作时间
   
+  @@index([babyId])
+  @@index([userId])
   @@index([createdAt])
   @@index([action])
   @@index([resourceType])

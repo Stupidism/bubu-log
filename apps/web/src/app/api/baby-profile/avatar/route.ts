@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { put, del } from '@vercel/blob'
 import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/auth/get-current-baby'
 
 // POST - 上传头像
 export async function POST(request: NextRequest) {
   try {
+    const { baby } = await requireAuth()
+    
     const formData = await request.formData()
     const file = formData.get('file') as File | null
 
@@ -32,14 +35,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 获取当前头像URL（如果有的话，需要删除旧的）
-    const currentProfile = await prisma.babyProfile.findUnique({
-      where: { id: 'default' },
+    const currentBaby = await prisma.baby.findUnique({
+      where: { id: baby.id },
     })
 
     // 删除旧头像（如果存在）
-    if (currentProfile?.avatarUrl) {
+    if (currentBaby?.avatarUrl) {
       try {
-        await del(currentProfile.avatarUrl)
+        await del(currentBaby.avatarUrl)
       } catch (e) {
         // 忽略删除失败的错误，可能是旧的本地存储URL
         console.log('Could not delete old avatar:', e)
@@ -53,15 +56,14 @@ export async function POST(request: NextRequest) {
     })
 
     // 更新数据库中的头像URL
-    const profile = await prisma.babyProfile.upsert({
-      where: { id: 'default' },
-      update: { avatarUrl: blob.url },
-      create: { id: 'default', avatarUrl: blob.url },
+    const updatedBaby = await prisma.baby.update({
+      where: { id: baby.id },
+      data: { avatarUrl: blob.url },
     })
 
     return NextResponse.json({
       url: blob.url,
-      profile,
+      profile: updatedBaby,
     })
   } catch (error) {
     console.error('Failed to upload avatar:', error)
@@ -75,20 +77,22 @@ export async function POST(request: NextRequest) {
 // DELETE - 删除头像
 export async function DELETE() {
   try {
-    const profile = await prisma.babyProfile.findUnique({
-      where: { id: 'default' },
+    const { baby } = await requireAuth()
+    
+    const currentBaby = await prisma.baby.findUnique({
+      where: { id: baby.id },
     })
 
-    if (profile?.avatarUrl) {
+    if (currentBaby?.avatarUrl) {
       try {
-        await del(profile.avatarUrl)
+        await del(currentBaby.avatarUrl)
       } catch (e) {
         console.log('Could not delete avatar from blob:', e)
       }
 
       // 清除数据库中的头像URL
-      await prisma.babyProfile.update({
-        where: { id: 'default' },
+      await prisma.baby.update({
+        where: { id: baby.id },
         data: { avatarUrl: null },
       })
     }
@@ -102,4 +106,3 @@ export async function DELETE() {
     )
   }
 }
-

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/auth/get-current-baby'
 
 // GET: 获取审计日志列表
 export async function GET(request: NextRequest) {
   try {
+    const { baby } = await requireAuth()
+    
     const searchParams = request.nextUrl.searchParams
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
@@ -11,7 +14,9 @@ export async function GET(request: NextRequest) {
     const resourceType = searchParams.get('resourceType') as 'ACTIVITY' | null
     const successParam = searchParams.get('success')
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = {
+      babyId: baby.id,
+    }
 
     if (action) {
       where.action = action

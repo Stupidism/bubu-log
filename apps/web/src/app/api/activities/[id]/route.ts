@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
+import { requireAuth } from '@/lib/auth/get-current-baby'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -10,10 +11,11 @@ interface RouteParams {
 // GET: 获取单个活动
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
+    const { baby } = await requireAuth()
     const { id } = await params
     
-    const activity = await prisma.activity.findUnique({
-      where: { id },
+    const activity = await prisma.activity.findFirst({
+      where: { id, babyId: baby.id },
     })
 
     if (!activity) {
@@ -36,13 +38,21 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 // PATCH: 更新活动
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
+    const { baby, user } = await requireAuth()
     const { id } = await params
     const body = await request.json()
     
-    // 获取原活动信息用于生成描述
-    const originalActivity = await prisma.activity.findUnique({
-      where: { id },
+    // 获取原活动信息用于生成描述（确保属于当前宝宝）
+    const originalActivity = await prisma.activity.findFirst({
+      where: { id, babyId: baby.id },
     })
+
+    if (!originalActivity) {
+      return NextResponse.json(
+        { error: 'Activity not found' },
+        { status: 404 }
+      )
+    }
 
     const {
       type,
@@ -96,6 +106,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         beforeData: originalActivity as object,
         afterData: activity as object,
         activityId: activity.id,
+        babyId: baby.id,
+        userId: user.id,
       },
     })
 
@@ -112,11 +124,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 // DELETE: 删除活动
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
+    const { baby, user } = await requireAuth()
     const { id } = await params
     
-    // 获取活动信息用于生成描述
-    const activity = await prisma.activity.findUnique({
-      where: { id },
+    // 获取活动信息用于生成描述（确保属于当前宝宝）
+    const activity = await prisma.activity.findFirst({
+      where: { id, babyId: baby.id },
     })
 
     if (!activity) {
@@ -145,6 +158,8 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
         beforeData: activity as Prisma.InputJsonValue,
         afterData: Prisma.JsonNull,
         activityId: null,
+        babyId: baby.id,
+        userId: user.id,
       },
     })
 

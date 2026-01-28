@@ -3,17 +3,22 @@ import { Prisma, ActivityType as PrismaActivityType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { startOfDayChina, endOfDayChina, previousDayTimeChina } from '@/lib/dayjs'
+import { requireAuth } from '@/lib/auth/get-current-baby'
 
 // GET: 获取活动列表
 export async function GET(request: NextRequest) {
   try {
+    const { baby } = await requireAuth()
+    
     const searchParams = request.nextUrl.searchParams
     const limit = parseInt(searchParams.get('limit') || '50')
     const type = searchParams.get('type') as ActivityType | null
     const types = searchParams.get('types') // 逗号分隔的多类型
     const date = searchParams.get('date') // YYYY-MM-DD 格式
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = {
+      babyId: baby.id,
+    }
 
     if (type) {
       where.type = type
@@ -102,6 +107,7 @@ const TIME_TOLERANCE_MS = 60 * 1000
 
 // 检查时间重叠
 async function checkTimeOverlap(
+  babyId: string,
   type: string,
   startTime: Date,
   endTime: Date | null,
@@ -117,6 +123,7 @@ async function checkTimeOverlap(
     
     const duplicate = await prisma.activity.findFirst({
       where: {
+        babyId,
         type: type as PrismaActivityType,
         startTime: {
           gte: startMin,
@@ -143,6 +150,7 @@ async function checkTimeOverlap(
     // 重叠条件：新活动的开始时间 < 现有活动的结束时间 AND 新活动的结束时间 > 现有活动的开始时间
     const overlapping = await prisma.activity.findFirst({
       where: {
+        babyId,
         type: { in: FEEDING_TYPES as PrismaActivityType[] },
         ...(excludeId ? { id: { not: excludeId } } : {}),
         OR: [
@@ -180,6 +188,8 @@ async function checkTimeOverlap(
 // POST: 创建新活动
 export async function POST(request: NextRequest) {
   try {
+    const { baby, user } = await requireAuth()
+    
     const body = await request.json()
     const {
       type,
@@ -202,7 +212,7 @@ export async function POST(request: NextRequest) {
     const endTimeDate = endTime ? new Date(endTime) : null
 
     // 检查时间重叠
-    const overlap = await checkTimeOverlap(type, startTimeDate, endTimeDate)
+    const overlap = await checkTimeOverlap(baby.id, type, startTimeDate, endTimeDate)
     if (overlap) {
       // DUPLICATE_ACTIVITY 始终阻止，OVERLAP_ACTIVITY 可以通过 force 绕过
       if (overlap.code === 'DUPLICATE_ACTIVITY' || !force) {
@@ -222,6 +232,7 @@ export async function POST(request: NextRequest) {
         type,
         startTime: startTimeDate,
         endTime: endTimeDate,
+        babyId: baby.id,
         hasPoop,
         hasPee,
         poopColor,
@@ -255,6 +266,8 @@ export async function POST(request: NextRequest) {
         beforeData: Prisma.JsonNull,
         afterData: activity as Prisma.InputJsonValue,
         activityId: activity.id,
+        babyId: baby.id,
+        userId: user.id,
       },
     })
 
@@ -271,6 +284,8 @@ export async function POST(request: NextRequest) {
 // DELETE: 批量删除活动
 export async function DELETE(request: NextRequest) {
   try {
+    const { baby, user } = await requireAuth()
+    
     const body = await request.json()
     const { ids } = body
 
@@ -281,14 +296,15 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // 获取要删除的活动完整信息
+    // 获取要删除的活动完整信息（只能删除属于当前宝宝的活动）
     const activities = await prisma.activity.findMany({
-      where: { id: { in: ids } },
+      where: { id: { in: ids }, babyId: baby.id },
     })
 
     const result = await prisma.activity.deleteMany({
       where: {
         id: { in: ids },
+        babyId: baby.id,
       },
     })
 
@@ -298,9 +314,6 @@ export async function DELETE(request: NextRequest) {
       const label = ActivityTypeLabels[a.type as ActivityType] || a.type
       typeCounts[label] = (typeCounts[label] || 0) + 1
     })
-    const typeDesc = Object.entries(typeCounts)
-      .map(([type, count]) => `${type}${count}条`)
-      .join('、')
 
     // 为每个删除的活动记录审计日志
     for (const activity of activities) {
@@ -316,6 +329,8 @@ export async function DELETE(request: NextRequest) {
           beforeData: activity as Prisma.InputJsonValue,
           afterData: Prisma.JsonNull,
           activityId: null,
+          babyId: baby.id,
+          userId: user.id,
         },
       })
     }

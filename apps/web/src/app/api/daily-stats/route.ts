@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ActivityType } from '@prisma/client'
+import { requireAuth } from '@/lib/auth/get-current-baby'
 
 // 计算某天在当天范围内的睡眠时长（分钟）
 function calculateDurationInDay(startTime: Date, endTime: Date, targetDate: Date): number {
@@ -23,7 +24,7 @@ function calculateDurationMinutes(startTime: Date, endTime: Date): number {
 }
 
 // 计算某天的统计数据
-async function computeDailyStats(date: Date) {
+async function computeDailyStats(babyId: string, date: Date) {
   const dayStart = new Date(date)
   dayStart.setHours(0, 0, 0, 0)
   const dayEnd = new Date(date)
@@ -32,6 +33,7 @@ async function computeDailyStats(date: Date) {
   // 获取当天的所有活动（开始时间或结束时间在当天范围内）
   const activities = await prisma.activity.findMany({
     where: {
+      babyId,
       OR: [
         // 开始时间在当天
         { startTime: { gte: dayStart, lte: dayEnd } },
@@ -131,58 +133,86 @@ async function computeDailyStats(date: Date) {
 
 // GET /api/daily-stats - 获取日期范围内的统计数据
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
-  const startDateStr = searchParams.get('startDate')
-  const endDateStr = searchParams.get('endDate')
-  const limit = parseInt(searchParams.get('limit') || '30')
-  
-  const where: { date?: { gte?: Date; lte?: Date } } = {}
-  
-  if (startDateStr) {
-    const startDate = new Date(startDateStr)
-    startDate.setHours(0, 0, 0, 0)
-    where.date = { ...where.date, gte: startDate }
+  try {
+    const { baby } = await requireAuth()
+    
+    const searchParams = request.nextUrl.searchParams
+    const startDateStr = searchParams.get('startDate')
+    const endDateStr = searchParams.get('endDate')
+    const limit = parseInt(searchParams.get('limit') || '30')
+    
+    const where: { babyId: string; date?: { gte?: Date; lte?: Date } } = {
+      babyId: baby.id,
+    }
+    
+    if (startDateStr) {
+      const startDate = new Date(startDateStr)
+      startDate.setHours(0, 0, 0, 0)
+      where.date = { ...where.date, gte: startDate }
+    }
+    
+    if (endDateStr) {
+      const endDate = new Date(endDateStr)
+      endDate.setHours(0, 0, 0, 0)
+      where.date = { ...where.date, lte: endDate }
+    }
+    
+    const stats = await prisma.dailyStat.findMany({
+      where,
+      orderBy: { date: 'desc' },
+      take: limit,
+    })
+    
+    return NextResponse.json(stats)
+  } catch (error) {
+    console.error('Failed to fetch daily stats:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch daily stats' },
+      { status: 500 }
+    )
   }
-  
-  if (endDateStr) {
-    const endDate = new Date(endDateStr)
-    endDate.setHours(0, 0, 0, 0)
-    where.date = { ...where.date, lte: endDate }
-  }
-  
-  const stats = await prisma.dailyStat.findMany({
-    where,
-    orderBy: { date: 'desc' },
-    take: limit,
-  })
-  
-  return NextResponse.json(stats)
 }
 
 // POST /api/daily-stats - 计算并保存某天的统计数据
 export async function POST(request: NextRequest) {
-  const body = await request.json()
-  const { date: dateStr } = body
-  
-  if (!dateStr) {
-    return NextResponse.json({ error: '日期是必需的' }, { status: 400 })
+  try {
+    const { baby } = await requireAuth()
+    
+    const body = await request.json()
+    const { date: dateStr } = body
+    
+    if (!dateStr) {
+      return NextResponse.json({ error: '日期是必需的' }, { status: 400 })
+    }
+    
+    const date = new Date(dateStr)
+    date.setHours(0, 0, 0, 0)
+    
+    // 计算统计数据
+    const stats = await computeDailyStats(baby.id, date)
+    
+    // 使用 upsert 更新或创建
+    const dailyStat = await prisma.dailyStat.upsert({
+      where: { 
+        babyId_date: {
+          babyId: baby.id,
+          date,
+        }
+      },
+      update: stats,
+      create: {
+        date,
+        babyId: baby.id,
+        ...stats,
+      },
+    })
+    
+    return NextResponse.json(dailyStat)
+  } catch (error) {
+    console.error('Failed to compute daily stats:', error)
+    return NextResponse.json(
+      { error: 'Failed to compute daily stats' },
+      { status: 500 }
+    )
   }
-  
-  const date = new Date(dateStr)
-  date.setHours(0, 0, 0, 0)
-  
-  // 计算统计数据
-  const stats = await computeDailyStats(date)
-  
-  // 使用 upsert 更新或创建
-  const dailyStat = await prisma.dailyStat.upsert({
-    where: { date },
-    update: stats,
-    create: {
-      date,
-      ...stats,
-    },
-  })
-  
-  return NextResponse.json(dailyStat)
 }
