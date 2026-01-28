@@ -1,9 +1,11 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import GitHub from "next-auth/providers/github"
+import Credentials from "next-auth/providers/credentials"
 import WeChat from "./wechat-provider"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
+import bcrypt from "bcryptjs"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -21,17 +23,64 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientSecret: process.env.WECHAT_APP_SECRET!,
       platformType: "WebsiteApp", // 网页登录
     }),
+    Credentials({
+      name: "credentials",
+      credentials: {
+        username: { label: "用户名", type: "text" },
+        password: { label: "密码", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.username || !credentials?.password) {
+          return null
+        }
+
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { username: credentials.username as string },
+              { email: credentials.username as string },
+            ],
+          },
+        })
+
+        if (!user || !user.password) {
+          return null
+        }
+
+        const isValid = await bcrypt.compare(
+          credentials.password as string,
+          user.password
+        )
+
+        if (!isValid) {
+          return null
+        }
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+        }
+      },
+    }),
   ],
   session: {
-    strategy: "database",
+    strategy: "jwt",
     // 设置一个非常长的过期时间（约100年），实现"永不过期"
     maxAge: 100 * 365 * 24 * 60 * 60,
   },
   callbacks: {
-    async session({ session, user }) {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+      }
+      return token
+    },
+    async session({ session, token }) {
       // 将用户ID添加到session
-      if (session.user) {
-        session.user.id = user.id
+      if (session.user && token.id) {
+        session.user.id = token.id as string
       }
       return session
     },

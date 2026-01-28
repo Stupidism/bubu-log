@@ -66,8 +66,10 @@ enum UserRole {
 model User {
   id            String    @id @default(cuid())
   name          String?   // 用户名称
+  username      String?   @unique // 用户名（用于密码登录）
   email         String?   @unique
   emailVerified DateTime?
+  password      String?   // 密码哈希（用于密码登录）
   image         String?   // 头像URL
   role          UserRole  @default(OTHER) // 用户角色
   createdAt     DateTime  @default(now())
@@ -84,6 +86,7 @@ model User {
   auditLogs     AuditLog[]
 
   @@index([email])
+  @@index([username])
 }
 
 // ==================== 宝宝相关模型 ====================

@@ -1,9 +1,40 @@
 'use client'
 
+import { useState } from "react"
 import { signIn } from "next-auth/react"
-import { Baby } from "lucide-react"
+import { Baby, Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const handleCredentialsLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setLoading(true)
+
+    try {
+      const result = await signIn("credentials", {
+        username,
+        password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        setError("用户名或密码错误")
+      } else {
+        window.location.href = "/"
+      }
+    } catch {
+      setError("登录失败，请重试")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#fefbf6] to-[#fff5e6] dark:from-[#1a1a2e] dark:to-[#16213e] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
@@ -20,7 +51,60 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* 登录按钮 */}
+        {/* 账号密码登录 */}
+        <form onSubmit={handleCredentialsLogin} className="space-y-4 mb-6">
+          <div>
+            <input
+              type="text"
+              placeholder="用户名或邮箱"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              required
+            />
+          </div>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="密码"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 pr-12"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+          {error && (
+            <p className="text-red-500 text-sm text-center">{error}</p>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full px-4 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+          >
+            {loading ? "登录中..." : "登录"}
+          </button>
+        </form>
+
+        {/* 分割线 */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-gradient-to-b from-[#fefbf6] to-[#fff5e6] dark:from-[#1a1a2e] dark:to-[#16213e] text-gray-400">
+              或使用第三方账号
+            </span>
+          </div>
+        </div>
+
+        {/* 第三方登录按钮 */}
         <div className="space-y-3">
           <button
             onClick={() => signIn("google", { callbackUrl: "/" })}

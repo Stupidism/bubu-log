@@ -13,9 +13,11 @@ export function middleware(request: NextRequest) {
   }
 
   // 检查 session cookie 是否存在
-  // NextAuth.js 使用 authjs.session-token (生产) 或 authjs.session-token (开发)
+  // NextAuth.js JWT 策略使用不同的 cookie 名称
   const sessionToken = request.cookies.get("authjs.session-token") 
     || request.cookies.get("__Secure-authjs.session-token")
+    || request.cookies.get("next-auth.session-token")
+    || request.cookies.get("__Secure-next-auth.session-token")
 
   // 如果没有 session cookie，重定向到登录页
   if (!sessionToken) {
