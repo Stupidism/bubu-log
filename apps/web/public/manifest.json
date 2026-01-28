@@ -1,6 +1,6 @@
 {
-  "name": "宝宝日记",
-  "short_name": "宝宝日记",
+  "name": "卜卜日志",
+  "short_name": "卜卜日志",
   "description": "记录宝宝的睡眠、喂奶、换尿布和日常活动",
   "start_url": "/",
   "display": "standalone",
@@ -17,7 +17,11 @@
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ]
 }
-
