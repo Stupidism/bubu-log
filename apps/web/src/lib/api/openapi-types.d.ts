@@ -151,6 +151,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/daily-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get daily statistics list
+         * @description Get daily statistics within a date range
+         */
+        get: operations["getDailyStats"];
+        put?: never;
+        /**
+         * Compute and store daily statistics
+         * @description Compute statistics for a specific date and store in database
+         */
+        post: operations["computeDailyStat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/daily-stats/{date}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get daily statistics for a specific date */
+        get: operations["getDailyStat"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -304,6 +345,44 @@ export interface components {
              */
             code: "DUPLICATE_ACTIVITY" | "OVERLAP_ACTIVITY";
             conflictingActivity?: components["schemas"]["Activity"];
+        };
+        DailyStat: {
+            id: string;
+            /**
+             * Format: date-time
+             * @description 统计日期
+             */
+            date: string;
+            /** @description 睡眠次数 */
+            sleepCount?: number;
+            /** @description 总睡眠时长（分钟） */
+            totalSleepMinutes?: number;
+            /** @description 亲喂次数 */
+            breastfeedCount?: number;
+            /** @description 亲喂总时长（分钟） */
+            totalBreastfeedMinutes?: number;
+            /** @description 瓶喂次数 */
+            bottleCount?: number;
+            /** @description 瓶喂总奶量（毫升） */
+            totalMilkAmount?: number;
+            /** @description 换尿布次数 */
+            diaperCount?: number;
+            /** @description 大便次数 */
+            poopCount?: number;
+            /** @description 小便次数 */
+            peeCount?: number;
+            /** @description 活动次数 */
+            exerciseCount?: number;
+            /** @description 抬头总时长（分钟） */
+            totalHeadLiftMinutes?: number;
+            /** @description AD补剂次数 */
+            supplementADCount?: number;
+            /** @description D3补剂次数 */
+            supplementD3Count?: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
     };
     responses: {
@@ -795,6 +874,116 @@ export interface operations {
                     "application/json": {
                         success?: boolean;
                     };
+                };
+            };
+            500: components["responses"]["ServerError"];
+        };
+    };
+    getDailyStats: {
+        parameters: {
+            query?: {
+                /** @description Start date (YYYY-MM-DD format) */
+                startDate?: string;
+                /** @description End date (YYYY-MM-DD format) */
+                endDate?: string;
+                /** @description Maximum number of records to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daily statistics list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DailyStat"][];
+                };
+            };
+            500: components["responses"]["ServerError"];
+        };
+    };
+    computeDailyStat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Format: date
+                     * @description Date to compute statistics for (YYYY-MM-DD format)
+                     */
+                    date: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Computed daily statistics */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DailyStat"];
+                };
+            };
+            /** @description Bad request - date is required */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            500: components["responses"]["ServerError"];
+        };
+    };
+    getDailyStat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Date in YYYY-MM-DD format */
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Daily statistics */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DailyStat"];
+                };
+            };
+            /** @description Invalid date format */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Statistics not found for this date */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             500: components["responses"]["ServerError"];

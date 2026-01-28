@@ -119,6 +119,40 @@ enum ResourceType {
   ACTIVITY  // 活动记录
 }
 
+// 每日统计模型 - 存储每天的汇总数据
+model DailyStat {
+  id                    String   @id @default(cuid())
+  date                  DateTime @unique // 统计日期（只存储日期部分，时间为00:00:00）
+  
+  // 睡眠统计
+  sleepCount            Int      @default(0) // 睡眠次数
+  totalSleepMinutes     Int      @default(0) // 总睡眠时长（分钟）
+  
+  // 喂奶统计
+  breastfeedCount       Int      @default(0) // 亲喂次数
+  totalBreastfeedMinutes Int     @default(0) // 亲喂总时长（分钟）
+  bottleCount           Int      @default(0) // 瓶喂次数
+  totalMilkAmount       Int      @default(0) // 瓶喂总奶量（毫升）
+  
+  // 尿布统计
+  diaperCount           Int      @default(0) // 换尿布次数
+  poopCount             Int      @default(0) // 大便次数
+  peeCount              Int      @default(0) // 小便次数
+  
+  // 活动统计
+  exerciseCount         Int      @default(0) // 活动次数
+  totalHeadLiftMinutes  Int      @default(0) // 抬头总时长（分钟）
+  
+  // 补剂统计
+  supplementADCount     Int      @default(0) // AD补剂次数
+  supplementD3Count     Int      @default(0) // D3补剂次数
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([date])
+}
+
 // 审计日志模型 - 记录用户的操作历史
 model AuditLog {
   id             String        @id @default(cuid())

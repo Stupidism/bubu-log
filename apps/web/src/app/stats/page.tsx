@@ -30,6 +30,7 @@ import {
   Square,
   History,
   ArrowUpDown,
+  TrendingUp,
 } from 'lucide-react'
 import { StatsCardList, type StatFilter } from '@/components/StatsCardList'
 
@@ -501,13 +502,22 @@ function StatsPageContent() {
                 <BarChart3 size={22} />
                 数据统计
               </h1>
-              <Link
-                href="/audits"
-                className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-base flex items-center gap-1"
-                title="操作记录"
-              >
-                <History size={18} />
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/stats/trends"
+                  className="p-2 rounded-full bg-primary/10 text-primary"
+                  title="数据趋势"
+                >
+                  <TrendingUp size={18} />
+                </Link>
+                <Link
+                  href="/audits"
+                  className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                  title="操作记录"
+                >
+                  <History size={18} />
+                </Link>
+              </div>
             </>
           )}
         </div>

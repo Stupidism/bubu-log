@@ -463,6 +463,109 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+  /daily-stats:
+    get:
+      operationId: getDailyStats
+      summary: Get daily statistics list
+      description: Get daily statistics within a date range
+      parameters:
+        - name: startDate
+          in: query
+          description: Start date (YYYY-MM-DD format)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: End date (YYYY-MM-DD format)
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          description: Maximum number of records to return
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Daily statistics list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyStat'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    post:
+      operationId: computeDailyStat
+      summary: Compute and store daily statistics
+      description: Compute statistics for a specific date and store in database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  format: date
+                  description: Date to compute statistics for (YYYY-MM-DD format)
+              required:
+                - date
+      responses:
+        '200':
+          description: Computed daily statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyStat'
+        '400':
+          description: Bad request - date is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /daily-stats/{date}:
+    get:
+      operationId: getDailyStat
+      summary: Get daily statistics for a specific date
+      parameters:
+        - name: date
+          in: path
+          required: true
+          description: Date in YYYY-MM-DD format
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Daily statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyStat'
+        '400':
+          description: Invalid date format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Statistics not found for this date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
 components:
   schemas:
     ActivityType:
@@ -777,6 +880,66 @@ components:
             OVERLAP_ACTIVITY - Time overlaps with another activity (can be overridden with force=true)
         conflictingActivity:
           $ref: '#/components/schemas/Activity'
+
+    DailyStat:
+      type: object
+      required:
+        - id
+        - date
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+          format: date-time
+          description: 统计日期
+        sleepCount:
+          type: integer
+          description: 睡眠次数
+        totalSleepMinutes:
+          type: integer
+          description: 总睡眠时长（分钟）
+        breastfeedCount:
+          type: integer
+          description: 亲喂次数
+        totalBreastfeedMinutes:
+          type: integer
+          description: 亲喂总时长（分钟）
+        bottleCount:
+          type: integer
+          description: 瓶喂次数
+        totalMilkAmount:
+          type: integer
+          description: 瓶喂总奶量（毫升）
+        diaperCount:
+          type: integer
+          description: 换尿布次数
+        poopCount:
+          type: integer
+          description: 大便次数
+        peeCount:
+          type: integer
+          description: 小便次数
+        exerciseCount:
+          type: integer
+          description: 活动次数
+        totalHeadLiftMinutes:
+          type: integer
+          description: 抬头总时长（分钟）
+        supplementADCount:
+          type: integer
+          description: AD补剂次数
+        supplementD3Count:
+          type: integer
+          description: D3补剂次数
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
   responses:
     ServerError:

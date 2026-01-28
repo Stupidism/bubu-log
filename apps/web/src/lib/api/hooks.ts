@@ -246,3 +246,35 @@ export function useAudits(params?: {
     ...options,
   });
 }
+
+// Daily stats types
+export type DailyStat = components["schemas"]["DailyStat"];
+
+// Daily stats hooks
+export function useDailyStats(params?: {
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+}, options?: { enabled?: boolean }) {
+  return $api.useQuery("get", "/daily-stats", {
+    params: { query: params },
+    ...options,
+  });
+}
+
+export function useDailyStat(date: string, options?: { enabled?: boolean }) {
+  return $api.useQuery("get", "/daily-stats/{date}", {
+    params: { path: { date } },
+    ...options,
+  });
+}
+
+export function useComputeDailyStat() {
+  const queryClient = useQueryClient();
+  
+  return $api.useMutation("post", "/daily-stats", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get", "/daily-stats"] });
+    },
+  });
+}
