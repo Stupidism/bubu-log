@@ -140,7 +140,7 @@ function ChartView({
             <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} className="text-gray-500" />
             <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => formatMinutesToHours(value)} className="text-gray-500" />
             <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatMinutesToHours(value as number)} />} />
-            <Line type="monotone" dataKey="totalSleepMinutes" stroke="var(--color-totalSleepMinutes)" strokeWidth={2} dot={{ fill: 'var(--color-totalSleepMinutes)', r: 4 }} activeDot={{ r: 6 }} />
+            <Line type="linear" dataKey="totalSleepMinutes" stroke="var(--color-totalSleepMinutes)" strokeWidth={2} dot={{ fill: 'var(--color-totalSleepMinutes)', r: 3 }} activeDot={{ r: 5 }} connectNulls />
           </LineChart>
         </ChartContainer>
       </section>
@@ -157,7 +157,7 @@ function ChartView({
             <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} className="text-gray-500" />
             <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}ml`} className="text-gray-500" />
             <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value}ml`} />} />
-            <Line type="monotone" dataKey="totalMilkAmount" stroke="var(--color-totalMilkAmount)" strokeWidth={2} dot={{ fill: 'var(--color-totalMilkAmount)', r: 4 }} activeDot={{ r: 6 }} />
+            <Line type="linear" dataKey="totalMilkAmount" stroke="var(--color-totalMilkAmount)" strokeWidth={2} dot={{ fill: 'var(--color-totalMilkAmount)', r: 3 }} activeDot={{ r: 5 }} connectNulls />
           </LineChart>
         </ChartContainer>
       </section>
@@ -174,7 +174,7 @@ function ChartView({
             <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} className="text-gray-500" />
             <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}次`} className="text-gray-500" />
             <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value}次`} />} />
-            <Line type="monotone" dataKey="diaperCount" stroke="var(--color-diaperCount)" strokeWidth={2} dot={{ fill: 'var(--color-diaperCount)', r: 4 }} activeDot={{ r: 6 }} />
+            <Line type="linear" dataKey="diaperCount" stroke="var(--color-diaperCount)" strokeWidth={2} dot={{ fill: 'var(--color-diaperCount)', r: 3 }} activeDot={{ r: 5 }} connectNulls />
           </LineChart>
         </ChartContainer>
       </section>
@@ -189,6 +189,13 @@ function ChartView({
       )}
     </div>
   )
+}
+
+// 活动块类型（用于跨天活动渲染）
+type ActivityBlock = {
+  activity: Activity
+  startPercent: number
+  endPercent: number
 }
 
 // ==================== 周历视图（真正的周视图：7列，每列一天，从早到晚的活动色块） ====================
@@ -210,51 +217,73 @@ function WeeklyView({
     return dates
   }, [weekStart])
 
-  const startDateStr = weekDates[0]
-  const endDateStr = weekDates[6]
+  // 使用本地时间格式避免时区问题
+  const startDateForQuery = useMemo(() => {
+    const d = dayjs(weekDates[0])
+    return `${d.year()}-${String(d.month() + 1).padStart(2, '0')}-${String(d.date()).padStart(2, '0')}T00:00:00`
+  }, [weekDates])
+  
+  const endDateForQuery = useMemo(() => {
+    const d = dayjs(weekDates[6])
+    return `${d.year()}-${String(d.month() + 1).padStart(2, '0')}-${String(d.date()).padStart(2, '0')}T23:59:59`
+  }, [weekDates])
 
-  // 获取这一周的所有活动
+  // 获取这一周的所有活动（包括跨天活动）
   const { data: activitiesData = [], isLoading } = useActivities({
-    startTimeGte: dayjs(startDateStr).startOf('day').toISOString(),
-    startTimeLt: dayjs(endDateStr).endOf('day').toISOString(),
+    startTimeGte: startDateForQuery,
+    startTimeLt: endDateForQuery,
   })
 
-  // 按日期分组活动
+  // 按日期分组活动（处理跨天活动）
   const activitiesByDate = useMemo(() => {
-    const map = new Map<string, Activity[]>()
+    const map = new Map<string, ActivityBlock[]>()
     weekDates.forEach(date => map.set(date, []))
     
     activitiesData.forEach((activity: Activity) => {
-      const date = dayjs(activity.startTime).format('YYYY-MM-DD')
-      if (map.has(date)) {
-        map.get(date)!.push(activity)
-      }
+      const activityStart = dayjs(activity.startTime)
+      const activityEnd = activity.endTime ? dayjs(activity.endTime) : activityStart
+      const startDate = activityStart.format('YYYY-MM-DD')
+      const endDate = activityEnd.format('YYYY-MM-DD')
+      
+      // 遍历这个活动涉及的每一天
+      weekDates.forEach(date => {
+        const dayStart = dayjs(date).startOf('day')
+        const dayEnd = dayjs(date).endOf('day')
+        
+        // 检查活动是否与这一天有交集
+        if (activityStart.isBefore(dayEnd) && activityEnd.isAfter(dayStart)) {
+          // 计算在这一天内的时间范围
+          const effectiveStart = activityStart.isBefore(dayStart) ? dayStart : activityStart
+          const effectiveEnd = activityEnd.isAfter(dayEnd) ? dayEnd : activityEnd
+          
+          const startMinutes = effectiveStart.hour() * 60 + effectiveStart.minute()
+          const endMinutes = effectiveEnd.hour() * 60 + effectiveEnd.minute()
+          
+          // 如果跨到第二天凌晨，endMinutes 应该是 24*60
+          const adjustedEndMinutes = date === endDate ? endMinutes : 24 * 60
+          const adjustedStartMinutes = date === startDate ? startMinutes : 0
+          
+          const startPercent = (adjustedStartMinutes / (24 * 60)) * 100
+          const endPercent = (adjustedEndMinutes / (24 * 60)) * 100
+          
+          if (endPercent > startPercent) {
+            map.get(date)!.push({
+              activity,
+              startPercent,
+              endPercent,
+            })
+          }
+        }
+      })
     })
     
-    // 按开始时间排序
-    map.forEach((activities) => {
-      activities.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+    // 按开始位置排序
+    map.forEach((blocks) => {
+      blocks.sort((a, b) => a.startPercent - b.startPercent)
     })
     
     return map
   }, [activitiesData, weekDates])
-
-  // 计算活动在一天中的位置（0-100%）
-  const getActivityPosition = (activity: Activity) => {
-    const startTime = dayjs(activity.startTime)
-    const startMinutes = startTime.hour() * 60 + startTime.minute()
-    const startPercent = (startMinutes / (24 * 60)) * 100
-
-    if (activity.endTime) {
-      const endTime = dayjs(activity.endTime)
-      const endMinutes = endTime.hour() * 60 + endTime.minute()
-      const endPercent = (endMinutes / (24 * 60)) * 100
-      return { top: startPercent, height: Math.max(endPercent - startPercent, 2) }
-    }
-    
-    // 点事件（如换尿布）显示为小块
-    return { top: startPercent, height: 2 }
-  }
 
   if (isLoading) {
     return <div className="text-center py-8 text-gray-500">加载中...</div>
@@ -302,7 +331,7 @@ function WeeklyView({
         {/* 时间轴和活动块 */}
         <div className="grid grid-cols-7 gap-1">
           {weekDates.map((date) => {
-            const activities = activitiesByDate.get(date) || []
+            const blocks = activitiesByDate.get(date) || []
             const isFuture = dayjs(date).isAfter(dayjs(), 'day')
             const isToday = date === dayjs().format('YYYY-MM-DD')
             
@@ -329,20 +358,20 @@ function WeeklyView({
                 ))}
 
                 {/* 活动色块 */}
-                {activities.map((activity) => {
-                  const { top, height } = getActivityPosition(activity)
-                  const colorClass = activityColors[activity.type] || 'bg-gray-400'
+                {blocks.map((block, idx) => {
+                  const colorClass = activityColors[block.activity.type] || 'bg-gray-400'
+                  const heightPercent = block.endPercent - block.startPercent
                   
                   return (
                     <div
-                      key={activity.id}
+                      key={`${block.activity.id}-${date}-${idx}`}
                       className={`absolute left-0.5 right-0.5 ${colorClass} rounded-sm opacity-80`}
                       style={{ 
-                        top: `${top}%`, 
-                        height: `${height}%`,
+                        top: `${block.startPercent}%`, 
+                        height: `${heightPercent}%`,
                         minHeight: '4px'
                       }}
-                      title={`${activity.type} - ${dayjs(activity.startTime).format('HH:mm')}`}
+                      title={`${block.activity.type} - ${dayjs(block.activity.startTime).format('HH:mm')}${block.activity.endTime ? ` ~ ${dayjs(block.activity.endTime).format('HH:mm')}` : ''}`}
                     />
                   )
                 })}
