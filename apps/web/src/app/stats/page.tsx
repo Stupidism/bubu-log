@@ -90,10 +90,11 @@ function StatsPageContent() {
   const batchDeleteMutation = useBatchDeleteActivities()
   const batchUpdateDateMutation = useBatchUpdateActivityDate()
 
-  // Use React Query for activities
+  // Use React Query for activities (不包含前一天晚上的活动)
   const { data: activities = [], isLoading, refetch } = useActivities({
     date: selectedDateStr,
     limit: 100,
+    // 不设置 includePreviousEvening，默认 false，只获取当天的活动
   })
 
   // Filter and sort activities based on selected filter and sort field

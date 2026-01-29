@@ -13,6 +13,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:test": "tsx prisma/seed-test-data.ts",
     "db:migrate:prod": "bash scripts/migrate-production.sh",
+    "fix:diaper-dates": "tsx scripts/fix-batch-date-diaper.ts",
+    "backfill:diaper-endtime": "tsx scripts/backfill-diaper-endtime.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",

@@ -43,10 +43,11 @@ function HomeContent() {
   // URL 参数管理（包括日期）
   const { openActivityDetail, openModal, selectedDate, selectedDateStr, setSelectedDate } = useModalParams()
 
-  // 获取活动数据（包含当天和前一天晚上的活动）
+  // 获取活动数据（包含当天和前一天晚上的活动，用于"昨晚摘要"）
   const { data: activities = [], isLoading: activitiesLoading } = useActivities({
     date: selectedDateStr,
-    limit: 200, // 增加限制以包含前一天晚上的活动
+    limit: 200,
+    includePreviousEvening: true, // 首页需要显示前一天晚上的活动
   })
   
   // 从查询结果中筛选出前一天晚上的活动（用于"昨晚摘要"）

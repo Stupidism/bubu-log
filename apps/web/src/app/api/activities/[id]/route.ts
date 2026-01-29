@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { requireAuth } from '@/lib/auth/get-current-baby'
 
+// 点事件类型（没有时长的活动，endTime 应该与 startTime 相同）
+const POINT_EVENT_TYPES = ['DIAPER', 'SUPPLEMENT']
+
 interface RouteParams {
   params: Promise<{ id: string }>
 }
@@ -77,9 +80,23 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const updateData: Record<string, unknown> = {}
 
+    // 判断活动类型（使用更新后的类型，或原活动的类型）
+    const activityType = type ?? originalActivity.type
+    const isPointEvent = POINT_EVENT_TYPES.includes(activityType)
+
     if (type !== undefined) updateData.type = type
-    if (startTime !== undefined) updateData.startTime = new Date(startTime)
-    if (endTime !== undefined) updateData.endTime = endTime ? new Date(endTime) : null
+    if (startTime !== undefined) {
+      const startTimeDate = new Date(startTime)
+      updateData.startTime = startTimeDate
+      // 点事件的 endTime 应该与 startTime 相同
+      if (isPointEvent) {
+        updateData.endTime = startTimeDate
+      }
+    }
+    if (endTime !== undefined && !isPointEvent) {
+      // 只有非点事件才允许独立设置 endTime
+      updateData.endTime = endTime ? new Date(endTime) : null
+    }
     if (hasPoop !== undefined) updateData.hasPoop = hasPoop
     if (hasPee !== undefined) updateData.hasPee = hasPee
     if (poopColor !== undefined) updateData.poopColor = poopColor

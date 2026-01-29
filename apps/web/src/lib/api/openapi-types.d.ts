@@ -416,6 +416,8 @@ export interface operations {
                 types?: string;
                 /** @description Date in YYYY-MM-DD format */
                 date?: string;
+                /** @description Include activities from previous evening (18:00+) for summary display */
+                includePreviousEvening?: boolean;
             };
             header?: never;
             path?: never;

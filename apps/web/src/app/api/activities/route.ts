@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') as ActivityType | null
     const types = searchParams.get('types') // 逗号分隔的多类型
     const date = searchParams.get('date') // YYYY-MM-DD 格式
+    const includePreviousEvening = searchParams.get('includePreviousEvening') === 'true' // 是否包含前一天晚上的活动
 
     const where: Record<string, unknown> = {
       babyId: baby.id,
@@ -35,12 +36,8 @@ export async function GET(request: NextRequest) {
       // 前一天晚上 18:00（中国时区，用于包含前一天晚上的活动）
       const previousEvening = previousDayTimeChina(date, 18)
 
-      // 查询条件：活动与指定日期有交集，或前一天晚上18:00之后的活动
-      // 1. startTime 在指定日期内，或者
-      // 2. startTime 在指定日期之前，但 endTime 在指定日期内或之后（跨夜活动），或者
-      // 3. startTime 在指定日期之前，且 endTime 为 null（进行中的跨夜活动），或者
-      // 4. startTime 在前一天晚上18:00之后（用于显示"昨晚摘要"）
-      where.OR = [
+      // 基础查询条件：活动与指定日期有交集
+      const dateConditions: Record<string, unknown>[] = [
         {
           // 活动开始时间在指定日期内
           startTime: {
@@ -49,10 +46,12 @@ export async function GET(request: NextRequest) {
           },
         },
         {
-          // 跨夜活动：开始时间在指定日期之前，结束时间在指定日期内或之后
+          // 跨夜活动：开始时间在前一天晚上18:00之后且在当天之前，结束时间在当天或之后
+          // 限制下限避免查询到太早的活动
           AND: [
             {
               startTime: {
+                gte: previousEvening,
                 lt: startOfDay,
               },
             },
@@ -71,15 +70,20 @@ export async function GET(request: NextRequest) {
             },
           ],
         },
-        {
-          // 前一天晚上18:00之后开始的活动（用于"昨晚摘要"）
-          // 这些活动可能完全在前一天，也可能跨到当天
+      ]
+
+      // 如果需要包含前一天晚上的活动（用于首页"昨晚摘要"）
+      if (includePreviousEvening) {
+        dateConditions.push({
+          // 前一天晚上18:00之后开始的活动
           startTime: {
             gte: previousEvening,
             lt: startOfDay,
           },
-        },
-      ]
+        })
+      }
+
+      where.OR = dateConditions
     }
 
     const activities = await prisma.activity.findMany({
@@ -296,7 +300,9 @@ export async function POST(request: NextRequest) {
     } = body
 
     const startTimeDate = new Date(startTime)
-    const endTimeDate = endTime ? new Date(endTime) : null
+    // 点事件（换尿布、补剂）的 endTime 应该与 startTime 相同
+    const isPointEvent = POINT_EVENT_TYPES.includes(type)
+    const endTimeDate = isPointEvent ? startTimeDate : (endTime ? new Date(endTime) : null)
 
     // 检查时间重叠
     const overlap = await checkTimeOverlap(baby.id, type, startTimeDate, endTimeDate)
