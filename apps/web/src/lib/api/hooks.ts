@@ -23,6 +23,8 @@ export function useActivities(params?: {
   date?: string;
   startTimeGte?: string;
   startTimeLt?: string;
+  crossStartTime?: boolean;
+  crossEndTime?: boolean;
 }) {
   return $api.useQuery("get", "/activities", {
     params: { query: params },

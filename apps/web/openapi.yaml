@@ -46,6 +46,18 @@ paths:
           schema:
             type: string
             format: date-time
+        - name: crossStartTime
+          in: query
+          description: When true, also include activities that started before startTimeGte but have endTime >= startTimeGte
+          schema:
+            type: boolean
+            default: false
+        - name: crossEndTime
+          in: query
+          description: When true, also include activities that started before startTimeLt but have endTime >= startTimeLt (i.e., activities that extend past the end boundary)
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: Activity list

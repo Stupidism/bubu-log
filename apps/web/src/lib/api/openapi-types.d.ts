@@ -420,6 +420,10 @@ export interface operations {
                 startTimeGte?: string;
                 /** @description Filter activities with startTime < this value (ISO format) */
                 startTimeLt?: string;
+                /** @description When true, also include activities that started before startTimeGte but have endTime >= startTimeGte */
+                crossStartTime?: boolean;
+                /** @description When true, also include activities that started before startTimeLt but have endTime >= startTimeLt (i.e., activities that extend past the end boundary) */
+                crossEndTime?: boolean;
             };
             header?: never;
             path?: never;

@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date') // YYYY-MM-DD 格式
     const startTimeGte = searchParams.get('startTimeGte') // ISO 格式，活动开始时间下限
     const startTimeLt = searchParams.get('startTimeLt') // ISO 格式，活动开始时间上限
+    const crossStartTime = searchParams.get('crossStartTime') === 'true' // 是否包含跨越开始边界的活动
+    const crossEndTime = searchParams.get('crossEndTime') === 'true' // 是否包含跨越结束边界的活动
 
     const where: Record<string, unknown> = {
       babyId: baby.id,
@@ -32,16 +34,64 @@ export async function GET(request: NextRequest) {
     // 支持两种查询模式：
     // 1. date 参数：查询某一天的活动（包括跨夜活动）
     // 2. startTimeGte/startTimeLt 参数：查询指定时间范围内开始的活动
+    //    - crossStartTime=true: 也包含开始时间早于 startTimeGte 但结束时间 >= startTimeGte 的活动
+    //    - crossEndTime=true: 也包含开始时间 < startTimeLt 但结束时间 >= startTimeLt 的活动
     if (startTimeGte || startTimeLt) {
       // 时间范围查询模式
+      const startTimeGteDate = startTimeGte ? new Date(startTimeGte) : null
+      const startTimeLtDate = startTimeLt ? new Date(startTimeLt) : null
+      
+      // 构建查询条件
+      const conditions: Record<string, unknown>[] = []
+      
+      // 基本条件：活动开始时间在指定范围内
+      const basicCondition: Record<string, unknown> = {}
       const startTimeCondition: Record<string, Date> = {}
-      if (startTimeGte) {
-        startTimeCondition.gte = new Date(startTimeGte)
+      if (startTimeGteDate) {
+        startTimeCondition.gte = startTimeGteDate
       }
-      if (startTimeLt) {
-        startTimeCondition.lt = new Date(startTimeLt)
+      if (startTimeLtDate) {
+        startTimeCondition.lt = startTimeLtDate
       }
-      where.startTime = startTimeCondition
+      basicCondition.startTime = startTimeCondition
+      conditions.push(basicCondition)
+      
+      // crossStartTime: 活动开始时间 < startTimeGte，但结束时间 >= startTimeGte（或正在进行中）
+      if (crossStartTime && startTimeGteDate) {
+        conditions.push({
+          AND: [
+            { startTime: { lt: startTimeGteDate } },
+            {
+              OR: [
+                { endTime: { gte: startTimeGteDate } },
+                { endTime: null }, // 进行中的活动
+              ],
+            },
+          ],
+        })
+      }
+      
+      // crossEndTime: 活动开始时间 < startTimeLt，但结束时间 >= startTimeLt（或正在进行中）
+      if (crossEndTime && startTimeLtDate) {
+        conditions.push({
+          AND: [
+            { startTime: { lt: startTimeLtDate } },
+            {
+              OR: [
+                { endTime: { gte: startTimeLtDate } },
+                { endTime: null }, // 进行中的活动
+              ],
+            },
+          ],
+        })
+      }
+      
+      // 如果有多个条件，用 OR 组合
+      if (conditions.length > 1) {
+        where.OR = conditions
+      } else {
+        where.startTime = startTimeCondition
+      }
     } else if (date) {
       // 日期查询模式：使用中国时区计算当天的开始和结束时间
       const startOfDay = startOfDayChina(date)

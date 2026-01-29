@@ -225,9 +225,13 @@ function WeeklyView({
   }, [weekDates])
 
   // 获取这一周的所有活动（包括跨天活动）
+  // crossStartTime: 包含开始时间早于周一但结束时间在本周内的活动（如周日晚睡到周一早醒）
+  // crossEndTime: 包含开始时间在本周内但结束时间超过周日的活动（如周日晚睡还没醒）
   const { data: activitiesData = [], isLoading } = useActivities({
     startTimeGte: startDateForQuery,
     startTimeLt: endDateForQuery,
+    crossStartTime: true,
+    crossEndTime: true,
   })
 
   // 按日期分组活动（处理跨天活动）
