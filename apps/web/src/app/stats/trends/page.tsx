@@ -136,11 +136,11 @@ function ChartView({
         </div>
         <ChartContainer config={sleepChartConfig} className="h-[200px] w-full">
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-            <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} className="text-gray-500" />
-            <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => formatMinutesToHours(value)} className="text-gray-500" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} stroke="#9ca3af" />
+            <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => formatMinutesToHours(value)} stroke="#9ca3af" />
             <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatMinutesToHours(value as number)} />} />
-            <Line type="linear" dataKey="totalSleepMinutes" stroke="var(--color-totalSleepMinutes)" strokeWidth={2} dot={{ fill: 'var(--color-totalSleepMinutes)', r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            <Line type="linear" dataKey="totalSleepMinutes" stroke="#6366f1" strokeWidth={2} dot={{ fill: '#6366f1', r: 3 }} activeDot={{ r: 5 }} connectNulls />
           </LineChart>
         </ChartContainer>
       </section>
@@ -153,11 +153,11 @@ function ChartView({
         </div>
         <ChartContainer config={feedingChartConfig} className="h-[200px] w-full">
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-            <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} className="text-gray-500" />
-            <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}ml`} className="text-gray-500" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} stroke="#9ca3af" />
+            <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}ml`} stroke="#9ca3af" />
             <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value}ml`} />} />
-            <Line type="linear" dataKey="totalMilkAmount" stroke="var(--color-totalMilkAmount)" strokeWidth={2} dot={{ fill: 'var(--color-totalMilkAmount)', r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            <Line type="linear" dataKey="totalMilkAmount" stroke="#ec4899" strokeWidth={2} dot={{ fill: '#ec4899', r: 3 }} activeDot={{ r: 5 }} connectNulls />
           </LineChart>
         </ChartContainer>
       </section>
@@ -170,11 +170,11 @@ function ChartView({
         </div>
         <ChartContainer config={diaperChartConfig} className="h-[200px] w-full">
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-            <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} className="text-gray-500" />
-            <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}次`} className="text-gray-500" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} stroke="#9ca3af" />
+            <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}次`} stroke="#9ca3af" />
             <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value}次`} />} />
-            <Line type="linear" dataKey="diaperCount" stroke="var(--color-diaperCount)" strokeWidth={2} dot={{ fill: 'var(--color-diaperCount)', r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            <Line type="linear" dataKey="diaperCount" stroke="#14b8a6" strokeWidth={2} dot={{ fill: '#14b8a6', r: 3 }} activeDot={{ r: 5 }} connectNulls />
           </LineChart>
         </ChartContainer>
       </section>
@@ -599,11 +599,12 @@ function TrendsPageContent() {
   const [activeTab, setActiveTab] = useState<TabType>('chart')
   const [daysToShow, setDaysToShow] = useState(7)
   const [endDate, setEndDate] = useState(() => dayjs().startOf('day').toDate())
+  // 使用 weekday(0) 获取本周周一 (zh-cn locale 下 weekday(0) = 周一)
   const [weeklyViewWeekStart, setWeeklyViewWeekStart] = useState(() => 
-    dayjs().startOf('week').add(1, 'day').toDate() // 周一
+    dayjs().weekday(0).startOf('day').toDate()
   )
   const [monthlyViewWeekStart, setMonthlyViewWeekStart] = useState(() =>
-    dayjs().startOf('week').add(1, 'day').toDate() // 周一
+    dayjs().weekday(0).startOf('day').toDate()
   )
   const weeksToShow = 4
   
@@ -770,8 +771,8 @@ function TrendsPageContent() {
   
   // 是否可以前进
   const canChartGoForward = dayjs(endDate).isBefore(dayjs(), 'day')
-  const canWeeklyGoForward = dayjs(weeklyViewWeekStart).isBefore(dayjs().startOf('week').add(1, 'day'), 'day')
-  const canMonthlyGoForward = dayjs(monthlyViewWeekStart).isBefore(dayjs().startOf('week').add(1, 'day'), 'day')
+  const canWeeklyGoForward = dayjs(weeklyViewWeekStart).isBefore(dayjs().weekday(0), 'day')
+  const canMonthlyGoForward = dayjs(monthlyViewWeekStart).isBefore(dayjs().weekday(0), 'day')
   
   const isLoading = activeTab === 'chart' ? chartLoading : monthlyLoading
   
