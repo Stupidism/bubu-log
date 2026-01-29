@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import { dayjs, formatDateChinese } from '@/lib/dayjs'
-import { useDailyStats, useComputeDailyStat, type DailyStat } from '@/lib/api/hooks'
+import { useDailyStats, useComputeDailyStat, useActivities, type DailyStat, type Activity } from '@/lib/api/hooks'
 import { toast } from 'sonner'
 import {
   TrendingUp,
@@ -15,6 +15,8 @@ import {
   Milk,
   Baby,
   Calendar,
+  BarChart3,
+  CalendarDays,
 } from 'lucide-react'
 import {
   ChartContainer,
@@ -22,7 +24,10 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@bubu-log/ui'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
+
+// Tab 类型
+type TabType = 'chart' | 'weekly' | 'monthly'
 
 // 图表配置
 const sleepChartConfig = {
@@ -46,6 +51,16 @@ const diaperChartConfig = {
   },
 } satisfies ChartConfig
 
+// 格式化分钟为小时（紧凑格式，用于小空间）
+function formatMinutesToHoursCompact(minutes: number): { hours: string; mins: string } | string {
+  if (minutes === 0) return '-'
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  if (hours === 0) return `${mins}m`
+  if (mins === 0) return `${hours}h`
+  return { hours: `${hours}h`, mins: `${mins}m` }
+}
+
 // 格式化分钟为小时
 function formatMinutesToHours(minutes: number): string {
   if (minutes === 0) return '0h'
@@ -56,91 +71,680 @@ function formatMinutesToHours(minutes: number): string {
   return `${hours}h${mins}m`
 }
 
+// 获取颜色强度 (0-4)
+function getIntensity(value: number, max: number): number {
+  if (value === 0) return 0
+  const ratio = value / max
+  if (ratio < 0.25) return 1
+  if (ratio < 0.5) return 2
+  if (ratio < 0.75) return 3
+  return 4
+}
+
+// 活动类型颜色映射
+const activityColors: Record<string, string> = {
+  SLEEP: 'bg-indigo-400',
+  BREASTFEED: 'bg-pink-300',
+  BOTTLE: 'bg-pink-400',
+  DIAPER: 'bg-teal-400',
+  HEAD_LIFT: 'bg-amber-400',
+  PASSIVE_EXERCISE: 'bg-orange-400',
+  GAS_EXERCISE: 'bg-orange-300',
+  BATH: 'bg-cyan-400',
+  OUTDOOR: 'bg-green-400',
+  EARLY_EDUCATION: 'bg-purple-400',
+  SUPPLEMENT: 'bg-yellow-400',
+}
+
+const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+const weekdaysShort = ['一', '二', '三', '四', '五', '六', '日']
+
+// ==================== 折线图视图 ====================
+function ChartView({ 
+  chartData, 
+  daysToShow,
+  setDaysToShow,
+}: { 
+  chartData: Array<{ date: string; dateLabel: string; totalSleepMinutes: number; totalMilkAmount: number; diaperCount: number; hasData: boolean }>
+  daysToShow: number
+  setDaysToShow: (days: number) => void
+}) {
+  return (
+    <div className="space-y-6">
+      {/* 天数选择 */}
+      <div className="flex justify-center gap-2">
+        {[7, 14, 30].map(days => (
+          <button
+            key={days}
+            onClick={() => setDaysToShow(days)}
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              daysToShow === days
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+            }`}
+          >
+            {days}天
+          </button>
+        ))}
+      </div>
+
+      {/* 睡眠趋势 */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <Moon size={20} className="text-indigo-500" />
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">睡眠趋势</h2>
+        </div>
+        <ChartContainer config={sleepChartConfig} className="h-[200px] w-full">
+          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+            <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} className="text-gray-500" />
+            <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => formatMinutesToHours(value)} className="text-gray-500" />
+            <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatMinutesToHours(value as number)} />} />
+            <Line type="monotone" dataKey="totalSleepMinutes" stroke="var(--color-totalSleepMinutes)" strokeWidth={2} dot={{ fill: 'var(--color-totalSleepMinutes)', r: 4 }} activeDot={{ r: 6 }} />
+          </LineChart>
+        </ChartContainer>
+      </section>
+
+      {/* 奶量趋势 */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <Milk size={20} className="text-pink-500" />
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">奶量趋势</h2>
+        </div>
+        <ChartContainer config={feedingChartConfig} className="h-[200px] w-full">
+          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+            <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} className="text-gray-500" />
+            <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}ml`} className="text-gray-500" />
+            <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value}ml`} />} />
+            <Line type="monotone" dataKey="totalMilkAmount" stroke="var(--color-totalMilkAmount)" strokeWidth={2} dot={{ fill: 'var(--color-totalMilkAmount)', r: 4 }} activeDot={{ r: 6 }} />
+          </LineChart>
+        </ChartContainer>
+      </section>
+
+      {/* 换尿布趋势 */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <Baby size={20} className="text-teal-500" />
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">换尿布趋势</h2>
+        </div>
+        <ChartContainer config={diaperChartConfig} className="h-[200px] w-full">
+          <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+            <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} className="text-gray-500" />
+            <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}次`} className="text-gray-500" />
+            <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value}次`} />} />
+            <Line type="monotone" dataKey="diaperCount" stroke="var(--color-diaperCount)" strokeWidth={2} dot={{ fill: 'var(--color-diaperCount)', r: 4 }} activeDot={{ r: 6 }} />
+          </LineChart>
+        </ChartContainer>
+      </section>
+
+      {/* 缺失数据提示 */}
+      {chartData.some(d => !d.hasData) && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 text-center">
+          <p className="text-yellow-700 dark:text-yellow-400 text-sm">
+            部分日期缺少统计数据，点击右上角刷新按钮批量计算
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ==================== 周历视图（真正的周视图：7列，每列一天，从早到晚的活动色块） ====================
+function WeeklyView({
+  weekStart,
+  onNavigate,
+  canGoForward,
+}: {
+  weekStart: Date
+  onNavigate: (direction: number) => void
+  canGoForward: boolean
+}) {
+  // 获取一周的日期范围
+  const weekDates = useMemo(() => {
+    const dates: string[] = []
+    for (let i = 0; i < 7; i++) {
+      dates.push(dayjs(weekStart).add(i, 'day').format('YYYY-MM-DD'))
+    }
+    return dates
+  }, [weekStart])
+
+  const startDateStr = weekDates[0]
+  const endDateStr = weekDates[6]
+
+  // 获取这一周的所有活动
+  const { data: activitiesData = [], isLoading } = useActivities({
+    startTimeGte: dayjs(startDateStr).startOf('day').toISOString(),
+    startTimeLt: dayjs(endDateStr).endOf('day').toISOString(),
+  })
+
+  // 按日期分组活动
+  const activitiesByDate = useMemo(() => {
+    const map = new Map<string, Activity[]>()
+    weekDates.forEach(date => map.set(date, []))
+    
+    activitiesData.forEach((activity: Activity) => {
+      const date = dayjs(activity.startTime).format('YYYY-MM-DD')
+      if (map.has(date)) {
+        map.get(date)!.push(activity)
+      }
+    })
+    
+    // 按开始时间排序
+    map.forEach((activities) => {
+      activities.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+    })
+    
+    return map
+  }, [activitiesData, weekDates])
+
+  // 计算活动在一天中的位置（0-100%）
+  const getActivityPosition = (activity: Activity) => {
+    const startTime = dayjs(activity.startTime)
+    const startMinutes = startTime.hour() * 60 + startTime.minute()
+    const startPercent = (startMinutes / (24 * 60)) * 100
+
+    if (activity.endTime) {
+      const endTime = dayjs(activity.endTime)
+      const endMinutes = endTime.hour() * 60 + endTime.minute()
+      const endPercent = (endMinutes / (24 * 60)) * 100
+      return { top: startPercent, height: Math.max(endPercent - startPercent, 2) }
+    }
+    
+    // 点事件（如换尿布）显示为小块
+    return { top: startPercent, height: 2 }
+  }
+
+  if (isLoading) {
+    return <div className="text-center py-8 text-gray-500">加载中...</div>
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* 周导航 */}
+      <div className="flex items-center justify-between px-2">
+        <button
+          onClick={() => onNavigate(-1)}
+          className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <p className="text-base font-bold text-gray-800 dark:text-gray-100">
+          {dayjs(weekStart).format('M月D日')} - {dayjs(weekStart).add(6, 'day').format('M月D日')}
+        </p>
+        <button
+          onClick={() => onNavigate(1)}
+          disabled={!canGoForward}
+          className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+        >
+          <ChevronRight size={20} />
+        </button>
+      </div>
+
+      {/* 周历表格 */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+        {/* 表头 */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {weekDates.map((date, i) => {
+            const isToday = date === dayjs().format('YYYY-MM-DD')
+            return (
+              <div key={date} className="text-center">
+                <div className="text-xs text-gray-500">{weekdaysShort[i]}</div>
+                <div className={`text-sm font-bold ${isToday ? 'text-primary' : 'text-gray-800 dark:text-gray-100'}`}>
+                  {dayjs(date).format('D')}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* 时间轴和活动块 */}
+        <div className="grid grid-cols-7 gap-1">
+          {weekDates.map((date) => {
+            const activities = activitiesByDate.get(date) || []
+            const isFuture = dayjs(date).isAfter(dayjs(), 'day')
+            const isToday = date === dayjs().format('YYYY-MM-DD')
+            
+            return (
+              <div 
+                key={date} 
+                className={`relative h-[300px] rounded-lg ${
+                  isFuture 
+                    ? 'bg-gray-50 dark:bg-gray-900' 
+                    : 'bg-gray-100 dark:bg-gray-700'
+                } ${isToday ? 'ring-2 ring-primary' : ''}`}
+              >
+                {/* 时间刻度线 */}
+                {[6, 12, 18].map(hour => (
+                  <div
+                    key={hour}
+                    className="absolute left-0 right-0 border-t border-gray-200 dark:border-gray-600 opacity-50"
+                    style={{ top: `${(hour / 24) * 100}%` }}
+                  >
+                    <span className="absolute -top-2 left-0 text-[8px] text-gray-400">
+                      {hour}
+                    </span>
+                  </div>
+                ))}
+
+                {/* 活动色块 */}
+                {activities.map((activity) => {
+                  const { top, height } = getActivityPosition(activity)
+                  const colorClass = activityColors[activity.type] || 'bg-gray-400'
+                  
+                  return (
+                    <div
+                      key={activity.id}
+                      className={`absolute left-0.5 right-0.5 ${colorClass} rounded-sm opacity-80`}
+                      style={{ 
+                        top: `${top}%`, 
+                        height: `${height}%`,
+                        minHeight: '4px'
+                      }}
+                      title={`${activity.type} - ${dayjs(activity.startTime).format('HH:mm')}`}
+                    />
+                  )
+                })}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* 图例 */}
+        <div className="flex flex-wrap gap-2 mt-4 justify-center">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-indigo-400"></div>
+            <span className="text-xs text-gray-500">睡眠</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-pink-400"></div>
+            <span className="text-xs text-gray-500">喂奶</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-teal-400"></div>
+            <span className="text-xs text-gray-500">换尿布</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-orange-400"></div>
+            <span className="text-xs text-gray-500">运动</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ==================== 月历视图（原周历视图：4周热力图） ====================
+function MonthlyView({
+  weeksData,
+  maxValues,
+  onNavigate,
+  canGoForward,
+  currentWeekStart,
+  weeksToShow,
+}: {
+  weeksData: Array<{
+    weekLabel: string
+    weekStart: string
+    days: Array<{ date: string; dayOfWeek: number; stat: DailyStat | null }>
+  }>
+  maxValues: { sleep: number; milk: number }
+  onNavigate: (direction: number) => void
+  canGoForward: boolean
+  currentWeekStart: Date
+  weeksToShow: number
+}) {
+  return (
+    <div className="space-y-6">
+      {/* 周导航 */}
+      <div className="flex items-center justify-between px-2">
+        <button
+          onClick={() => onNavigate(-1)}
+          className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <p className="text-base font-bold text-gray-800 dark:text-gray-100">
+          最近 {weeksToShow} 周
+        </p>
+        <button
+          onClick={() => onNavigate(1)}
+          disabled={!canGoForward}
+          className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+        >
+          <ChevronRight size={20} />
+        </button>
+      </div>
+
+      {/* 睡眠热力图 */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <Moon size={20} className="text-indigo-500" />
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">睡眠</h2>
+        </div>
+        
+        {/* 表头 */}
+        <div className="grid grid-cols-8 gap-1 mb-2">
+          <div className="text-xs text-gray-400 text-right pr-1"></div>
+          {weekdays.map((day, i) => (
+            <div key={i} className="text-xs text-gray-500 text-center font-medium">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        {/* 周数据 */}
+        {weeksData.map((week) => (
+          <div key={week.weekStart} className="grid grid-cols-8 gap-1 mb-1">
+            <div className="text-xs text-gray-400 text-right pr-1 self-center">
+              {dayjs(week.weekStart).format('M/D')}
+            </div>
+            {week.days.map((day) => {
+              const intensity = day.stat 
+                ? getIntensity(day.stat.totalSleepMinutes ?? 0, maxValues.sleep)
+                : 0
+              const isToday = day.date === dayjs().format('YYYY-MM-DD')
+              const isFuture = dayjs(day.date).isAfter(dayjs(), 'day')
+              const formatted = day.stat ? formatMinutesToHoursCompact(day.stat.totalSleepMinutes ?? 0) : ''
+              
+              return (
+                <div
+                  key={day.date}
+                  className={`
+                    aspect-square rounded-md flex flex-col items-center justify-center text-[10px] font-medium leading-tight p-0.5
+                    ${isFuture ? 'bg-gray-50 dark:bg-gray-900 text-gray-300 dark:text-gray-700' : ''}
+                    ${!isFuture && intensity === 0 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400' : ''}
+                    ${!isFuture && intensity === 1 ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : ''}
+                    ${!isFuture && intensity === 2 ? 'bg-indigo-200 dark:bg-indigo-800/40 text-indigo-700 dark:text-indigo-300' : ''}
+                    ${!isFuture && intensity === 3 ? 'bg-indigo-300 dark:bg-indigo-700/50 text-indigo-800 dark:text-indigo-200' : ''}
+                    ${!isFuture && intensity === 4 ? 'bg-indigo-400 dark:bg-indigo-600/60 text-white' : ''}
+                    ${isToday ? 'ring-2 ring-primary ring-offset-1' : ''}
+                  `}
+                  title={`${day.date}: ${day.stat ? formatMinutesToHours(day.stat.totalSleepMinutes ?? 0) : '无数据'}`}
+                >
+                  {!isFuture && formatted && typeof formatted === 'object' ? (
+                    <>
+                      <span>{formatted.hours}</span>
+                      <span>{formatted.mins}</span>
+                    </>
+                  ) : (
+                    <span>{formatted as string}</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ))}
+        
+        {/* 图例 */}
+        <div className="flex items-center justify-end gap-2 mt-3">
+          <span className="text-xs text-gray-400">少</span>
+          <div className="w-4 h-4 rounded bg-indigo-100 dark:bg-indigo-900/30"></div>
+          <div className="w-4 h-4 rounded bg-indigo-200 dark:bg-indigo-800/40"></div>
+          <div className="w-4 h-4 rounded bg-indigo-300 dark:bg-indigo-700/50"></div>
+          <div className="w-4 h-4 rounded bg-indigo-400 dark:bg-indigo-600/60"></div>
+          <span className="text-xs text-gray-400">多</span>
+        </div>
+      </section>
+
+      {/* 奶量热力图 */}
+      <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <Milk size={20} className="text-pink-500" />
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">奶量</h2>
+        </div>
+        
+        {/* 表头 */}
+        <div className="grid grid-cols-8 gap-1 mb-2">
+          <div className="text-xs text-gray-400 text-right pr-1"></div>
+          {weekdays.map((day, i) => (
+            <div key={i} className="text-xs text-gray-500 text-center font-medium">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        {/* 周数据 */}
+        {weeksData.map((week) => (
+          <div key={week.weekStart} className="grid grid-cols-8 gap-1 mb-1">
+            <div className="text-xs text-gray-400 text-right pr-1 self-center">
+              {dayjs(week.weekStart).format('M/D')}
+            </div>
+            {week.days.map((day) => {
+              const intensity = day.stat 
+                ? getIntensity(day.stat.totalMilkAmount ?? 0, maxValues.milk)
+                : 0
+              const isToday = day.date === dayjs().format('YYYY-MM-DD')
+              const isFuture = dayjs(day.date).isAfter(dayjs(), 'day')
+              
+              return (
+                <div
+                  key={day.date}
+                  className={`
+                    aspect-square rounded-md flex items-center justify-center text-[10px] font-medium
+                    ${isFuture ? 'bg-gray-50 dark:bg-gray-900 text-gray-300 dark:text-gray-700' : ''}
+                    ${!isFuture && intensity === 0 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400' : ''}
+                    ${!isFuture && intensity === 1 ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' : ''}
+                    ${!isFuture && intensity === 2 ? 'bg-pink-200 dark:bg-pink-800/40 text-pink-700 dark:text-pink-300' : ''}
+                    ${!isFuture && intensity === 3 ? 'bg-pink-300 dark:bg-pink-700/50 text-pink-800 dark:text-pink-200' : ''}
+                    ${!isFuture && intensity === 4 ? 'bg-pink-400 dark:bg-pink-600/60 text-white' : ''}
+                    ${isToday ? 'ring-2 ring-primary ring-offset-1' : ''}
+                  `}
+                  title={`${day.date}: ${day.stat ? `${day.stat.totalMilkAmount ?? 0}ml` : '无数据'}`}
+                >
+                  {!isFuture && day.stat && (day.stat.totalMilkAmount ?? 0) > 0 
+                    ? `${day.stat.totalMilkAmount}` 
+                    : ''}
+                </div>
+              )
+            })}
+          </div>
+        ))}
+        
+        {/* 图例 */}
+        <div className="flex items-center justify-end gap-2 mt-3">
+          <span className="text-xs text-gray-400">少</span>
+          <div className="w-4 h-4 rounded bg-pink-100 dark:bg-pink-900/30"></div>
+          <div className="w-4 h-4 rounded bg-pink-200 dark:bg-pink-800/40"></div>
+          <div className="w-4 h-4 rounded bg-pink-300 dark:bg-pink-700/50"></div>
+          <div className="w-4 h-4 rounded bg-pink-400 dark:bg-pink-600/60"></div>
+          <span className="text-xs text-gray-400">多</span>
+        </div>
+      </section>
+
+      {/* 缺失数据提示 */}
+      {weeksData.some(week => week.days.some(d => !d.stat && !dayjs(d.date).isAfter(dayjs(), 'day'))) && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 text-center">
+          <p className="text-yellow-700 dark:text-yellow-400 text-sm">
+            部分日期缺少统计数据，点击右上角刷新按钮批量计算
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ==================== 主页面组件 ====================
 function TrendsPageContent() {
-  // 日期范围：默认显示最近7天
+  const [activeTab, setActiveTab] = useState<TabType>('chart')
   const [daysToShow, setDaysToShow] = useState(7)
   const [endDate, setEndDate] = useState(() => dayjs().startOf('day').toDate())
+  const [weeklyViewWeekStart, setWeeklyViewWeekStart] = useState(() => 
+    dayjs().startOf('week').add(1, 'day').toDate() // 周一
+  )
+  const [monthlyViewWeekStart, setMonthlyViewWeekStart] = useState(() =>
+    dayjs().startOf('week').add(1, 'day').toDate() // 周一
+  )
+  const weeksToShow = 4
   
-  const startDate = useMemo(() => {
+  // 图表视图的日期范围
+  const chartStartDate = useMemo(() => {
     return dayjs(endDate).subtract(daysToShow - 1, 'day').toDate()
   }, [endDate, daysToShow])
   
-  const startDateStr = dayjs(startDate).format('YYYY-MM-DD')
-  const endDateStr = dayjs(endDate).format('YYYY-MM-DD')
+  const chartStartDateStr = dayjs(chartStartDate).format('YYYY-MM-DD')
+  const chartEndDateStr = dayjs(endDate).format('YYYY-MM-DD')
   
-  // 获取统计数据（不使用 limit，获取日期范围内所有记录）
-  const { data: stats = [], isLoading, refetch } = useDailyStats({
-    startDate: startDateStr,
-    endDate: endDateStr,
+  // 月历视图的日期范围
+  const monthlyDateRange = useMemo(() => {
+    const startDate = dayjs(monthlyViewWeekStart).subtract(weeksToShow - 1, 'week')
+    const endDateVal = dayjs(monthlyViewWeekStart).add(6, 'day')
+    return {
+      start: startDate.format('YYYY-MM-DD'),
+      end: endDateVal.format('YYYY-MM-DD'),
+    }
+  }, [monthlyViewWeekStart, weeksToShow])
+  
+  // 获取图表统计数据
+  const { data: chartStats = [], isLoading: chartLoading, refetch: refetchChart } = useDailyStats({
+    startDate: chartStartDateStr,
+    endDate: chartEndDateStr,
+  })
+  
+  // 获取月历统计数据
+  const { data: monthlyStats = [], isLoading: monthlyLoading, refetch: refetchMonthly } = useDailyStats({
+    startDate: monthlyDateRange.start,
+    endDate: monthlyDateRange.end,
   })
   
   const computeMutation = useComputeDailyStat()
   
-  // 生成日期范围内所有日期
-  const dateRange = useMemo(() => {
+  // 图表日期范围
+  const chartDateRange = useMemo(() => {
     const dates: string[] = []
-    let current = dayjs(startDate)
+    let current = dayjs(chartStartDate)
     const end = dayjs(endDate)
     while (current.isBefore(end) || current.isSame(end, 'day')) {
       dates.push(current.format('YYYY-MM-DD'))
       current = current.add(1, 'day')
     }
     return dates
-  }, [startDate, endDate])
+  }, [chartStartDate, endDate])
   
-  // 将统计数据转换为图表数据（填充缺失日期）
+  // 图表数据
   const chartData = useMemo(() => {
     const statsByDate = new Map(
-      stats.map(s => [dayjs(s.date).format('YYYY-MM-DD'), s])
+      chartStats.map(s => [dayjs(s.date).format('YYYY-MM-DD'), s])
     )
     
-    return dateRange.map(date => {
+    return chartDateRange.map(date => {
       const stat = statsByDate.get(date)
       return {
         date,
         dateLabel: dayjs(date).format('M/D'),
         totalSleepMinutes: stat?.totalSleepMinutes ?? 0,
-        sleepHours: stat ? ((stat.totalSleepMinutes ?? 0) / 60).toFixed(1) : '0',
         totalMilkAmount: stat?.totalMilkAmount ?? 0,
         diaperCount: stat?.diaperCount ?? 0,
         hasData: !!stat,
       }
     })
-  }, [dateRange, stats])
+  }, [chartDateRange, chartStats])
   
-  // 计算某天的统计并刷新
-  const handleComputeDay = useCallback(async (date: string) => {
-    try {
-      await computeMutation.mutateAsync({ body: { date } })
-      toast.success('统计完成')
-      refetch()
-    } catch {
-      toast.error('统计失败')
-    }
-  }, [computeMutation, refetch])
-  
-  // 批量计算所有日期（始终重新计算）
-  const handleComputeAll = useCallback(async () => {
-    try {
-      // 重新计算所有日期的统计
-      for (const date of dateRange) {
-        await computeMutation.mutateAsync({ body: { date } })
+  // 月历周数据
+  const weeksData = useMemo(() => {
+    const statsByDate = new Map(
+      monthlyStats.map(s => [dayjs(s.date).format('YYYY-MM-DD'), s])
+    )
+    
+    const weeks: Array<{
+      weekLabel: string
+      weekStart: string
+      days: Array<{ date: string; dayOfWeek: number; stat: DailyStat | null }>
+    }> = []
+    
+    for (let w = weeksToShow - 1; w >= 0; w--) {
+      const weekStart = dayjs(monthlyViewWeekStart).subtract(w, 'week')
+      const weekLabel = weekStart.format('M/D') + ' - ' + weekStart.add(6, 'day').format('M/D')
+      
+      const days = []
+      for (let d = 0; d < 7; d++) {
+        const date = weekStart.add(d, 'day').format('YYYY-MM-DD')
+        days.push({
+          date,
+          dayOfWeek: d,
+          stat: statsByDate.get(date) || null,
+        })
       }
       
-      toast.success(`已重新计算 ${dateRange.length} 天的统计数据`)
-      refetch()
-    } catch {
-      toast.error('统计失败，请重试')
+      weeks.push({ weekLabel, weekStart: weekStart.format('YYYY-MM-DD'), days })
     }
-  }, [dateRange, computeMutation, refetch])
+    
+    return weeks
+  }, [monthlyViewWeekStart, weeksToShow, monthlyStats])
   
-  // 导航日期范围
-  const navigateDays = (direction: number) => {
+  // 月历最大值
+  const monthlyMaxValues = useMemo(() => {
+    let maxSleep = 0
+    let maxMilk = 0
+    
+    for (const stat of monthlyStats) {
+      maxSleep = Math.max(maxSleep, stat.totalSleepMinutes ?? 0)
+      maxMilk = Math.max(maxMilk, stat.totalMilkAmount ?? 0)
+    }
+    
+    return {
+      sleep: maxSleep || 12 * 60,
+      milk: maxMilk || 600,
+    }
+  }, [monthlyStats])
+  
+  // 导航日期范围（图表）
+  const navigateChartDays = (direction: number) => {
     setEndDate(prev => dayjs(prev).add(direction * daysToShow, 'day').toDate())
   }
   
-  // 是否可以前进（不能超过今天）
-  const canGoForward = dayjs(endDate).isBefore(dayjs(), 'day')
+  // 导航周（周历）
+  const navigateWeeklyWeek = (direction: number) => {
+    setWeeklyViewWeekStart(prev => dayjs(prev).add(direction, 'week').toDate())
+  }
+  
+  // 导航周（月历）
+  const navigateMonthlyWeek = (direction: number) => {
+    setMonthlyViewWeekStart(prev => dayjs(prev).add(direction, 'week').toDate())
+  }
+  
+  // 刷新当前视图的数据
+  const handleRefresh = useCallback(async () => {
+    try {
+      let datesToCompute: string[] = []
+      
+      if (activeTab === 'chart') {
+        datesToCompute = chartDateRange
+      } else if (activeTab === 'weekly') {
+        for (let i = 0; i < 7; i++) {
+          datesToCompute.push(dayjs(weeklyViewWeekStart).add(i, 'day').format('YYYY-MM-DD'))
+        }
+      } else {
+        weeksData.forEach(week => {
+          week.days.forEach(day => {
+            datesToCompute.push(day.date)
+          })
+        })
+      }
+      
+      for (const date of datesToCompute) {
+        await computeMutation.mutateAsync({ body: { date } })
+      }
+      
+      toast.success(`已重新计算 ${datesToCompute.length} 天的统计数据`)
+      
+      if (activeTab === 'chart') {
+        refetchChart()
+      } else if (activeTab === 'monthly') {
+        refetchMonthly()
+      }
+    } catch {
+      toast.error('统计失败，请重试')
+    }
+  }, [activeTab, chartDateRange, weeklyViewWeekStart, weeksData, computeMutation, refetchChart, refetchMonthly])
+  
+  // 是否可以前进
+  const canChartGoForward = dayjs(endDate).isBefore(dayjs(), 'day')
+  const canWeeklyGoForward = dayjs(weeklyViewWeekStart).isBefore(dayjs().startOf('week').add(1, 'day'), 'day')
+  const canMonthlyGoForward = dayjs(monthlyViewWeekStart).isBefore(dayjs().startOf('week').add(1, 'day'), 'day')
+  
+  const isLoading = activeTab === 'chart' ? chartLoading : monthlyLoading
   
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#fefbf6] to-[#fff5e6] dark:from-[#1a1a2e] dark:to-[#16213e] safe-area-top safe-area-bottom">
@@ -159,7 +763,7 @@ function TrendsPageContent() {
             数据趋势
           </h1>
           <button
-            onClick={handleComputeAll}
+            onClick={handleRefresh}
             disabled={computeMutation.isPending}
             className="px-4 py-2 rounded-full bg-primary/10 text-primary font-medium text-base flex items-center gap-1 disabled:opacity-50"
           >
@@ -167,42 +771,64 @@ function TrendsPageContent() {
           </button>
         </div>
 
-        {/* 日期范围选择器 */}
-        <div className="px-4 pb-3 flex items-center justify-between">
+        {/* Tab 切换 */}
+        <div className="px-4 pb-3 flex justify-center gap-2">
           <button
-            onClick={() => navigateDays(-1)}
-            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+            onClick={() => setActiveTab('chart')}
+            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${
+              activeTab === 'chart'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+            }`}
           >
-            <ChevronLeft size={24} />
+            <BarChart3 size={16} />
+            折线图
           </button>
-          <div className="text-center">
-            <p className="text-lg font-bold text-gray-800 dark:text-gray-100">
-              {formatDateChinese(startDate)} - {formatDateChinese(endDate)}
-            </p>
-            <div className="flex justify-center gap-2 mt-2">
-              {[7, 14, 30].map(days => (
-                <button
-                  key={days}
-                  onClick={() => setDaysToShow(days)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    daysToShow === days
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                  }`}
-                >
-                  {days}天
-                </button>
-              ))}
-            </div>
-          </div>
           <button
-            onClick={() => navigateDays(1)}
-            disabled={!canGoForward}
-            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+            onClick={() => setActiveTab('weekly')}
+            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${
+              activeTab === 'weekly'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+            }`}
           >
-            <ChevronRight size={24} />
+            <Calendar size={16} />
+            周历
+          </button>
+          <button
+            onClick={() => setActiveTab('monthly')}
+            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${
+              activeTab === 'monthly'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+            }`}
+          >
+            <CalendarDays size={16} />
+            月历
           </button>
         </div>
+
+        {/* 图表视图的日期导航 */}
+        {activeTab === 'chart' && (
+          <div className="px-4 pb-3 flex items-center justify-between">
+            <button
+              onClick={() => navigateChartDays(-1)}
+              className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <p className="text-lg font-bold text-gray-800 dark:text-gray-100">
+              {formatDateChinese(chartStartDate)} - {formatDateChinese(endDate)}
+            </p>
+            <button
+              onClick={() => navigateChartDays(1)}
+              disabled={!canChartGoForward}
+              className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
+        )}
       </header>
 
       {isLoading ? (
@@ -210,146 +836,31 @@ function TrendsPageContent() {
           <p className="text-gray-500">加载中...</p>
         </div>
       ) : (
-        <div className="p-4 space-y-6">
-          {/* 睡眠趋势 */}
-          <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <Moon size={20} className="text-indigo-500" />
-              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">睡眠趋势</h2>
-            </div>
-            <ChartContainer config={sleepChartConfig} className="h-[200px] w-full">
-              <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-                <XAxis 
-                  dataKey="dateLabel" 
-                  tick={{ fontSize: 12 }}
-                  className="text-gray-500"
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => formatMinutesToHours(value)}
-                  className="text-gray-500"
-                />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      formatter={(value) => formatMinutesToHours(value as number)}
-                    />
-                  }
-                />
-                <Line
-                  type="monotone"
-                  dataKey="totalSleepMinutes"
-                  stroke="var(--color-totalSleepMinutes)"
-                  strokeWidth={2}
-                  dot={{ fill: 'var(--color-totalSleepMinutes)', r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ChartContainer>
-          </section>
-
-          {/* 奶量趋势 */}
-          <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <Milk size={20} className="text-pink-500" />
-              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">奶量趋势</h2>
-            </div>
-            <ChartContainer config={feedingChartConfig} className="h-[200px] w-full">
-              <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-                <XAxis 
-                  dataKey="dateLabel" 
-                  tick={{ fontSize: 12 }}
-                  className="text-gray-500"
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => `${value}ml`}
-                  className="text-gray-500"
-                />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      formatter={(value) => `${value}ml`}
-                    />
-                  }
-                />
-                <Line
-                  type="monotone"
-                  dataKey="totalMilkAmount"
-                  stroke="var(--color-totalMilkAmount)"
-                  strokeWidth={2}
-                  dot={{ fill: 'var(--color-totalMilkAmount)', r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ChartContainer>
-          </section>
-
-          {/* 换尿布趋势 */}
-          <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <Baby size={20} className="text-teal-500" />
-              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">换尿布趋势</h2>
-            </div>
-            <ChartContainer config={diaperChartConfig} className="h-[200px] w-full">
-              <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
-                <XAxis 
-                  dataKey="dateLabel" 
-                  tick={{ fontSize: 12 }}
-                  className="text-gray-500"
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => `${value}次`}
-                  className="text-gray-500"
-                />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      formatter={(value) => `${value}次`}
-                    />
-                  }
-                />
-                <Line
-                  type="monotone"
-                  dataKey="diaperCount"
-                  stroke="var(--color-diaperCount)"
-                  strokeWidth={2}
-                  dot={{ fill: 'var(--color-diaperCount)', r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ChartContainer>
-          </section>
-
-          {/* 缺失数据提示 */}
-          {chartData.some(d => !d.hasData) && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 text-center">
-              <p className="text-yellow-700 dark:text-yellow-400 text-sm">
-                部分日期缺少统计数据，点击右上角刷新按钮批量计算
-              </p>
-            </div>
+        <div className="p-4">
+          {activeTab === 'chart' && (
+            <ChartView 
+              chartData={chartData} 
+              daysToShow={daysToShow}
+              setDaysToShow={setDaysToShow}
+            />
           )}
-
-          {/* 跳转到周历视图 */}
-          <Link
-            href="/stats/weekly"
-            className="block bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Calendar size={24} className="text-primary" />
-                <div>
-                  <h3 className="font-bold text-gray-800 dark:text-gray-100">周历视图</h3>
-                  <p className="text-sm text-gray-500">按周对比每天的睡眠和喂奶情况</p>
-                </div>
-              </div>
-              <ChevronRight size={20} className="text-gray-400" />
-            </div>
-          </Link>
+          {activeTab === 'weekly' && (
+            <WeeklyView
+              weekStart={weeklyViewWeekStart}
+              onNavigate={navigateWeeklyWeek}
+              canGoForward={canWeeklyGoForward}
+            />
+          )}
+          {activeTab === 'monthly' && (
+            <MonthlyView
+              weeksData={weeksData}
+              maxValues={monthlyMaxValues}
+              onNavigate={navigateMonthlyWeek}
+              canGoForward={canMonthlyGoForward}
+              currentWeekStart={monthlyViewWeekStart}
+              weeksToShow={weeksToShow}
+            />
+          )}
         </div>
       )}
     </main>
