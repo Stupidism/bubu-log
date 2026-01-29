@@ -201,7 +201,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        ActivityType: "SLEEP" | "DIAPER" | "BREASTFEED" | "BOTTLE" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION" | "SUPPLEMENT";
+        ActivityType: "SLEEP" | "DIAPER" | "BREASTFEED" | "BOTTLE" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION" | "SUPPLEMENT" | "SPIT_UP";
         /** @enum {string} */
         PoopColor: "YELLOW" | "GREEN" | "BROWN" | "BLACK" | "WHITE" | "RED";
         /** @enum {string} */
@@ -210,6 +210,8 @@ export interface components {
         BreastFirmness: "SOFT" | "ELASTIC" | "HARD";
         /** @enum {string} */
         SupplementType: "AD" | "D3";
+        /** @enum {string} */
+        SpitUpType: "NORMAL" | "PROJECTILE";
         /** @enum {string} */
         InputMethod: "TEXT" | "VOICE";
         /** @enum {string} */
@@ -269,6 +271,7 @@ export interface components {
             milkAmount?: number | null;
             breastFirmness?: components["schemas"]["BreastFirmness"];
             supplementType?: components["schemas"]["SupplementType"];
+            spitUpType?: components["schemas"]["SpitUpType"];
             notes?: string | null;
         };
         CreateActivityInput: {
@@ -292,6 +295,7 @@ export interface components {
             milkAmount?: number;
             breastFirmness?: components["schemas"]["BreastFirmness"];
             supplementType?: components["schemas"]["SupplementType"];
+            spitUpType?: components["schemas"]["SpitUpType"];
             notes?: string;
             /** @description Force create even if there's an overlap warning (not for duplicates) */
             force?: boolean;
@@ -317,6 +321,7 @@ export interface components {
             milkAmount?: number;
             breastFirmness?: components["schemas"]["BreastFirmness"];
             supplementType?: components["schemas"]["SupplementType"];
+            spitUpType?: components["schemas"]["SpitUpType"];
             notes?: string;
         };
         BabyProfile: {
@@ -383,6 +388,10 @@ export interface components {
             supplementADCount?: number;
             /** @description D3补剂次数 */
             supplementD3Count?: number;
+            /** @description 吐奶次数 */
+            spitUpCount?: number;
+            /** @description 喷射性吐奶次数 */
+            projectileSpitUpCount?: number;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */

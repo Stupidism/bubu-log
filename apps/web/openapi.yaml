@@ -650,6 +650,7 @@ components:
         - OUTDOOR
         - EARLY_EDUCATION
         - SUPPLEMENT
+        - SPIT_UP
 
     PoopColor:
       type: string
@@ -680,6 +681,12 @@ components:
       enum:
         - AD    # 维生素AD
         - D3    # 维生素D3
+
+    SpitUpType:
+      type: string
+      enum:
+        - NORMAL     # 普通吐奶
+        - PROJECTILE # 喷射性吐奶
 
     InputMethod:
       type: string
@@ -806,6 +813,9 @@ components:
         supplementType:
           $ref: '#/components/schemas/SupplementType'
           nullable: true
+        spitUpType:
+          $ref: '#/components/schemas/SpitUpType'
+          nullable: true
         notes:
           type: string
           nullable: true
@@ -844,6 +854,8 @@ components:
           $ref: '#/components/schemas/BreastFirmness'
         supplementType:
           $ref: '#/components/schemas/SupplementType'
+        spitUpType:
+          $ref: '#/components/schemas/SpitUpType'
         notes:
           type: string
         force:
@@ -881,6 +893,8 @@ components:
           $ref: '#/components/schemas/BreastFirmness'
         supplementType:
           $ref: '#/components/schemas/SupplementType'
+        spitUpType:
+          $ref: '#/components/schemas/SpitUpType'
         notes:
           type: string
 
@@ -1002,6 +1016,12 @@ components:
         supplementD3Count:
           type: integer
           description: D3补剂次数
+        spitUpCount:
+          type: integer
+          description: 吐奶次数
+        projectileSpitUpCount:
+          type: integer
+          description: 喷射性吐奶次数
         createdAt:
           type: string
           format: date-time

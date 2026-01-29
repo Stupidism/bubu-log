@@ -32,6 +32,7 @@ const activityColors: Record<string, { bg: string; border: string; text: string;
   OUTDOOR: { bg: 'bg-emerald-100 dark:bg-emerald-900/40', border: 'border-emerald-400', text: 'text-emerald-700 dark:text-emerald-300' },
   EARLY_EDUCATION: { bg: 'bg-purple-100 dark:bg-purple-900/40', border: 'border-purple-400', text: 'text-purple-700 dark:text-purple-300' },
   SUPPLEMENT: { bg: 'bg-orange-100 dark:bg-orange-900/40', border: 'border-orange-400', text: 'text-orange-700 dark:text-orange-300', divider: 'bg-orange-400' },
+  SPIT_UP: { bg: 'bg-red-100 dark:bg-red-900/40', border: 'border-red-400', text: 'text-red-700 dark:text-red-300', divider: 'bg-red-400' },
 }
 
 const defaultColor = { bg: 'bg-gray-100 dark:bg-gray-800', border: 'border-gray-400', text: 'text-gray-700 dark:text-gray-300' }
@@ -162,8 +163,8 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
         const minutesFromStart = startTime.diff(dayStart, 'minute')
         const top = (minutesFromStart / 60) * HOUR_HEIGHT
         
-        // 换尿布和补剂是瞬时事件，显示为线条
-        const isLineType = activity.type === 'DIAPER' || activity.type === 'SUPPLEMENT'
+        // 换尿布、补剂、吐奶是瞬时事件，显示为线条
+        const isLineType = activity.type === 'DIAPER' || activity.type === 'SUPPLEMENT' || activity.type === 'SPIT_UP'
         
         // 计算时长：有 endTime 则计算差值，否则默认 5 分钟（非线条类型）
         const duration = activity.endTime 
@@ -237,6 +238,13 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
         // 显示补剂类型
         if (activity.supplementType) {
           label = activity.supplementType
+        }
+      } else if (activity.type === 'SPIT_UP') {
+        // 显示吐奶类型
+        if (activity.spitUpType === 'PROJECTILE') {
+          label = '喷射性吐奶'
+        } else {
+          label = '普通吐奶'
         }
       } else if (activity.duration && activity.duration > 0) {
         label += ` ${activity.duration}分钟`
@@ -321,6 +329,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
                 poopColor: activity.poopColor,
                 peeAmount: activity.peeAmount,
                 supplementType: activity.supplementType,
+                spitUpType: activity.spitUpType,
                 notes: activity.notes,
               }
               

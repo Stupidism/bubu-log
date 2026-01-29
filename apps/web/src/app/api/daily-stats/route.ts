@@ -59,6 +59,8 @@ async function computeDailyStats(babyId: string, date: Date) {
     totalHeadLiftMinutes: 0,
     supplementADCount: 0,
     supplementD3Count: 0,
+    spitUpCount: 0,
+    projectileSpitUpCount: 0,
   }
   
   for (const activity of activities) {
@@ -122,6 +124,15 @@ async function computeDailyStats(babyId: string, date: Date) {
             stats.supplementADCount++
           } else if (activity.supplementType === 'D3') {
             stats.supplementD3Count++
+          }
+        }
+        break
+        
+      case ActivityType.SPIT_UP:
+        if (activity.startTime >= dayStart && activity.startTime <= dayEnd) {
+          stats.spitUpCount++
+          if (activity.spitUpType === 'PROJECTILE') {
+            stats.projectileSpitUpCount++
           }
         }
         break

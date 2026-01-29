@@ -94,6 +94,7 @@ const activityColors: Record<string, string> = {
   OUTDOOR: 'bg-green-400',
   EARLY_EDUCATION: 'bg-purple-400',
   SUPPLEMENT: 'bg-yellow-400',
+  SPIT_UP: 'bg-red-400',
 }
 
 const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']

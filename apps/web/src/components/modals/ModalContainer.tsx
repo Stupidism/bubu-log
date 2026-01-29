@@ -10,6 +10,7 @@ import { SleepStartModal } from './SleepStartModal'
 import { SleepEndModal } from './SleepEndModal'
 import { ActivityDurationModal } from './ActivityDurationModal'
 import { SupplementModal } from './SupplementModal'
+import { SpitUpModal } from './SpitUpModal'
 
 /**
  * ModalContainer 渲染所有弹窗组件
@@ -46,6 +47,9 @@ export function ModalContainer() {
       
       {/* 补剂弹窗 */}
       <SupplementModal />
+      
+      {/* 吐奶弹窗 */}
+      <SpitUpModal />
     </Suspense>
   )
 }

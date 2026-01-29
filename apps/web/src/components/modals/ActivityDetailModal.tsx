@@ -6,7 +6,7 @@ import { BottomSheet } from '@/components/BottomSheet'
 import { ActivityIcon } from '@/components/ActivityIcon'
 import { useModalParams } from '@/hooks/useModalParams'
 import { useActivity, useUpdateActivity, useDeleteActivity } from '@/lib/api/hooks'
-import { ActivityType, ActivityTypeLabels, PoopColorStyles, PoopColorLabels, PeeAmountLabels, PoopColor, PeeAmount, BreastFirmness, BreastFirmnessLabels, SupplementType, SupplementTypeLabels } from '@/types/activity'
+import { ActivityType, ActivityTypeLabels, PoopColorStyles, PoopColorLabels, PeeAmountLabels, PoopColor, PeeAmount, BreastFirmness, BreastFirmnessLabels, SupplementType, SupplementTypeLabels, SpitUpType, SpitUpTypeLabels } from '@/types/activity'
 import {
   DiaperForm,
   BreastfeedForm,
@@ -14,6 +14,7 @@ import {
   ActivityDurationForm,
   SleepEndForm,
   SupplementForm,
+  SpitUpForm,
 } from '@/components/forms'
 import type { components } from '@/lib/api/openapi-types'
 import { dayjs, calculateDurationMinutes, formatDuration, formatDateTimeChinese } from '@/lib/dayjs'
@@ -69,6 +70,8 @@ export function ActivityDetailModal() {
           ...(data.burpSuccess !== undefined && { burpSuccess: data.burpSuccess as boolean }),
           ...(data.breastFirmness !== undefined && { breastFirmness: data.breastFirmness as components["schemas"]["BreastFirmness"] }),
           ...(data.milkAmount !== undefined && { milkAmount: data.milkAmount as number }),
+          ...(data.supplementType !== undefined && { supplementType: data.supplementType as components["schemas"]["SupplementType"] }),
+          ...(data.spitUpType !== undefined && { spitUpType: data.spitUpType as components["schemas"]["SpitUpType"] }),
           ...(data.notes !== undefined && { notes: data.notes as string }),
         },
       },
@@ -174,6 +177,13 @@ export function ActivityDetailModal() {
           </p>
         )
       
+      case 'SPIT_UP':
+        return (
+          <p className="text-lg text-gray-700 dark:text-gray-300">
+            {activity.spitUpType ? SpitUpTypeLabels[activity.spitUpType as SpitUpType] : '未记录类型'}
+          </p>
+        )
+      
       default:
         return activity.endTime ? (
           <p className="text-lg text-gray-700 dark:text-gray-300">
@@ -260,6 +270,18 @@ export function ActivityDetailModal() {
             initialValues={{
               ...baseValues,
               supplementType: activity.supplementType as SupplementType | undefined,
+            }}
+            isEditing
+          />
+        )
+      case ActivityType.SPIT_UP:
+        return (
+          <SpitUpForm
+            onSubmit={handleSubmit}
+            onCancel={handleClose}
+            initialValues={{
+              ...baseValues,
+              spitUpType: activity.spitUpType as SpitUpType | undefined,
             }}
             isEditing
           />

@@ -20,6 +20,7 @@ export type ModalType =
   | 'outdoor'         // 户外
   | 'early_education' // 早教
   | 'supplement'      // 补剂
+  | 'spitup'          // 吐奶
 
 /**
  * ActivityType 到 ModalType 的映射
@@ -36,6 +37,7 @@ export const activityTypeToModalType: Record<ActivityType | 'wake', ModalType> =
   [ActivityType.OUTDOOR]: 'outdoor',
   [ActivityType.EARLY_EDUCATION]: 'early_education',
   [ActivityType.SUPPLEMENT]: 'supplement',
+  [ActivityType.SPIT_UP]: 'spitup',
   'wake': 'sleep_end',
 }
 

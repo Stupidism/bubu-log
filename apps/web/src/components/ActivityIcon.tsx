@@ -12,6 +12,7 @@ import {
   BookOpen,
   ArrowUp,
   Pill,
+  Droplets,
   LucideIcon,
 } from 'lucide-react'
 import { ActivityType } from '@/types/activity'
@@ -28,6 +29,7 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.OUTDOOR]: SunMedium,
   [ActivityType.EARLY_EDUCATION]: BookOpen,
   [ActivityType.SUPPLEMENT]: Pill,
+  [ActivityType.SPIT_UP]: Droplets,
 }
 
 interface ActivityIconProps {

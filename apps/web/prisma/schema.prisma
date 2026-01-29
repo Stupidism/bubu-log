@@ -142,12 +142,19 @@ enum ActivityType {
   OUTDOOR          // 户外晒太阳
   EARLY_EDUCATION  // 早教
   SUPPLEMENT       // 补剂（AD或D3）
+  SPIT_UP          // 吐奶（只有startTime）
 }
 
 // 补剂类型枚举
 enum SupplementType {
   AD    // AD（维生素AD）
   D3    // D3（维生素D3）
+}
+
+// 吐奶类型枚举
+enum SpitUpType {
+  NORMAL     // 普通吐奶
+  PROJECTILE // 喷射性吐奶
 }
 
 // 大便颜色枚举
@@ -203,6 +210,9 @@ model Activity {
 
   // 补剂相关字段
   supplementType  SupplementType? // 补剂类型（AD或D3）
+
+  // 吐奶相关字段
+  spitUpType      SpitUpType?     // 吐奶类型（普通或喷射性）
 
   // 备注
   notes           String?
@@ -267,6 +277,10 @@ model DailyStat {
   // 补剂统计
   supplementADCount     Int      @default(0) // AD补剂次数
   supplementD3Count     Int      @default(0) // D3补剂次数
+  
+  // 吐奶统计
+  spitUpCount           Int      @default(0) // 吐奶次数
+  projectileSpitUpCount Int      @default(0) // 喷射性吐奶次数
   
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
