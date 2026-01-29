@@ -21,12 +21,19 @@ const todayAdjustments = [
   { label: '+1分钟', minutes: 1 },
 ]
 
-// 全天模式的调整按钮（可以前后调整）
-const fullDayAdjustments = [
+// 全天模式的调整按钮（可以前后调整，两行显示）
+const fullDayAdjustmentsRow1 = [
   { label: '-1小时', minutes: -60 },
   { label: '-15分钟', minutes: -15 },
   { label: '+15分钟', minutes: 15 },
   { label: '+1小时', minutes: 60 },
+]
+
+const fullDayAdjustmentsRow2 = [
+  { label: '-5分钟', minutes: -5 },
+  { label: '-1分钟', minutes: -1 },
+  { label: '+1分钟', minutes: 1 },
+  { label: '+5分钟', minutes: 5 },
 ]
 
 export function TimeAdjuster({ 
@@ -162,7 +169,8 @@ export function TimeAdjuster({
   const canDecrease = !effectiveMinTime || differenceInMinutes(time, effectiveMinTime) > 0
 
   // 根据模式选择调整按钮
-  const adjustments = isFullDayMode ? fullDayAdjustments : todayAdjustments
+  const adjustments = isFullDayMode ? fullDayAdjustmentsRow1 : todayAdjustments
+  const adjustmentsRow2 = isFullDayMode ? fullDayAdjustmentsRow2 : null
 
   return (
     <div className={compact ? "space-y-2" : "space-y-4"}>
@@ -243,28 +251,55 @@ export function TimeAdjuster({
       )}
 
       {/* 时间微调按钮 */}
-      <div className="grid grid-cols-4 gap-2">
-        {adjustments.map(({ label: btnLabel, minutes }) => {
-          // 根据方向判断是否禁用
-          const isDisabled = minutes > 0 ? !canIncrease : !canDecrease
-          
-          return (
-            <button
-              key={btnLabel}
-              onClick={() => handleAdjust(minutes)}
-              disabled={isDisabled}
-              className={`p-3 rounded-xl text-base font-semibold transition-all ${
-                isDisabled
-                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                  : minutes < 0
-                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 active:scale-95'
-                    : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 active:scale-95'
-              }`}
-            >
-              {btnLabel}
-            </button>
-          )
-        })}
+      <div className="space-y-2">
+        <div className="grid grid-cols-4 gap-2">
+          {adjustments.map(({ label: btnLabel, minutes }) => {
+            // 根据方向判断是否禁用
+            const isDisabled = minutes > 0 ? !canIncrease : !canDecrease
+            
+            return (
+              <button
+                key={btnLabel}
+                onClick={() => handleAdjust(minutes)}
+                disabled={isDisabled}
+                className={`p-3 rounded-xl text-base font-semibold transition-all ${
+                  isDisabled
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                    : minutes < 0
+                      ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 active:scale-95'
+                      : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 active:scale-95'
+                }`}
+              >
+                {btnLabel}
+              </button>
+            )
+          })}
+        </div>
+        {/* 第二行精确调整按钮（全天模式专用） */}
+        {adjustmentsRow2 && (
+          <div className="grid grid-cols-4 gap-2">
+            {adjustmentsRow2.map(({ label: btnLabel, minutes }) => {
+              const isDisabled = minutes > 0 ? !canIncrease : !canDecrease
+              
+              return (
+                <button
+                  key={btnLabel}
+                  onClick={() => handleAdjust(minutes)}
+                  disabled={isDisabled}
+                  className={`p-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    isDisabled
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                      : minutes < 0
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 active:scale-95'
+                        : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 active:scale-95'
+                  }`}
+                >
+                  {btnLabel}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

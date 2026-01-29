@@ -509,13 +509,13 @@ export function ActivityFAB({
                     onKeyDown={handleKeyDown}
                     placeholder="说说宝宝做了什么..."
                     disabled={isLoading}
-                    className="flex-1 bg-transparent border-none outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400 text-base"
+                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400 text-base"
                     data-testid="voice-text-input"
                   />
                   <button
                     onClick={() => handleSubmit()}
                     disabled={!text.trim() || isLoading}
-                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                    className={`flex-shrink-0 w-10 h-10 min-w-[40px] rounded-full flex items-center justify-center transition-all ${
                       !text.trim() || isLoading
                         ? 'bg-gray-300 dark:bg-gray-600 text-gray-400'
                         : 'bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md hover:shadow-lg'

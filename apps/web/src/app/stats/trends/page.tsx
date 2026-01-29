@@ -120,27 +120,20 @@ function TrendsPageContent() {
     }
   }, [computeMutation, refetch])
   
-  // 批量计算所有日期
+  // 批量计算所有日期（始终重新计算）
   const handleComputeAll = useCallback(async () => {
-    const missingDates = dateRange.filter(
-      date => !stats.some(s => dayjs(s.date).format('YYYY-MM-DD') === date)
-    )
-    
-    if (missingDates.length === 0) {
-      // 重新计算所有日期
+    try {
+      // 重新计算所有日期的统计
       for (const date of dateRange) {
         await computeMutation.mutateAsync({ body: { date } })
       }
-    } else {
-      // 只计算缺失的日期
-      for (const date of missingDates) {
-        await computeMutation.mutateAsync({ body: { date } })
-      }
+      
+      toast.success(`已重新计算 ${dateRange.length} 天的统计数据`)
+      refetch()
+    } catch {
+      toast.error('统计失败，请重试')
     }
-    
-    toast.success('批量统计完成')
-    refetch()
-  }, [dateRange, stats, computeMutation, refetch])
+  }, [dateRange, computeMutation, refetch])
   
   // 导航日期范围
   const navigateDays = (direction: number) => {
