@@ -3,6 +3,7 @@ import './globals.css'
 import { Providers } from './providers'
 import { ModalContainer } from '@/components/modals/ModalContainer'
 import { Toaster } from '@bubu-log/ui/sonner'
+import { AgentationWrapper } from '@/components/AgentationWrapper'
 
 export const metadata: Metadata = {
   title: '卜卜日志 - Baby Care Tracker',
@@ -57,6 +58,8 @@ export default function RootLayout({
           <ModalContainer />
           {/* 全局 Toast 提示 */}
           <Toaster />
+          {/* 开发环境视觉反馈工具 */}
+          <AgentationWrapper />
         </Providers>
       </body>
     </html>
