@@ -139,28 +139,28 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const startDateStr = searchParams.get('startDate')
     const endDateStr = searchParams.get('endDate')
-    const limit = parseInt(searchParams.get('limit') || '30')
     
     const where: { babyId: string; date?: { gte?: Date; lte?: Date } } = {
       babyId: baby.id,
     }
     
+    // 使用本地日期解析，避免时区问题
     if (startDateStr) {
-      const startDate = new Date(startDateStr)
-      startDate.setHours(0, 0, 0, 0)
+      const [year, month, day] = startDateStr.split('-').map(Number)
+      const startDate = new Date(year, month - 1, day, 0, 0, 0, 0)
       where.date = { ...where.date, gte: startDate }
     }
     
     if (endDateStr) {
-      const endDate = new Date(endDateStr)
-      endDate.setHours(0, 0, 0, 0)
+      const [year, month, day] = endDateStr.split('-').map(Number)
+      const endDate = new Date(year, month - 1, day, 0, 0, 0, 0)
       where.date = { ...where.date, lte: endDate }
     }
     
+    // 不使用 limit，返回日期范围内的所有记录
     const stats = await prisma.dailyStat.findMany({
       where,
-      orderBy: { date: 'desc' },
-      take: limit,
+      orderBy: { date: 'asc' },
     })
     
     return NextResponse.json(stats)

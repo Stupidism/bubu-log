@@ -68,11 +68,10 @@ function TrendsPageContent() {
   const startDateStr = dayjs(startDate).format('YYYY-MM-DD')
   const endDateStr = dayjs(endDate).format('YYYY-MM-DD')
   
-  // 获取统计数据
+  // 获取统计数据（不使用 limit，获取日期范围内所有记录）
   const { data: stats = [], isLoading, refetch } = useDailyStats({
     startDate: startDateStr,
     endDate: endDateStr,
-    limit: daysToShow,
   })
   
   const computeMutation = useComputeDailyStat()
