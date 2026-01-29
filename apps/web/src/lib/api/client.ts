@@ -6,10 +6,9 @@ import type { paths } from "./openapi-types";
 const customFetch: typeof fetch = async (input, init) => {
   const response = await fetch(input, init);
   
-  // 如果返回 401，重定向到登录页
+  // 如果返回 401，重定向到登录页（但如果已经在登录页则不重定向，避免无限循环）
   if (response.status === 401) {
-    // 只在客户端执行重定向
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
       window.location.href = '/login';
     }
   }

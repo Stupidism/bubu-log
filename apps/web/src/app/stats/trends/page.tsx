@@ -100,11 +100,11 @@ const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '�
 const weekdaysShort = ['一', '二', '三', '四', '五', '六', '日']
 
 // ==================== 折线图视图 ====================
-function ChartView({ 
-  chartData, 
+function ChartView({
+  chartData,
   daysToShow,
   setDaysToShow,
-}: { 
+}: {
   chartData: Array<{ date: string; dateLabel: string; totalSleepMinutes: number; totalMilkAmount: number; diaperCount: number; hasData: boolean }>
   daysToShow: number
   setDaysToShow: (days: number) => void
@@ -117,11 +117,10 @@ function ChartView({
           <button
             key={days}
             onClick={() => setDaysToShow(days)}
-            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-              daysToShow === days
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-            }`}
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${daysToShow === days
+              ? 'bg-primary text-white'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              }`}
           >
             {days}天
           </button>
@@ -217,15 +216,12 @@ function WeeklyView({
     return dates
   }, [weekStart])
 
-  // 使用本地时间格式避免时区问题
   const startDateForQuery = useMemo(() => {
-    const d = dayjs(weekDates[0])
-    return `${d.year()}-${String(d.month() + 1).padStart(2, '0')}-${String(d.date()).padStart(2, '0')}T00:00:00`
+    return dayjs(weekDates[0]).startOf('day').toISOString()
   }, [weekDates])
-  
+
   const endDateForQuery = useMemo(() => {
-    const d = dayjs(weekDates[6])
-    return `${d.year()}-${String(d.month() + 1).padStart(2, '0')}-${String(d.date()).padStart(2, '0')}T23:59:59`
+    return dayjs(weekDates[6]).endOf('day').toISOString()
   }, [weekDates])
 
   // 获取这一周的所有活动（包括跨天活动）
@@ -238,34 +234,34 @@ function WeeklyView({
   const activitiesByDate = useMemo(() => {
     const map = new Map<string, ActivityBlock[]>()
     weekDates.forEach(date => map.set(date, []))
-    
+
     activitiesData.forEach((activity: Activity) => {
       const activityStart = dayjs(activity.startTime)
       const activityEnd = activity.endTime ? dayjs(activity.endTime) : activityStart
       const startDate = activityStart.format('YYYY-MM-DD')
       const endDate = activityEnd.format('YYYY-MM-DD')
-      
+
       // 遍历这个活动涉及的每一天
       weekDates.forEach(date => {
         const dayStart = dayjs(date).startOf('day')
         const dayEnd = dayjs(date).endOf('day')
-        
+
         // 检查活动是否与这一天有交集
         if (activityStart.isBefore(dayEnd) && activityEnd.isAfter(dayStart)) {
           // 计算在这一天内的时间范围
           const effectiveStart = activityStart.isBefore(dayStart) ? dayStart : activityStart
           const effectiveEnd = activityEnd.isAfter(dayEnd) ? dayEnd : activityEnd
-          
+
           const startMinutes = effectiveStart.hour() * 60 + effectiveStart.minute()
           const endMinutes = effectiveEnd.hour() * 60 + effectiveEnd.minute()
-          
+
           // 如果跨到第二天凌晨，endMinutes 应该是 24*60
           const adjustedEndMinutes = date === endDate ? endMinutes : 24 * 60
           const adjustedStartMinutes = date === startDate ? startMinutes : 0
-          
+
           const startPercent = (adjustedStartMinutes / (24 * 60)) * 100
           const endPercent = (adjustedEndMinutes / (24 * 60)) * 100
-          
+
           if (endPercent > startPercent) {
             map.get(date)!.push({
               activity,
@@ -276,12 +272,12 @@ function WeeklyView({
         }
       })
     })
-    
+
     // 按开始位置排序
     map.forEach((blocks) => {
       blocks.sort((a, b) => a.startPercent - b.startPercent)
     })
-    
+
     return map
   }, [activitiesData, weekDates])
 
@@ -334,15 +330,14 @@ function WeeklyView({
             const blocks = activitiesByDate.get(date) || []
             const isFuture = dayjs(date).isAfter(dayjs(), 'day')
             const isToday = date === dayjs().format('YYYY-MM-DD')
-            
+
             return (
-              <div 
-                key={date} 
-                className={`relative h-[300px] rounded-lg ${
-                  isFuture 
-                    ? 'bg-gray-50 dark:bg-gray-900' 
-                    : 'bg-gray-100 dark:bg-gray-700'
-                } ${isToday ? 'ring-2 ring-primary' : ''}`}
+              <div
+                key={date}
+                className={`relative h-[300px] rounded-lg ${isFuture
+                  ? 'bg-gray-50 dark:bg-gray-900'
+                  : 'bg-gray-100 dark:bg-gray-700'
+                  } ${isToday ? 'ring-2 ring-primary' : ''}`}
               >
                 {/* 时间刻度线 */}
                 {[6, 12, 18].map(hour => (
@@ -361,13 +356,13 @@ function WeeklyView({
                 {blocks.map((block, idx) => {
                   const colorClass = activityColors[block.activity.type] || 'bg-gray-400'
                   const heightPercent = block.endPercent - block.startPercent
-                  
+
                   return (
                     <div
                       key={`${block.activity.id}-${date}-${idx}`}
                       className={`absolute left-0.5 right-0.5 ${colorClass} rounded-sm opacity-80`}
-                      style={{ 
-                        top: `${block.startPercent}%`, 
+                      style={{
+                        top: `${block.startPercent}%`,
                         height: `${heightPercent}%`,
                         minHeight: '4px'
                       }}
@@ -452,7 +447,7 @@ function MonthlyView({
           <Moon size={20} className="text-indigo-500" />
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">睡眠</h2>
         </div>
-        
+
         {/* 表头 */}
         <div className="grid grid-cols-8 gap-1 mb-2">
           <div className="text-xs text-gray-400 text-right pr-1"></div>
@@ -462,7 +457,7 @@ function MonthlyView({
             </div>
           ))}
         </div>
-        
+
         {/* 周数据 */}
         {weeksData.map((week) => (
           <div key={week.weekStart} className="grid grid-cols-8 gap-1 mb-1">
@@ -470,13 +465,13 @@ function MonthlyView({
               {dayjs(week.weekStart).format('M/D')}
             </div>
             {week.days.map((day) => {
-              const intensity = day.stat 
+              const intensity = day.stat
                 ? getIntensity(day.stat.totalSleepMinutes ?? 0, maxValues.sleep)
                 : 0
               const isToday = day.date === dayjs().format('YYYY-MM-DD')
               const isFuture = dayjs(day.date).isAfter(dayjs(), 'day')
               const formatted = day.stat ? formatMinutesToHoursCompact(day.stat.totalSleepMinutes ?? 0) : ''
-              
+
               return (
                 <div
                   key={day.date}
@@ -505,7 +500,7 @@ function MonthlyView({
             })}
           </div>
         ))}
-        
+
         {/* 图例 */}
         <div className="flex items-center justify-end gap-2 mt-3">
           <span className="text-xs text-gray-400">少</span>
@@ -523,7 +518,7 @@ function MonthlyView({
           <Milk size={20} className="text-pink-500" />
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">奶量</h2>
         </div>
-        
+
         {/* 表头 */}
         <div className="grid grid-cols-8 gap-1 mb-2">
           <div className="text-xs text-gray-400 text-right pr-1"></div>
@@ -533,7 +528,7 @@ function MonthlyView({
             </div>
           ))}
         </div>
-        
+
         {/* 周数据 */}
         {weeksData.map((week) => (
           <div key={week.weekStart} className="grid grid-cols-8 gap-1 mb-1">
@@ -541,12 +536,12 @@ function MonthlyView({
               {dayjs(week.weekStart).format('M/D')}
             </div>
             {week.days.map((day) => {
-              const intensity = day.stat 
+              const intensity = day.stat
                 ? getIntensity(day.stat.totalMilkAmount ?? 0, maxValues.milk)
                 : 0
               const isToday = day.date === dayjs().format('YYYY-MM-DD')
               const isFuture = dayjs(day.date).isAfter(dayjs(), 'day')
-              
+
               return (
                 <div
                   key={day.date}
@@ -562,15 +557,15 @@ function MonthlyView({
                   `}
                   title={`${day.date}: ${day.stat ? `${day.stat.totalMilkAmount ?? 0}ml` : '无数据'}`}
                 >
-                  {!isFuture && day.stat && (day.stat.totalMilkAmount ?? 0) > 0 
-                    ? `${day.stat.totalMilkAmount}` 
+                  {!isFuture && day.stat && (day.stat.totalMilkAmount ?? 0) > 0
+                    ? `${day.stat.totalMilkAmount}`
                     : ''}
                 </div>
               )
             })}
           </div>
         ))}
-        
+
         {/* 图例 */}
         <div className="flex items-center justify-end gap-2 mt-3">
           <span className="text-xs text-gray-400">少</span>
@@ -600,22 +595,22 @@ function TrendsPageContent() {
   const [daysToShow, setDaysToShow] = useState(7)
   const [endDate, setEndDate] = useState(() => dayjs().startOf('day').toDate())
   // 使用 weekday(0) 获取本周周一 (zh-cn locale 下 weekday(0) = 周一)
-  const [weeklyViewWeekStart, setWeeklyViewWeekStart] = useState(() => 
+  const [weeklyViewWeekStart, setWeeklyViewWeekStart] = useState(() =>
     dayjs().weekday(0).startOf('day').toDate()
   )
   const [monthlyViewWeekStart, setMonthlyViewWeekStart] = useState(() =>
     dayjs().weekday(0).startOf('day').toDate()
   )
   const weeksToShow = 4
-  
+
   // 图表视图的日期范围
   const chartStartDate = useMemo(() => {
     return dayjs(endDate).subtract(daysToShow - 1, 'day').toDate()
   }, [endDate, daysToShow])
-  
+
   const chartStartDateStr = dayjs(chartStartDate).format('YYYY-MM-DD')
   const chartEndDateStr = dayjs(endDate).format('YYYY-MM-DD')
-  
+
   // 月历视图的日期范围
   const monthlyDateRange = useMemo(() => {
     const startDate = dayjs(monthlyViewWeekStart).subtract(weeksToShow - 1, 'week')
@@ -625,21 +620,21 @@ function TrendsPageContent() {
       end: endDateVal.format('YYYY-MM-DD'),
     }
   }, [monthlyViewWeekStart, weeksToShow])
-  
+
   // 获取图表统计数据
   const { data: chartStats = [], isLoading: chartLoading, refetch: refetchChart } = useDailyStats({
     startDate: chartStartDateStr,
     endDate: chartEndDateStr,
   })
-  
+
   // 获取月历统计数据
   const { data: monthlyStats = [], isLoading: monthlyLoading, refetch: refetchMonthly } = useDailyStats({
     startDate: monthlyDateRange.start,
     endDate: monthlyDateRange.end,
   })
-  
+
   const computeMutation = useComputeDailyStat()
-  
+
   // 图表日期范围
   const chartDateRange = useMemo(() => {
     const dates: string[] = []
@@ -651,13 +646,13 @@ function TrendsPageContent() {
     }
     return dates
   }, [chartStartDate, endDate])
-  
+
   // 图表数据
   const chartData = useMemo(() => {
     const statsByDate = new Map(
       chartStats.map(s => [dayjs(s.date).format('YYYY-MM-DD'), s])
     )
-    
+
     return chartDateRange.map(date => {
       const stat = statsByDate.get(date)
       return {
@@ -670,23 +665,23 @@ function TrendsPageContent() {
       }
     })
   }, [chartDateRange, chartStats])
-  
+
   // 月历周数据
   const weeksData = useMemo(() => {
     const statsByDate = new Map(
       monthlyStats.map(s => [dayjs(s.date).format('YYYY-MM-DD'), s])
     )
-    
+
     const weeks: Array<{
       weekLabel: string
       weekStart: string
       days: Array<{ date: string; dayOfWeek: number; stat: DailyStat | null }>
     }> = []
-    
+
     for (let w = weeksToShow - 1; w >= 0; w--) {
       const weekStart = dayjs(monthlyViewWeekStart).subtract(w, 'week')
       const weekLabel = weekStart.format('M/D') + ' - ' + weekStart.add(6, 'day').format('M/D')
-      
+
       const days = []
       for (let d = 0; d < 7; d++) {
         const date = weekStart.add(d, 'day').format('YYYY-MM-DD')
@@ -696,49 +691,49 @@ function TrendsPageContent() {
           stat: statsByDate.get(date) || null,
         })
       }
-      
+
       weeks.push({ weekLabel, weekStart: weekStart.format('YYYY-MM-DD'), days })
     }
-    
+
     return weeks
   }, [monthlyViewWeekStart, weeksToShow, monthlyStats])
-  
+
   // 月历最大值
   const monthlyMaxValues = useMemo(() => {
     let maxSleep = 0
     let maxMilk = 0
-    
+
     for (const stat of monthlyStats) {
       maxSleep = Math.max(maxSleep, stat.totalSleepMinutes ?? 0)
       maxMilk = Math.max(maxMilk, stat.totalMilkAmount ?? 0)
     }
-    
+
     return {
       sleep: maxSleep || 12 * 60,
       milk: maxMilk || 600,
     }
   }, [monthlyStats])
-  
+
   // 导航日期范围（图表）
   const navigateChartDays = (direction: number) => {
     setEndDate(prev => dayjs(prev).add(direction * daysToShow, 'day').toDate())
   }
-  
+
   // 导航周（周历）
   const navigateWeeklyWeek = (direction: number) => {
     setWeeklyViewWeekStart(prev => dayjs(prev).add(direction, 'week').toDate())
   }
-  
+
   // 导航周（月历）
   const navigateMonthlyWeek = (direction: number) => {
     setMonthlyViewWeekStart(prev => dayjs(prev).add(direction, 'week').toDate())
   }
-  
+
   // 刷新当前视图的数据
   const handleRefresh = useCallback(async () => {
     try {
       let datesToCompute: string[] = []
-      
+
       if (activeTab === 'chart') {
         datesToCompute = chartDateRange
       } else if (activeTab === 'weekly') {
@@ -752,13 +747,13 @@ function TrendsPageContent() {
           })
         })
       }
-      
+
       for (const date of datesToCompute) {
         await computeMutation.mutateAsync({ body: { date } })
       }
-      
+
       toast.success(`已重新计算 ${datesToCompute.length} 天的统计数据`)
-      
+
       if (activeTab === 'chart') {
         refetchChart()
       } else if (activeTab === 'monthly') {
@@ -768,14 +763,14 @@ function TrendsPageContent() {
       toast.error('统计失败，请重试')
     }
   }, [activeTab, chartDateRange, weeklyViewWeekStart, weeksData, computeMutation, refetchChart, refetchMonthly])
-  
+
   // 是否可以前进
   const canChartGoForward = dayjs(endDate).isBefore(dayjs(), 'day')
   const canWeeklyGoForward = dayjs(weeklyViewWeekStart).isBefore(dayjs().weekday(0), 'day')
   const canMonthlyGoForward = dayjs(monthlyViewWeekStart).isBefore(dayjs().weekday(0), 'day')
-  
+
   const isLoading = activeTab === 'chart' ? chartLoading : monthlyLoading
-  
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#fefbf6] to-[#fff5e6] dark:from-[#1a1a2e] dark:to-[#16213e] safe-area-top safe-area-bottom">
       {/* 顶部导航 */}
@@ -805,33 +800,30 @@ function TrendsPageContent() {
         <div className="px-4 pb-3 flex justify-center gap-2">
           <button
             onClick={() => setActiveTab('chart')}
-            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${
-              activeTab === 'chart'
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-            }`}
+            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${activeTab === 'chart'
+              ? 'bg-primary text-white'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              }`}
           >
             <BarChart3 size={16} />
             折线图
           </button>
           <button
             onClick={() => setActiveTab('weekly')}
-            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${
-              activeTab === 'weekly'
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-            }`}
+            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${activeTab === 'weekly'
+              ? 'bg-primary text-white'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              }`}
           >
             <Calendar size={16} />
             周历
           </button>
           <button
             onClick={() => setActiveTab('monthly')}
-            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${
-              activeTab === 'monthly'
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-            }`}
+            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors ${activeTab === 'monthly'
+              ? 'bg-primary text-white'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              }`}
           >
             <CalendarDays size={16} />
             月历
@@ -868,8 +860,8 @@ function TrendsPageContent() {
       ) : (
         <div className="p-4">
           {activeTab === 'chart' && (
-            <ChartView 
-              chartData={chartData} 
+            <ChartView
+              chartData={chartData}
               daysToShow={daysToShow}
               setDaysToShow={setDaysToShow}
             />
