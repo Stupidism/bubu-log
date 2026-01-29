@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { X, Mic, Keyboard, Send, Loader2, Check } from 'lucide-react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { X, Mic, Keyboard, Send, Loader2, Check, Calendar } from 'lucide-react'
 import { ActivityType } from '@/types/activity'
 import { useQueryClient } from '@tanstack/react-query'
 import { useModalParams, activityTypeToModalType, type ModalType } from '@/hooks/useModalParams'
+import { dayjs } from '@/lib/dayjs'
 
 // Parsed voice input data for confirmation
 export interface VoiceParsedData {
@@ -36,11 +37,14 @@ interface VoiceInputResponse {
 interface ActivityFABProps {
   onVoiceSuccess?: (message: string) => void
   onVoiceError?: (message: string) => void
+  /** 目标日期（用于语音输入，默认为今天）*/
+  targetDate?: Date
 }
 
 export function ActivityFAB({ 
   onVoiceSuccess,
   onVoiceError,
+  targetDate,
 }: ActivityFABProps) {
   const [voiceDialogOpen, setVoiceDialogOpen] = useState(false)
   const [mode, setMode] = useState<'voice' | 'text'>('voice')
@@ -57,6 +61,19 @@ export function ActivityFAB({
   const queryClient = useQueryClient()
   
   const { openModal } = useModalParams()
+
+  // 检查目标日期是否不是今天
+  const isNotToday = useMemo(() => {
+    if (!targetDate) return false
+    const today = dayjs().startOf('day')
+    const target = dayjs(targetDate).startOf('day')
+    return !target.isSame(today)
+  }, [targetDate])
+
+  const targetDateStr = useMemo(() => {
+    if (!targetDate || !isNotToday) return null
+    return dayjs(targetDate).format('M月D日')
+  }, [targetDate, isNotToday])
 
   // 检查是否支持语音识别
   useEffect(() => {
@@ -128,8 +145,15 @@ export function ActivityFAB({
 
     try {
       // 发送用户本地时间，格式：2024-01-22 15:30:00
+      // 如果提供了 targetDate，使用目标日期但保留当前时间
       const now = new Date()
-      const localTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+      let dateToUse = now
+      if (targetDate) {
+        // 使用目标日期，但保留当前时间（小时分钟秒）
+        dateToUse = new Date(targetDate)
+        dateToUse.setHours(now.getHours(), now.getMinutes(), now.getSeconds())
+      }
+      const localTime = `${dateToUse.getFullYear()}-${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')} ${String(dateToUse.getHours()).padStart(2, '0')}:${String(dateToUse.getMinutes()).padStart(2, '0')}:${String(dateToUse.getSeconds()).padStart(2, '0')}`
       
       const response = await fetch('/api/voice-input', {
         method: 'POST',
@@ -171,7 +195,7 @@ export function ActivityFAB({
     } finally {
       setIsLoading(false)
     }
-  }, [text, isLoading, onVoiceSuccess, onVoiceError, closeVoiceDialog, queryClient, handleNeedConfirmation])
+  }, [text, isLoading, onVoiceSuccess, onVoiceError, closeVoiceDialog, queryClient, handleNeedConfirmation, targetDate])
 
   // 开始语音识别
   const startListening = useCallback(() => {
@@ -388,6 +412,14 @@ export function ActivityFAB({
                 <X size={20} />
               </button>
             </div>
+
+            {/* 显示目标日期（如果不是今天） */}
+            {isNotToday && targetDateStr && (
+              <div className="mb-4 px-4 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-sm flex items-center gap-2">
+                <Calendar size={16} />
+                <span>将记录到 <strong>{targetDateStr}</strong></span>
+              </div>
+            )}
 
             {/* 结果提示 */}
             {result && (

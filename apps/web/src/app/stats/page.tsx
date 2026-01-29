@@ -14,7 +14,7 @@ import {
 import { ActivityIcon } from '@/components/ActivityIcon'
 import { BottomSheet } from '@/components/BottomSheet'
 import { toast } from 'sonner'
-import { useActivities, useBatchDeleteActivities, type Activity } from '@/lib/api/hooks'
+import { useActivities, useBatchDeleteActivities, useBatchUpdateActivityDate, type Activity } from '@/lib/api/hooks'
 import { useModalParams } from '@/hooks/useModalParams'
 import { 
   BarChart3, 
@@ -31,6 +31,7 @@ import {
   History,
   ArrowUpDown,
   TrendingUp,
+  Calendar,
 } from 'lucide-react'
 import { StatsCardList, type StatFilter } from '@/components/StatsCardList'
 
@@ -75,6 +76,8 @@ function StatsPageContent() {
   const [isSelectMode, setIsSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false)
+  const [showBatchDateChange, setShowBatchDateChange] = useState(false)
+  const [targetDateInput, setTargetDateInput] = useState('')
   
   // 排序状态：默认按结束时间倒序
   const [sortField, setSortField] = useState<SortField>('endTime')
@@ -85,6 +88,7 @@ function StatsPageContent() {
   // URL 参数管理（包括日期）
   const { openActivityDetail, selectedDate, selectedDateStr, setSelectedDate } = useModalParams()
   const batchDeleteMutation = useBatchDeleteActivities()
+  const batchUpdateDateMutation = useBatchUpdateActivityDate()
 
   // Use React Query for activities
   const { data: activities = [], isLoading, refetch } = useActivities({
@@ -341,6 +345,28 @@ function StatsPageContent() {
       }
     )
   }, [selectedIds, batchDeleteMutation, refetch, exitSelectMode])
+
+  // 批量修改日期
+  const handleBatchDateChange = useCallback(async () => {
+    if (selectedIds.size === 0 || !targetDateInput) return
+    
+    batchUpdateDateMutation.mutate(
+      { body: { ids: Array.from(selectedIds), targetDate: targetDateInput } },
+      {
+        onSuccess: (data) => {
+          toast.success(`成功修改 ${data.count} 条记录的日期`)
+          setShowBatchDateChange(false)
+          setTargetDateInput('')
+          exitSelectMode()
+          refetch()
+        },
+        onError: (error) => {
+          const errorMessage = (error as { error?: string })?.error || '修改失败，请重试'
+          toast.error(errorMessage)
+        },
+      }
+    )
+  }, [selectedIds, targetDateInput, batchUpdateDateMutation, refetch, exitSelectMode])
 
   // 渲染活动详情（用于列表项）
   const renderActivityDetails = (activity: Activity) => {
@@ -665,7 +691,14 @@ function StatsPageContent() {
       {/* 多选模式底部操作栏 */}
       {isSelectMode && selectedIds.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4 safe-area-bottom">
-          <div className="max-w-md mx-auto">
+          <div className="max-w-md mx-auto space-y-3">
+            <button
+              onClick={() => setShowBatchDateChange(true)}
+              className="w-full p-4 rounded-2xl bg-primary text-white font-semibold text-lg flex items-center justify-center gap-2"
+            >
+              <Calendar size={22} />
+              修改日期 ({selectedIds.size} 项)
+            </button>
             <button
               onClick={() => setShowBatchDeleteConfirm(true)}
               className="w-full p-4 rounded-2xl bg-red-500 text-white font-semibold text-lg flex items-center justify-center gap-2"
@@ -700,6 +733,55 @@ function StatsPageContent() {
               className="p-4 rounded-2xl bg-red-500 text-white font-semibold text-lg"
             >
               {batchDeleteMutation.isPending ? '删除中...' : '确认删除'}
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      {/* 批量修改日期弹窗 */}
+      <BottomSheet
+        isOpen={showBatchDateChange}
+        onClose={() => {
+          setShowBatchDateChange(false)
+          setTargetDateInput('')
+        }}
+        title="修改日期"
+      >
+        <div className="space-y-6">
+          <p className="text-center text-lg text-gray-600 dark:text-gray-400">
+            将选中的 <span className="font-bold text-primary">{selectedIds.size}</span> 条记录移动到新日期
+          </p>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              选择目标日期
+            </label>
+            <input
+              type="date"
+              value={targetDateInput}
+              onChange={(e) => setTargetDateInput(e.target.value)}
+              max={dayjs().format('YYYY-MM-DD')}
+              className="w-full p-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 text-lg"
+            />
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              活动的具体时间（小时分钟）将保持不变，只修改日期
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => {
+                setShowBatchDateChange(false)
+                setTargetDateInput('')
+              }}
+              className="p-4 rounded-2xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-lg"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleBatchDateChange}
+              disabled={batchUpdateDateMutation.isPending || !targetDateInput}
+              className="p-4 rounded-2xl bg-primary text-white font-semibold text-lg disabled:opacity-50"
+            >
+              {batchUpdateDateMutation.isPending ? '修改中...' : '确认修改'}
             </button>
           </div>
         </div>

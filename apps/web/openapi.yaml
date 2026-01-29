@@ -102,6 +102,50 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+    put:
+      operationId: batchUpdateActivityDate
+      summary: Batch update activity dates
+      description: Move selected activities to a different date while preserving time of day
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Activity IDs to update
+                targetDate:
+                  type: string
+                  format: date
+                  description: Target date (YYYY-MM-DD format) to move activities to
+              required:
+                - ids
+                - targetDate
+      responses:
+        '200':
+          description: Update success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  count:
+                    type: integer
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
   /activities/latest:
     get:
       operationId: getLatestActivity

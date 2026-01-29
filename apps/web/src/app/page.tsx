@@ -387,6 +387,7 @@ function HomeContent() {
     <ActivityFAB
       onVoiceSuccess={(message) => toast.success(message)}
       onVoiceError={(message) => toast.error(message)}
+      targetDate={selectedDate}
     />
 
     {/* 活动选择器 - 长按时间轴触发 */}

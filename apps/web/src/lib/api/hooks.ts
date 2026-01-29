@@ -187,6 +187,17 @@ export function useBatchDeleteActivities() {
   });
 }
 
+export function useBatchUpdateActivityDate() {
+  const queryClient = useQueryClient();
+  
+  return $api.useMutation("put", "/activities", {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["get", "/activities"] });
+      queryClient.invalidateQueries({ queryKey: ["get", "/activities/latest"] });
+    },
+  });
+}
+
 // Baby profile hooks
 export function useBabyProfile() {
   return $api.useQuery("get", "/baby-profile");

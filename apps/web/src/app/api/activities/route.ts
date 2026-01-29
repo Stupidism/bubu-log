@@ -108,8 +108,33 @@ export async function GET(request: NextRequest) {
 const POINT_EVENT_TYPES = ['DIAPER', 'SUPPLEMENT']
 // 喂奶类型（互斥的活动）
 const FEEDING_TYPES = ['BREASTFEED', 'BOTTLE']
+// 有时长的活动类型（同类型不允许重叠）
+const DURATION_ACTIVITY_TYPES = ['SLEEP', 'HEAD_LIFT', 'PASSIVE_EXERCISE', 'GAS_EXERCISE', 'BATH', 'OUTDOOR', 'EARLY_EDUCATION']
 // 时间容差（毫秒）- 1分钟内视为相同时间
 const TIME_TOLERANCE_MS = 60 * 1000
+
+// 活动类型标签（用于错误提示）
+const TYPE_LABELS: Record<string, string> = {
+  SLEEP: '睡眠',
+  BREASTFEED: '亲喂',
+  BOTTLE: '瓶喂',
+  DIAPER: '换尿布',
+  SUPPLEMENT: '补剂',
+  HEAD_LIFT: '抬头',
+  PASSIVE_EXERCISE: '被动操',
+  GAS_EXERCISE: '排气操',
+  BATH: '洗澡',
+  OUTDOOR: '户外',
+  EARLY_EDUCATION: '早教',
+}
+
+// 检查是否是未来时间
+function isFutureTime(time: Date): boolean {
+  const now = new Date()
+  // 允许2分钟的误差（考虑到网络延迟等）
+  const tolerance = 2 * 60 * 1000
+  return time.getTime() > now.getTime() + tolerance
+}
 
 // 检查时间重叠
 async function checkTimeOverlap(
@@ -121,6 +146,21 @@ async function checkTimeOverlap(
 ): Promise<{ code: string; message: string; conflictingActivity?: unknown } | null> {
   const isPointEvent = POINT_EVENT_TYPES.includes(type)
   const isFeeding = FEEDING_TYPES.includes(type)
+  const isDurationActivity = DURATION_ACTIVITY_TYPES.includes(type)
+  
+  // 0. 检查是否是未来时间
+  if (isFutureTime(startTime)) {
+    return {
+      code: 'FUTURE_TIME',
+      message: '不能录入未来的活动',
+    }
+  }
+  if (endTime && isFutureTime(endTime)) {
+    return {
+      code: 'FUTURE_TIME',
+      message: '活动结束时间不能在未来',
+    }
+  }
   
   // 1. 点事件：检查同类型同时间（1分钟容差）
   if (isPointEvent) {
@@ -179,10 +219,51 @@ async function checkTimeOverlap(
     })
     
     if (overlapping) {
-      const overlappingType = overlapping.type === 'BREASTFEED' ? '亲喂' : '瓶喂'
+      const overlappingType = TYPE_LABELS[overlapping.type] || overlapping.type
       return {
         code: 'OVERLAP_ACTIVITY',
         message: `该时间段与已有的${overlappingType}记录重叠`,
+        conflictingActivity: overlapping,
+      }
+    }
+  }
+  
+  // 3. 有时长的活动：检查同类型时间重叠（如睡眠）
+  if (isDurationActivity) {
+    // 对于进行中的活动（没有结束时间），我们检查是否与同类型的其他活动重叠
+    // 默认假设活动持续时间为合理范围
+    const activityEnd = endTime || new Date(startTime.getTime() + 4 * 60 * 60 * 1000) // 默认4小时
+    
+    // 查找同类型重叠的活动
+    const overlapping = await prisma.activity.findFirst({
+      where: {
+        babyId,
+        type: type as PrismaActivityType,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+        OR: [
+          {
+            // 现有活动有结束时间：检查时间段重叠
+            AND: [
+              { startTime: { lt: activityEnd } },
+              { endTime: { gt: startTime } },
+            ],
+          },
+          {
+            // 现有活动没有结束时间（进行中）：新活动开始时间在现有活动开始时间之后
+            AND: [
+              { endTime: null },
+              { startTime: { lt: activityEnd } },
+            ],
+          },
+        ],
+      },
+    })
+    
+    if (overlapping) {
+      const typeLabel = TYPE_LABELS[type] || type
+      return {
+        code: 'DUPLICATE_ACTIVITY', // 同类型重叠不允许绕过
+        message: `该时间段与已有的${typeLabel}记录重叠，请检查`,
         conflictingActivity: overlapping,
       }
     }
@@ -288,6 +369,119 @@ export async function POST(request: NextRequest) {
     console.error('Failed to create activity:', error)
     return NextResponse.json(
       { error: 'Failed to create activity' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT: 批量修改活动日期
+export async function PUT(request: NextRequest) {
+  try {
+    const { baby, user } = await requireAuth()
+    
+    const body = await request.json()
+    const { ids, targetDate } = body
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { error: 'ids array is required' },
+        { status: 400 }
+      )
+    }
+
+    if (!targetDate || !/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+      return NextResponse.json(
+        { error: 'targetDate is required in YYYY-MM-DD format' },
+        { status: 400 }
+      )
+    }
+
+    // 解析目标日期
+    const targetDateObj = new Date(targetDate + 'T00:00:00')
+    
+    // 检查目标日期是否是未来
+    const today = new Date()
+    today.setHours(23, 59, 59, 999) // 允许修改到今天
+    if (targetDateObj > today) {
+      return NextResponse.json(
+        { error: '不能将活动移动到未来日期' },
+        { status: 400 }
+      )
+    }
+
+    // 获取要修改的活动（只能修改属于当前宝宝的活动）
+    const activities = await prisma.activity.findMany({
+      where: { id: { in: ids }, babyId: baby.id },
+    })
+
+    if (activities.length === 0) {
+      return NextResponse.json(
+        { error: '未找到可修改的活动' },
+        { status: 404 }
+      )
+    }
+
+    // 批量更新活动日期
+    // 保持原来的时间（小时分钟秒），只修改日期部分
+    let updatedCount = 0
+    for (const activity of activities) {
+      const originalStart = new Date(activity.startTime)
+      const newStartTime = new Date(targetDateObj)
+      newStartTime.setHours(originalStart.getHours(), originalStart.getMinutes(), originalStart.getSeconds(), originalStart.getMilliseconds())
+      
+      let newEndTime: Date | null = null
+      if (activity.endTime) {
+        const originalEnd = new Date(activity.endTime)
+        newEndTime = new Date(targetDateObj)
+        newEndTime.setHours(originalEnd.getHours(), originalEnd.getMinutes(), originalEnd.getSeconds(), originalEnd.getMilliseconds())
+        
+        // 如果原活动跨天（结束时间小于开始时间的时钟时间），保持跨天
+        if (originalEnd.getHours() < originalStart.getHours() || 
+            (originalEnd.getHours() === originalStart.getHours() && originalEnd.getMinutes() < originalStart.getMinutes())) {
+          newEndTime.setDate(newEndTime.getDate() + 1)
+        }
+      }
+
+      await prisma.activity.update({
+        where: { id: activity.id },
+        data: {
+          startTime: newStartTime,
+          endTime: newEndTime,
+        },
+      })
+
+      // 记录审计日志
+      await prisma.auditLog.create({
+        data: {
+          action: 'UPDATE',
+          resourceType: 'ACTIVITY',
+          resourceId: activity.id,
+          inputMethod: 'TEXT',
+          inputText: null,
+          description: `批量修改日期至 ${targetDate}`,
+          success: true,
+          beforeData: activity as Prisma.InputJsonValue,
+          afterData: { ...activity, startTime: newStartTime, endTime: newEndTime } as Prisma.InputJsonValue,
+          activityId: activity.id,
+          babyId: baby.id,
+          userId: user.id,
+        },
+      })
+
+      updatedCount++
+    }
+
+    return NextResponse.json({ success: true, count: updatedCount })
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    console.error('Failed to batch update activity dates:', error)
+    return NextResponse.json(
+      { error: 'Failed to batch update activity dates' },
       { status: 500 }
     )
   }

@@ -13,7 +13,11 @@ export interface paths {
         };
         /** Get activity list */
         get: operations["getActivities"];
-        put?: never;
+        /**
+         * Batch update activity dates
+         * @description Move selected activities to a different date while preserving time of day
+         */
+        put: operations["batchUpdateActivityDate"];
         /** Create new activity */
         post: operations["createActivity"];
         /** Batch delete activities */
@@ -426,6 +430,51 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Activity"][];
+                };
+            };
+            500: components["responses"]["ServerError"];
+        };
+    };
+    batchUpdateActivityDate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Activity IDs to update */
+                    ids: string[];
+                    /**
+                     * Format: date
+                     * @description Target date (YYYY-MM-DD format) to move activities to
+                     */
+                    targetDate: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Update success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success?: boolean;
+                        count?: number;
+                    };
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             500: components["responses"]["ServerError"];
