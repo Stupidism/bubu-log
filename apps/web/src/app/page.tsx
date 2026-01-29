@@ -288,6 +288,7 @@ function HomeContent() {
             <button
               onClick={() => navigateDate(-1)}
               className="p-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              data-testid="date-prev-btn"
             >
               <ChevronLeft size={20} />
             </button>
@@ -303,6 +304,7 @@ function HomeContent() {
               onClick={() => navigateDate(1)}
               className="p-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30"
               disabled={isToday}
+              data-testid="date-next-btn"
             >
               <ChevronRight size={20} />
             </button>
@@ -312,6 +314,7 @@ function HomeContent() {
           <Link 
             href={isToday ? '/stats' : `/stats?date=${selectedDateStr}`}
             className="px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium text-sm hover:bg-primary/20 transition-colors flex items-center gap-1"
+            data-testid="stats-link"
           >
             <BarChart3 size={14} />
             数据

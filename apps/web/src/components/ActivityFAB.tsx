@@ -408,6 +408,7 @@ export function ActivityFAB({
               <button
                 onClick={closeVoiceDialog}
                 className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+                data-testid="voice-dialog-close-btn"
               >
                 <X size={20} />
               </button>
@@ -459,6 +460,7 @@ export function ActivityFAB({
                     <button
                       onClick={stopListening}
                       className="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center shadow-lg animate-pulse"
+                      data-testid="voice-stop-btn"
                     >
                       <div className="w-8 h-8 bg-white rounded-sm" />
                     </button>
@@ -471,6 +473,7 @@ export function ActivityFAB({
                           ? 'bg-gradient-to-br from-violet-500 to-purple-600'
                           : 'bg-gray-400 cursor-not-allowed'
                       }`}
+                      data-testid="voice-start-btn"
                     >
                       <Mic size={36} className="text-white" />
                     </button>
@@ -507,6 +510,7 @@ export function ActivityFAB({
                     placeholder="说说宝宝做了什么..."
                     disabled={isLoading}
                     className="flex-1 bg-transparent border-none outline-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400 text-base"
+                    data-testid="voice-text-input"
                   />
                   <button
                     onClick={() => handleSubmit()}
@@ -516,6 +520,7 @@ export function ActivityFAB({
                         ? 'bg-gray-300 dark:bg-gray-600 text-gray-400'
                         : 'bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md hover:shadow-lg'
                     }`}
+                    data-testid="voice-submit-btn"
                   >
                     {isLoading ? (
                       <Loader2 size={20} className="animate-spin" />
@@ -565,6 +570,7 @@ export function ActivityFAB({
             : 'bg-gradient-to-br from-violet-500 to-purple-600 hover:shadow-xl hover:scale-105 active:scale-95'
         }`}
         aria-label="语音输入"
+        data-testid="voice-fab-btn"
       >
         <Mic size={26} className="text-white" />
       </button>

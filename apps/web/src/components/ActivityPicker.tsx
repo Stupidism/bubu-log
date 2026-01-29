@@ -62,6 +62,7 @@ export function ActivityPicker({
                 }}
                 disabled={isSleeping || sleepLoading}
                 className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="picker-sleep-start"
               >
                 <Moon size={24} />
                 <span className="font-medium">入睡</span>
@@ -73,6 +74,7 @@ export function ActivityPicker({
                 }}
                 disabled={sleepLoading}
                 className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 disabled:opacity-50"
+                data-testid="picker-sleep-end"
               >
                 <Sun size={24} />
                 <span className="font-medium">睡醒</span>
@@ -93,6 +95,7 @@ export function ActivityPicker({
                   onClose()
                 }}
                 className="flex items-center gap-3 p-3 rounded-xl bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300"
+                data-testid="picker-breastfeed"
               >
                 <ActivityIcon type={ActivityType.BREASTFEED} size={24} />
                 <span className="font-medium">{ActivityTypeLabels[ActivityType.BREASTFEED]}</span>
@@ -103,6 +106,7 @@ export function ActivityPicker({
                   onClose()
                 }}
                 className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                data-testid="picker-bottle"
               >
                 <ActivityIcon type={ActivityType.BOTTLE} size={24} />
                 <span className="font-medium">{ActivityTypeLabels[ActivityType.BOTTLE]}</span>
@@ -123,6 +127,7 @@ export function ActivityPicker({
                   onClose()
                 }}
                 className="flex flex-col items-center gap-1 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                data-testid="picker-diaper-poop"
               >
                 <span className="text-xl">💩</span>
                 <span className="text-sm font-medium">大便</span>
@@ -133,6 +138,7 @@ export function ActivityPicker({
                   onClose()
                 }}
                 className="flex flex-col items-center gap-1 p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300"
+                data-testid="picker-diaper-pee"
               >
                 <Droplet size={24} />
                 <span className="text-sm font-medium">小便</span>
@@ -143,6 +149,7 @@ export function ActivityPicker({
                   onClose()
                 }}
                 className="flex flex-col items-center gap-1 p-3 rounded-xl bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300"
+                data-testid="picker-diaper-both"
               >
                 <span className="text-xl">💩💧</span>
                 <span className="text-sm font-medium">大小便</span>
@@ -163,6 +170,7 @@ export function ActivityPicker({
                   onClose()
                 }}
                 className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
+                data-testid="picker-supplement-ad"
               >
                 <Pill size={24} />
                 <span className="font-medium">AD</span>
@@ -173,6 +181,7 @@ export function ActivityPicker({
                   onClose()
                 }}
                 className="flex items-center gap-3 p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300"
+                data-testid="picker-supplement-d3"
               >
                 <Pill size={24} />
                 <span className="font-medium">D3</span>
@@ -202,6 +211,7 @@ export function ActivityPicker({
                     onClose()
                   }}
                   className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
+                  data-testid={`picker-activity-${type.toLowerCase().replace('_', '-')}`}
                 >
                   <ActivityIcon type={type} size={22} />
                   <span className="text-xs font-medium text-center leading-tight">

@@ -521,6 +521,7 @@ function StatsPageContent() {
               <Link
                 href={isToday ? '/' : `/?date=${selectedDateStr}`}
                 className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-base flex items-center gap-1"
+                data-testid="stats-back-link"
               >
                 <ArrowLeft size={18} />
                 返回
@@ -534,6 +535,7 @@ function StatsPageContent() {
                   href="/stats/trends"
                   className="p-2 rounded-full bg-primary/10 text-primary"
                   title="数据趋势"
+                  data-testid="stats-trends-link"
                 >
                   <TrendingUp size={18} />
                 </Link>
@@ -541,6 +543,7 @@ function StatsPageContent() {
                   href="/audits"
                   className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
                   title="操作记录"
+                  data-testid="stats-audits-link"
                 >
                   <History size={18} />
                 </Link>
@@ -555,6 +558,7 @@ function StatsPageContent() {
             <button
               onClick={() => navigateDate(-1)}
               className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+              data-testid="stats-date-prev-btn"
             >
               <ChevronLeft size={24} />
             </button>
@@ -570,6 +574,7 @@ function StatsPageContent() {
               onClick={() => navigateDate(1)}
               className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
               disabled={isToday}
+              data-testid="stats-date-next-btn"
             >
               <ChevronRight size={24} />
             </button>
@@ -659,6 +664,7 @@ function StatsPageContent() {
                       ? 'ring-2 ring-primary ring-offset-2 bg-primary/5'
                       : 'hover:shadow-md'
                   }`}
+                  data-testid={`stats-activity-${activity.id}`}
                 >
                   {/* 多选模式下显示选择框 */}
                   {isSelectMode && (
@@ -696,6 +702,7 @@ function StatsPageContent() {
             <button
               onClick={() => setShowBatchDateChange(true)}
               className="w-full p-4 rounded-2xl bg-primary text-white font-semibold text-lg flex items-center justify-center gap-2"
+              data-testid="batch-change-date-btn"
             >
               <Calendar size={22} />
               修改日期 ({selectedIds.size} 项)
@@ -703,6 +710,7 @@ function StatsPageContent() {
             <button
               onClick={() => setShowBatchDeleteConfirm(true)}
               className="w-full p-4 rounded-2xl bg-red-500 text-white font-semibold text-lg flex items-center justify-center gap-2"
+              data-testid="batch-delete-btn"
             >
               <Trash2 size={22} />
               删除选中的 {selectedIds.size} 项
@@ -725,6 +733,7 @@ function StatsPageContent() {
             <button
               onClick={() => setShowBatchDeleteConfirm(false)}
               className="p-4 rounded-2xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-lg"
+              data-testid="batch-delete-cancel-btn"
             >
               取消
             </button>
@@ -732,6 +741,7 @@ function StatsPageContent() {
               onClick={handleBatchDelete}
               disabled={batchDeleteMutation.isPending}
               className="p-4 rounded-2xl bg-red-500 text-white font-semibold text-lg"
+              data-testid="batch-delete-confirm-btn"
             >
               {batchDeleteMutation.isPending ? '删除中...' : '确认删除'}
             </button>
@@ -762,6 +772,7 @@ function StatsPageContent() {
               onChange={(e) => setTargetDateInput(e.target.value)}
               max={dayjs().format('YYYY-MM-DD')}
               className="w-full p-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 text-lg"
+              data-testid="batch-date-input"
             />
             <p className="text-sm text-gray-500 dark:text-gray-400">
               活动的具体时间（小时分钟）将保持不变，只修改日期
@@ -774,6 +785,7 @@ function StatsPageContent() {
                 setTargetDateInput('')
               }}
               className="p-4 rounded-2xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-lg"
+              data-testid="batch-date-cancel-btn"
             >
               取消
             </button>
@@ -781,6 +793,7 @@ function StatsPageContent() {
               onClick={handleBatchDateChange}
               disabled={batchUpdateDateMutation.isPending || !targetDateInput}
               className="p-4 rounded-2xl bg-primary text-white font-semibold text-lg disabled:opacity-50"
+              data-testid="batch-date-confirm-btn"
             >
               {batchUpdateDateMutation.isPending ? '修改中...' : '确认修改'}
             </button>

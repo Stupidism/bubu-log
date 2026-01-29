@@ -48,6 +48,7 @@ export function StatsCardList({
             ? 'ring-2 ring-indigo-500 ring-offset-1' 
             : 'hover:shadow-md active:scale-95'
         }`}
+        data-testid="stat-card-sleep"
       >
         <Moon size={18} className="mx-auto text-indigo-500 mb-1" />
         <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
@@ -64,6 +65,7 @@ export function StatsCardList({
             ? 'ring-2 ring-pink-500 ring-offset-1' 
             : 'hover:shadow-md active:scale-95'
         }`}
+        data-testid="stat-card-feeding"
       >
         <Milk size={18} className="mx-auto text-pink-500 mb-1" />
         <p className="text-lg font-bold text-pink-600 dark:text-pink-400">
@@ -82,6 +84,7 @@ export function StatsCardList({
             ? 'ring-2 ring-teal-500 ring-offset-1' 
             : 'hover:shadow-md active:scale-95'
         }`}
+        data-testid="stat-card-diaper"
       >
         <Baby size={18} className="mx-auto text-teal-500 mb-1" />
         <p className="text-lg font-bold text-teal-600 dark:text-teal-400">
@@ -98,6 +101,7 @@ export function StatsCardList({
             ? 'ring-2 ring-amber-500 ring-offset-1' 
             : 'hover:shadow-md active:scale-95'
         }`}
+        data-testid="stat-card-activities"
       >
         <Target size={18} className="mx-auto text-amber-500 mb-1" />
         <p className="text-lg font-bold text-amber-600 dark:text-amber-400">

@@ -332,6 +332,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
                     onClick={() => onActivityClick?.(originalActivity)}
                     className="absolute left-0 right-0 group z-10 hover:z-20"
                     style={{ top: activity.top }}
+                    data-testid={`timeline-activity-${activity.id}`}
                   >
                     {/* 水平线 - 绝对定位在顶部，确保线条对准时间点 */}
                     <div className={`absolute left-0 right-0 top-0 h-0.5 ${colors.divider} group-hover:h-1 transition-all -translate-y-1/2`} />
@@ -372,6 +373,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
                     width: `${activity.width}%`,
                     ...(isOutdoor ? { opacity: 0.7 } : {}),
                   }}
+                  data-testid={`timeline-activity-${activity.id}`}
                 >
                   <div className="flex items-center gap-1 h-full">
                     <ActivityIcon
