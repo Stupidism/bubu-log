@@ -478,7 +478,7 @@ function StatsPageContent() {
       case 'feeding': return '喂奶记录'
       case 'diaper': return '换尿布记录'
       case 'activities': return '活动记录'
-      default: return '今日记录'
+      default: return '当日记录'
     }
   }
 

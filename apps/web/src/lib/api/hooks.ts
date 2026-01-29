@@ -21,7 +21,8 @@ export function useActivities(params?: {
   type?: ActivityType;
   types?: string;
   date?: string;
-  includePreviousEvening?: boolean;
+  startTimeGte?: string;
+  startTimeLt?: string;
 }) {
   return $api.useQuery("get", "/activities", {
     params: { query: params },

@@ -43,46 +43,28 @@ function HomeContent() {
   // URL 参数管理（包括日期）
   const { openActivityDetail, openModal, selectedDate, selectedDateStr, setSelectedDate } = useModalParams()
 
-  // 获取活动数据（包含当天和前一天晚上的活动，用于"昨晚摘要"）
-  const { data: activities = [], isLoading: activitiesLoading } = useActivities({
+  // 获取当天活动数据（包括跨夜活动）
+  const { data: todayActivities = [], isLoading: activitiesLoading } = useActivities({
     date: selectedDateStr,
     limit: 200,
-    includePreviousEvening: true, // 首页需要显示前一天晚上的活动
   })
   
-  // 从查询结果中筛选出前一天晚上的活动（用于"昨晚摘要"）
-  const previousDayActivities = useMemo(() => {
+  // 计算前一天晚上的时间范围（用于"昨晚摘要"）
+  const previousEveningRange = useMemo(() => {
     const currentDayStart = dayjs(selectedDate).startOf('day')
     const previousDay = currentDayStart.subtract(1, 'day')
     const eveningStart = previousDay.hour(18).minute(0).second(0)
-    
-    return activities.filter(activity => {
-      const activityTime = dayjs(activity.startTime)
-      // 筛选前一天晚上18:00之后开始的活动
-      return activityTime.isAfter(eveningStart) && activityTime.isBefore(currentDayStart)
-    })
-  }, [activities, selectedDate])
+    return {
+      startTimeGte: eveningStart.toISOString(),
+      startTimeLt: currentDayStart.toISOString(),
+    }
+  }, [selectedDate])
   
-  // 筛选出当天的活动（用于时间轴显示）
-  // 包括：1. 当天开始的活动 2. 跨夜到当天的活动
-  const todayActivities = useMemo(() => {
-    const currentDayStart = dayjs(selectedDate).startOf('day')
-    
-    return activities.filter(activity => {
-      const activityTime = dayjs(activity.startTime)
-      // 活动开始时间在当天，或者是跨夜活动（开始时间在前一天但结束时间在当天或之后）
-      if (!activityTime.isBefore(currentDayStart)) {
-        return true // 当天开始的活动
-      }
-      // 跨夜活动：开始时间在前一天，但结束时间在当天或之后
-      if (activity.endTime) {
-        const endTime = dayjs(activity.endTime)
-        return !endTime.isBefore(currentDayStart)
-      }
-      // 进行中的跨夜活动（endTime 为 null）
-      return false // 这些已经在 previousDayActivities 中了
-    })
-  }, [activities, selectedDate])
+  // 单独请求前一天晚上的活动（用于"昨晚摘要"）
+  const { data: previousDayActivities = [] } = useActivities({
+    ...previousEveningRange,
+    limit: 50,
+  })
   
   // 版本检测 - 每分钟检查一次新版本
   const { hasNewVersion, refresh: refreshPage, dismiss: dismissUpdate } = useVersionCheck(60000)

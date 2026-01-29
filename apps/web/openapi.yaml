@@ -30,16 +30,22 @@ paths:
             type: string
         - name: date
           in: query
-          description: Date in YYYY-MM-DD format
+          description: Date in YYYY-MM-DD format (returns activities for this day including cross-midnight)
           schema:
             type: string
             format: date
-        - name: includePreviousEvening
+        - name: startTimeGte
           in: query
-          description: Include activities from previous evening (18:00+) for summary display
+          description: Filter activities with startTime >= this value (ISO format)
           schema:
-            type: boolean
-            default: false
+            type: string
+            format: date-time
+        - name: startTimeLt
+          in: query
+          description: Filter activities with startTime < this value (ISO format)
+          schema:
+            type: string
+            format: date-time
       responses:
         '200':
           description: Activity list

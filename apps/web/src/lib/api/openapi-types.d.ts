@@ -414,10 +414,12 @@ export interface operations {
                 type?: components["schemas"]["ActivityType"];
                 /** @description Comma-separated list of activity types to filter */
                 types?: string;
-                /** @description Date in YYYY-MM-DD format */
+                /** @description Date in YYYY-MM-DD format (returns activities for this day including cross-midnight) */
                 date?: string;
-                /** @description Include activities from previous evening (18:00+) for summary display */
-                includePreviousEvening?: boolean;
+                /** @description Filter activities with startTime >= this value (ISO format) */
+                startTimeGte?: string;
+                /** @description Filter activities with startTime < this value (ISO format) */
+                startTimeLt?: string;
             };
             header?: never;
             path?: never;

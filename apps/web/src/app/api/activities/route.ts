@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') as ActivityType | null
     const types = searchParams.get('types') // 逗号分隔的多类型
     const date = searchParams.get('date') // YYYY-MM-DD 格式
-    const includePreviousEvening = searchParams.get('includePreviousEvening') === 'true' // 是否包含前一天晚上的活动
+    const startTimeGte = searchParams.get('startTimeGte') // ISO 格式，活动开始时间下限
+    const startTimeLt = searchParams.get('startTimeLt') // ISO 格式，活动开始时间上限
 
     const where: Record<string, unknown> = {
       babyId: baby.id,
@@ -28,16 +29,29 @@ export async function GET(request: NextRequest) {
       where.type = { in: typeList }
     }
 
-    if (date) {
-      // 使用中国时区计算当天的开始和结束时间
+    // 支持两种查询模式：
+    // 1. date 参数：查询某一天的活动（包括跨夜活动）
+    // 2. startTimeGte/startTimeLt 参数：查询指定时间范围内开始的活动
+    if (startTimeGte || startTimeLt) {
+      // 时间范围查询模式
+      const startTimeCondition: Record<string, Date> = {}
+      if (startTimeGte) {
+        startTimeCondition.gte = new Date(startTimeGte)
+      }
+      if (startTimeLt) {
+        startTimeCondition.lt = new Date(startTimeLt)
+      }
+      where.startTime = startTimeCondition
+    } else if (date) {
+      // 日期查询模式：使用中国时区计算当天的开始和结束时间
       const startOfDay = startOfDayChina(date)
       const endOfDay = endOfDayChina(date)
       
-      // 前一天晚上 18:00（中国时区，用于包含前一天晚上的活动）
+      // 前一天晚上 18:00（中国时区，用于跨夜活动下限）
       const previousEvening = previousDayTimeChina(date, 18)
 
-      // 基础查询条件：活动与指定日期有交集
-      const dateConditions: Record<string, unknown>[] = [
+      // 查询条件：活动与指定日期有交集
+      where.OR = [
         {
           // 活动开始时间在指定日期内
           startTime: {
@@ -47,7 +61,6 @@ export async function GET(request: NextRequest) {
         },
         {
           // 跨夜活动：开始时间在前一天晚上18:00之后且在当天之前，结束时间在当天或之后
-          // 限制下限避免查询到太早的活动
           AND: [
             {
               startTime: {
@@ -71,19 +84,6 @@ export async function GET(request: NextRequest) {
           ],
         },
       ]
-
-      // 如果需要包含前一天晚上的活动（用于首页"昨晚摘要"）
-      if (includePreviousEvening) {
-        dateConditions.push({
-          // 前一天晚上18:00之后开始的活动
-          startTime: {
-            gte: previousEvening,
-            lt: startOfDay,
-          },
-        })
-      }
-
-      where.OR = dateConditions
     }
 
     const activities = await prisma.activity.findMany({
