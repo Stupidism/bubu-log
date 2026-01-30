@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { ActivityType, PoopColor, PeeAmount } from '@/types/activity'
+import { ActivityType, PoopColor, PeeAmount, type SpitUpType } from '@/types/activity'
 import { requireAuth } from '@/lib/auth/get-current-baby'
 
 // Deepseek API configuration
@@ -16,6 +16,8 @@ const SYSTEM_PROMPT = `你是一个宝宝活动记录助手。用户会用自然
 - BREASTFEED: 亲喂/母乳/吃奶（妈妈喂）/喂奶（非奶瓶）
   【语音识别纠错】：清胃/青喂/亲为/青为/亲味/清味/清位/亲位/青位 → 都是"亲喂"的误识别，应解析为 BREASTFEED
 - BOTTLE: 瓶喂/奶瓶/喝奶/吃奶（奶瓶）/配方奶
+- SPIT_UP: 吐奶/吐了/吐出来/喷奶/喷射性吐奶
+  【吐奶类型】：默认为喷射性吐奶(PROJECTILE)，如果用户说"普通吐奶"/"轻微吐奶"/"溢奶"则为普通吐奶(NORMAL)
 - HEAD_LIFT: 抬头/趴着/俯卧/趴趴
 - PASSIVE_EXERCISE: 被动操/体操/运动操
 - GAS_EXERCISE: 排气操/排气/蹬腿
@@ -46,6 +48,7 @@ const SYSTEM_PROMPT = `你是一个宝宝活动记录助手。用户会用自然
   "hasPee": 是否有小便（布尔值），如果没提到返回 null,
   "poopColor": "便便颜色"，如果没提到返回 null,
   "peeAmount": "小便量"，如果没提到返回 null,
+  "spitUpType": "吐奶类型（PROJECTILE喷射性/NORMAL普通）"，仅当type为SPIT_UP时返回，默认PROJECTILE,
   "notes": "用户提到的其他备注信息",
   "confidence": 0-1 之间的置信度，表示你对解析结果的信心
 }
@@ -140,6 +143,7 @@ interface ParsedActivity {
   hasPee: boolean | null
   poopColor: PoopColor | null
   peeAmount: PeeAmount | null
+  spitUpType: SpitUpType | null
   notes: string | null
   confidence: number
 }
@@ -340,6 +344,7 @@ export async function POST(request: NextRequest) {
           hasPee: parsed.hasPee,
           poopColor: parsed.poopColor,
           peeAmount: parsed.peeAmount,
+          spitUpType: parsed.spitUpType,
           notes: parsed.notes,
           confidence: parsed.confidence,
           originalText: text
@@ -360,6 +365,7 @@ export async function POST(request: NextRequest) {
         hasPee: parsed.hasPee,
         poopColor: parsed.poopColor,
         peeAmount: parsed.peeAmount,
+        spitUpType: parsed.spitUpType,
         notes: parsed.notes,
       },
     })

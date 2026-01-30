@@ -274,18 +274,6 @@ function HomeContent() {
     setPickerOpen(false)
   }, [openModal, pickerDefaultTime])
 
-  // 活动选择器选择吐奶
-  const handlePickerSpitUpSelect = useCallback((spitUpType: 'NORMAL' | 'PROJECTILE') => {
-    const params: Record<string, string> = {
-      spitUpType,
-    }
-    if (pickerDefaultTime) {
-      params.startTime = pickerDefaultTime.toISOString()
-    }
-    openModal('spitup', { params })
-    setPickerOpen(false)
-  }, [openModal, pickerDefaultTime])
-
   return (
     <>
     <PullToRefresh onRefresh={handleRefresh}>
@@ -395,7 +383,6 @@ function HomeContent() {
       onSelect={handlePickerSelect}
       onDiaperSelect={handlePickerDiaperSelect}
       onSupplementSelect={handlePickerSupplementSelect}
-      onSpitUpSelect={handlePickerSpitUpSelect}
       selectedTime={pickerDefaultTime ? formatTime(pickerDefaultTime) : undefined}
     />
     </>
