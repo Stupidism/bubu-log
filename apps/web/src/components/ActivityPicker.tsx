@@ -1,8 +1,8 @@
 'use client'
 
-import { Moon, Sun, Milk, Baby, Target, Droplet, Pill } from 'lucide-react'
+import { Moon, Sun, Milk, Baby, Target, Droplet, Pill, Droplets } from 'lucide-react'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
-import type { SupplementType } from '@/types/activity'
+import type { SupplementType, SpitUpType } from '@/types/activity'
 import { ActivityIcon } from './ActivityIcon'
 import { useSleepState } from '@/lib/api/hooks'
 
@@ -12,6 +12,7 @@ interface ActivityPickerProps {
   onSelect: (type: ActivityType | 'wake') => void
   onDiaperSelect: (diaperType: 'poop' | 'pee' | 'both') => void
   onSupplementSelect: (supplementType: SupplementType) => void
+  onSpitUpSelect: (spitUpType: SpitUpType) => void
   /** 选中的默认时间（显示用） */
   selectedTime?: string
 }
@@ -22,6 +23,7 @@ export function ActivityPicker({
   onSelect,
   onDiaperSelect,
   onSupplementSelect,
+  onSpitUpSelect,
   selectedTime,
 }: ActivityPickerProps) {
   const { isSleeping, isFetching: sleepLoading } = useSleepState()
@@ -185,6 +187,38 @@ export function ActivityPicker({
               >
                 <Pill size={24} />
                 <span className="font-medium">D3</span>
+              </button>
+            </div>
+          </section>
+
+          {/* 吐奶区域 */}
+          <section className="mb-4">
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1 flex items-center gap-1">
+              <Droplets size={14} />
+              吐奶
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  onSpitUpSelect('PROJECTILE')
+                  onClose()
+                }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                data-testid="picker-spitup-projectile"
+              >
+                <Droplets size={24} />
+                <span className="font-medium">喷射性</span>
+              </button>
+              <button
+                onClick={() => {
+                  onSpitUpSelect('NORMAL')
+                  onClose()
+                }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+                data-testid="picker-spitup-normal"
+              >
+                <Droplets size={24} />
+                <span className="font-medium">普通</span>
               </button>
             </div>
           </section>
