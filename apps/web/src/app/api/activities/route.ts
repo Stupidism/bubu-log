@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma, ActivityType as PrismaActivityType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
-import { startOfDayChina, endOfDayChina, previousDayTimeChina } from '@/lib/dayjs'
+import { startOfDayChina, endOfDayChina } from '@/lib/dayjs'
 import { requireAuth } from '@/lib/auth/get-current-baby'
 
 // GET: 获取活动列表
@@ -94,42 +94,32 @@ export async function GET(request: NextRequest) {
       }
     } else if (date) {
       // 日期查询模式：使用中国时区计算当天的开始和结束时间
+      // 北京时间 date 00:00:00 到 23:59:59.999
       const startOfDay = startOfDayChina(date)
       const endOfDay = endOfDayChina(date)
-      
-      // 前一天晚上 18:00（中国时区，用于跨夜活动下限）
-      const previousEvening = previousDayTimeChina(date, 18)
 
       // 查询条件：活动与指定日期有交集
-      where.OR = [
+      // 一个活动与日期有交集的条件是：
+      // startTime < endOfDay+1ms AND (endTime > startOfDay OR endTime IS NULL)
+      // 简化为：活动开始于当天结束之前，且（活动结束于当天开始之后，或活动仍在进行中）
+      where.AND = [
         {
-          // 活动开始时间在指定日期内
+          // 活动开始时间在当天结束之前（包含当天开始的活动）
           startTime: {
-            gte: startOfDay,
             lte: endOfDay,
           },
         },
         {
-          // 跨夜活动：开始时间在前一天晚上18:00之后且在当天之前，结束时间在当天或之后
-          AND: [
+          // 活动结束时间在当天开始之后，或活动仍在进行中
+          OR: [
             {
-              startTime: {
-                gte: previousEvening,
-                lt: startOfDay,
+              endTime: {
+                gte: startOfDay,
               },
             },
             {
-              OR: [
-                {
-                  endTime: {
-                    gte: startOfDay,
-                  },
-                },
-                {
-                  // 进行中的跨夜活动（endTime 为 null）
-                  endTime: null,
-                },
-              ],
+              // 进行中的活动（endTime 为 null）- 只要开始时间合理就应该显示
+              endTime: null,
             },
           ],
         },
