@@ -24,11 +24,18 @@ import { useRouter } from 'next/navigation'
 interface DaySummary {
   sleepCount: number
   totalSleepMinutes: number
-  feedingCount: number
-  totalMilkAmount: number
-  totalBreastfeedMinutes: number
-  diaperCount: number
-  totalHeadLiftMinutes: number
+  // 喂养统计
+  totalBottleMilkAmount: number    // 瓶喂毫升数
+  totalBreastfeedMinutes: number   // 亲喂时间
+  totalPumpMilkAmount: number      // 吸奶毫升数
+  // 尿布统计
+  diaperCount: number              // 总尿布数
+  largePeeDiaperCount: number      // 多量尿布数
+  smallMediumPeeDiaperCount: number // 中+少量尿布数（算一个）
+  // 运动统计
+  totalHeadLiftMinutes: number     // 抬头分钟数
+  totalRollOverCount: number       // 翻身次数
+  totalPullToSitCount: number      // 拉坐次数
 }
 
 function HomeContent() {
@@ -75,11 +82,15 @@ function HomeContent() {
     const result: DaySummary = {
       sleepCount: 0,
       totalSleepMinutes: 0,
-      feedingCount: 0,
-      totalMilkAmount: 0,
+      totalBottleMilkAmount: 0,
       totalBreastfeedMinutes: 0,
+      totalPumpMilkAmount: 0,
       diaperCount: 0,
+      largePeeDiaperCount: 0,
+      smallMediumPeeDiaperCount: 0,
       totalHeadLiftMinutes: 0,
+      totalRollOverCount: 0,
+      totalPullToSitCount: 0,
     }
 
     const currentDayStart = dayjs(selectedDate).startOf('day')
@@ -104,12 +115,9 @@ function HomeContent() {
         case 'BREASTFEED':
           // 亲喂：只统计当天发生的（startTime在当天）
           if (isActivityInToday) {
-            result.feedingCount++
             // 计算亲喂时长（只计算当天的部分）
             if (activity.endTime) {
               const endTime = dayjs(activity.endTime)
-              // 如果结束时间也在当天，计算完整时长
-              // 如果结束时间跨到第二天，只计算到当天结束的部分
               const actualEndTime = endTime.isAfter(currentDayEnd) ? currentDayEnd.toDate() : activity.endTime
               result.totalBreastfeedMinutes += calculateDurationMinutes(activity.startTime, actualEndTime)
             }
@@ -117,23 +125,46 @@ function HomeContent() {
           break
         case 'BOTTLE':
           // 瓶喂：只统计当天发生的（startTime在当天）
-          if (isActivityInToday) {
-            result.feedingCount++
-            if (activity.milkAmount) {
-              result.totalMilkAmount += activity.milkAmount
-            }
+          if (isActivityInToday && activity.milkAmount) {
+            result.totalBottleMilkAmount += activity.milkAmount
+          }
+          break
+        case 'PUMP':
+          // 吸奶：只统计当天发生的（startTime在当天）
+          if (isActivityInToday && activity.milkAmount) {
+            result.totalPumpMilkAmount += activity.milkAmount
           }
           break
         case 'DIAPER':
           // 尿布：只统计当天发生的（startTime在当天）
           if (isActivityInToday) {
             result.diaperCount++
+            // 统计尿量
+            if (activity.hasPee) {
+              if (activity.peeAmount === 'LARGE') {
+                result.largePeeDiaperCount++
+              } else if (activity.peeAmount === 'MEDIUM' || activity.peeAmount === 'SMALL') {
+                result.smallMediumPeeDiaperCount++
+              }
+            }
           }
           break
         case 'HEAD_LIFT':
           // 抬头：只统计当天发生的（startTime在当天）
           if (isActivityInToday && activity.endTime) {
             result.totalHeadLiftMinutes += calculateDurationMinutes(activity.startTime, activity.endTime)
+          }
+          break
+        case 'ROLL_OVER':
+          // 翻身：只统计当天发生的（startTime在当天）
+          if (isActivityInToday) {
+            result.totalRollOverCount += activity.count || 1
+          }
+          break
+        case 'PULL_TO_SIT':
+          // 拉坐：只统计当天发生的（startTime在当天）
+          if (isActivityInToday) {
+            result.totalPullToSitCount += activity.count || 1
           }
           break
       }

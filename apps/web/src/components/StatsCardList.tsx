@@ -1,18 +1,24 @@
 'use client'
 
 import { Moon, Milk, Baby, Target } from 'lucide-react'
-import { formatDuration } from '@/lib/dayjs'
 
 export type StatFilter = 'all' | 'sleep' | 'feeding' | 'diaper' | 'activities'
 
 interface DaySummary {
   sleepCount: number
   totalSleepMinutes: number
-  totalMilkAmount: number
+  // 喂养统计
+  totalBottleMilkAmount: number
   totalBreastfeedMinutes: number
+  totalPumpMilkAmount: number
+  // 尿布统计
   diaperCount: number
-  // 活动统计
-  totalHeadLiftMinutes?: number
+  largePeeDiaperCount: number
+  smallMediumPeeDiaperCount: number
+  // 运动统计
+  totalHeadLiftMinutes: number
+  totalRollOverCount: number
+  totalPullToSitCount: number
 }
 
 interface StatsCardListProps {
@@ -21,6 +27,19 @@ interface StatsCardListProps {
   activeFilter?: StatFilter
   /** 点击卡片时触发 */
   onStatCardClick?: (filter: StatFilter) => void
+}
+
+// 格式化时长为简短形式
+function formatDurationShort(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes}分`
+  }
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  if (remainingMinutes === 0) {
+    return `${hours}时`
+  }
+  return `${hours}时${remainingMinutes}分`
 }
 
 export function StatsCardList({ 
@@ -35,8 +54,8 @@ export function StatsCardList({
     }
   }
 
-  // 计算喂奶总时长（亲喂时长 + 瓶喂按10分钟/次估算）
-  const totalFeedingMinutes = summary.totalBreastfeedMinutes
+  // 计算尿布统计：中+少量算一个
+  const normalizedPeeCount = summary.largePeeDiaperCount + Math.ceil(summary.smallMediumPeeDiaperCount / 2)
 
   return (
     <div className="grid grid-cols-4 gap-2">
@@ -52,12 +71,12 @@ export function StatsCardList({
       >
         <Moon size={18} className="mx-auto text-indigo-500 mb-1" />
         <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
-          {summary.totalSleepMinutes > 0 ? formatDuration(summary.totalSleepMinutes) : '-'}
+          {summary.totalSleepMinutes > 0 ? formatDurationShort(summary.totalSleepMinutes) : '-'}
         </p>
         <p className="text-xs text-gray-500">{summary.sleepCount}次</p>
       </button>
 
-      {/* 喂奶（亲喂+瓶喂合并） */}
+      {/* 喂奶：瓶喂ml / 亲喂分钟 / 吸奶ml */}
       <button
         onClick={() => handleClick('feeding')}
         className={`bg-white dark:bg-gray-800 rounded-xl p-2.5 text-center shadow-sm transition-all ${
@@ -68,15 +87,14 @@ export function StatsCardList({
         data-testid="stat-card-feeding"
       >
         <Milk size={18} className="mx-auto text-pink-500 mb-1" />
-        <p className="text-lg font-bold text-pink-600 dark:text-pink-400">
-          {summary.totalMilkAmount > 0 || totalFeedingMinutes > 0 
-            ? (summary.totalMilkAmount > 0 ? `${summary.totalMilkAmount}ml` : formatDuration(totalFeedingMinutes))
-            : '-'}
-        </p>
-        <p className="text-xs text-gray-500">喂奶</p>
+        <div className="text-xs text-pink-600 dark:text-pink-400 font-medium space-y-0.5">
+          <p>瓶{summary.totalBottleMilkAmount || '-'}</p>
+          <p>喂{summary.totalBreastfeedMinutes || '-'}</p>
+          <p>吸{summary.totalPumpMilkAmount || '-'}</p>
+        </div>
       </button>
 
-      {/* 换尿布 */}
+      {/* 换尿布：多量尿 / 总数 */}
       <button
         onClick={() => handleClick('diaper')}
         className={`bg-white dark:bg-gray-800 rounded-xl p-2.5 text-center shadow-sm transition-all ${
@@ -87,13 +105,13 @@ export function StatsCardList({
         data-testid="stat-card-diaper"
       >
         <Baby size={18} className="mx-auto text-teal-500 mb-1" />
-        <p className="text-lg font-bold text-teal-600 dark:text-teal-400">
-          {summary.diaperCount}
-        </p>
-        <p className="text-xs text-gray-500">换尿布</p>
+        <div className="text-xs text-teal-600 dark:text-teal-400 font-medium space-y-0.5">
+          <p className="text-base font-bold">{normalizedPeeCount}</p>
+          <p>共{summary.diaperCount}次</p>
+        </div>
       </button>
 
-      {/* 活动（抬头时间） */}
+      {/* 运动：抬头分钟 / 翻身次 / 拉坐次 */}
       <button
         onClick={() => handleClick('activities')}
         className={`bg-white dark:bg-gray-800 rounded-xl p-2.5 text-center shadow-sm transition-all ${
@@ -104,10 +122,11 @@ export function StatsCardList({
         data-testid="stat-card-activities"
       >
         <Target size={18} className="mx-auto text-amber-500 mb-1" />
-        <p className="text-lg font-bold text-amber-600 dark:text-amber-400">
-          {(summary.totalHeadLiftMinutes ?? 0) > 0 ? formatDuration(summary.totalHeadLiftMinutes!) : '-'}
-        </p>
-        <p className="text-xs text-gray-500">抬头</p>
+        <div className="text-xs text-amber-600 dark:text-amber-400 font-medium space-y-0.5">
+          <p>头{summary.totalHeadLiftMinutes || '-'}</p>
+          <p>翻{summary.totalRollOverCount || '-'}</p>
+          <p>坐{summary.totalPullToSitCount || '-'}</p>
+        </div>
       </button>
     </div>
   )
