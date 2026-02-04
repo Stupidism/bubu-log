@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { ActivityType, PoopColor, PeeAmount, type SpitUpType } from '@/types/activity'
+import { ActivityType, PoopColor, PeeAmount, type SpitUpType, type MilkSource } from '@/types/activity'
 import { requireAuth } from '@/lib/auth/get-current-baby'
 
 // Deepseek API configuration
@@ -15,7 +15,13 @@ const SYSTEM_PROMPT = `你是一个宝宝活动记录助手。用户会用自然
 - DIAPER: 换尿布/尿布/大便/小便/拉屎/拉粑粑/尿尿/便便
 - BREASTFEED: 亲喂/母乳/吃奶（妈妈喂）/喂奶（非奶瓶）
   【语音识别纠错】：清胃/青喂/亲为/青为/亲味/清味/清位/亲位/青位 → 都是"亲喂"的误识别，应解析为 BREASTFEED
-- BOTTLE: 瓶喂/奶瓶/喝奶/吃奶（奶瓶）/配方奶
+- BOTTLE: 瓶喂/奶瓶/喝奶/吃奶（奶瓶）/配方奶/母乳瓶喂
+  【奶源类型 milkSource】：
+    * BREAST_MILK: 母乳（默认，如"瓶喂母乳"、"喝母乳"）
+    * FORMULA: 奶粉/配方奶（如"喝奶粉"、"配方奶"、"奶粉瓶喂"）
+  【语音识别纠错】："平喂"/"瓶为"/"瓶味" → "瓶喂" (BOTTLE)
+- PUMP: 吸奶/泵奶/挤奶（妈妈吸奶，记录时长和奶量）
+  【语音识别纠错】："吸了"/"挤了" 后面跟奶量 → 应解析为 PUMP
 - SPIT_UP: 吐奶/吐了/吐出来/喷奶/喷射性吐奶
   【吐奶类型】：默认为喷射性吐奶(PROJECTILE)，如果用户说"普通吐奶"/"轻微吐奶"/"溢奶"则为普通吐奶(NORMAL)
 - HEAD_LIFT: 抬头/趴着/俯卧/趴趴
@@ -48,6 +54,7 @@ const SYSTEM_PROMPT = `你是一个宝宝活动记录助手。用户会用自然
   "startTime": "ISO 8601 时间字符串（北京时间，如 2024-01-22T13:30:00+08:00），活动开始时间",
   "endTime": "ISO 8601 时间字符串（北京时间），活动结束时间，如果没提到或正在进行返回 null",
   "milkAmount": 奶量（毫升），如果没提到返回 null,
+  "milkSource": "奶源类型（BREAST_MILK母乳/FORMULA奶粉）"，仅当type为BOTTLE时返回，默认BREAST_MILK,
   "hasPoop": 是否有大便（布尔值），如果没提到返回 null,
   "hasPee": 是否有小便（布尔值），如果没提到返回 null,
   "poopColor": "便便颜色"，如果没提到返回 null,
@@ -154,6 +161,7 @@ interface ParsedActivity {
   startTime: string | null
   endTime: string | null
   milkAmount: number | null
+  milkSource: MilkSource | null
   hasPoop: boolean | null
   hasPee: boolean | null
   poopColor: PoopColor | null
@@ -226,6 +234,7 @@ const typeLabelsForLog: Record<ActivityType, string> = {
   [ActivityType.DIAPER]: '换尿布',
   [ActivityType.BREASTFEED]: '亲喂',
   [ActivityType.BOTTLE]: '瓶喂',
+  [ActivityType.PUMP]: '吸奶',
   [ActivityType.HEAD_LIFT]: '抬头',
   [ActivityType.PASSIVE_EXERCISE]: '被动操',
   [ActivityType.ROLL_OVER]: '翻身',
@@ -361,6 +370,7 @@ export async function POST(request: NextRequest) {
           startTime: startTime.toISOString(),
           endTime: endTime?.toISOString() || null,
           milkAmount: parsed.milkAmount,
+          milkSource: parsed.milkSource,
           hasPoop: parsed.hasPoop,
           hasPee: parsed.hasPee,
           poopColor: parsed.poopColor,
@@ -383,6 +393,7 @@ export async function POST(request: NextRequest) {
         endTime,
         babyId: baby.id,
         milkAmount: parsed.milkAmount,
+        milkSource: parsed.milkSource,
         hasPoop: parsed.hasPoop,
         hasPee: parsed.hasPee,
         poopColor: parsed.poopColor,
@@ -483,6 +494,7 @@ function generateConfirmationMessage(parsed: ParsedActivity): string {
     [ActivityType.DIAPER]: '换尿布',
     [ActivityType.BREASTFEED]: '亲喂',
     [ActivityType.BOTTLE]: '瓶喂',
+    [ActivityType.PUMP]: '吸奶',
     [ActivityType.HEAD_LIFT]: '抬头',
     [ActivityType.PASSIVE_EXERCISE]: '被动操',
     [ActivityType.ROLL_OVER]: '翻身',
@@ -493,6 +505,11 @@ function generateConfirmationMessage(parsed: ParsedActivity): string {
     [ActivityType.EARLY_EDUCATION]: '早教',
     [ActivityType.SUPPLEMENT]: '补剂',
     [ActivityType.SPIT_UP]: '吐奶',
+  }
+
+  const milkSourceLabels: Record<string, string> = {
+    BREAST_MILK: '母乳',
+    FORMULA: '奶粉',
   }
 
   let message = `已记录: ${typeLabels[parsed.type]}`
@@ -509,6 +526,11 @@ function generateConfirmationMessage(parsed: ParsedActivity): string {
 
   if (parsed.milkAmount) {
     message += `，${parsed.milkAmount} 毫升`
+  }
+
+  // Show milk source for bottle feeding
+  if (parsed.type === ActivityType.BOTTLE && parsed.milkSource) {
+    message += `（${milkSourceLabels[parsed.milkSource] || parsed.milkSource}）`
   }
 
   if (parsed.hasPoop || parsed.hasPee) {

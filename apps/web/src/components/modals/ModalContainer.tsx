@@ -6,6 +6,7 @@ import { DeleteConfirmModal } from './DeleteConfirmModal'
 import { DiaperModal } from './DiaperModal'
 import { BreastfeedModal } from './BreastfeedModal'
 import { BottleModal } from './BottleModal'
+import { PumpModal } from './PumpModal'
 import { SleepStartModal } from './SleepStartModal'
 import { SleepEndModal } from './SleepEndModal'
 import { ActivityDurationModal } from './ActivityDurationModal'
@@ -36,6 +37,9 @@ export function ModalContainer() {
       
       {/* 瓶喂弹窗 */}
       <BottleModal />
+      
+      {/* 吸奶弹窗 */}
+      <PumpModal />
       
       {/* 入睡弹窗 */}
       <SleepStartModal />

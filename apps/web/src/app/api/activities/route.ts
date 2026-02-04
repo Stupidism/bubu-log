@@ -161,9 +161,9 @@ export async function GET(request: NextRequest) {
 // 点事件类型（没有时长的活动）
 const POINT_EVENT_TYPES = ['DIAPER', 'SUPPLEMENT', 'SPIT_UP', 'ROLL_OVER', 'PULL_TO_SIT']
 // 喂奶类型（互斥的活动）
-const FEEDING_TYPES = ['BREASTFEED', 'BOTTLE']
+const FEEDING_TYPES = ['BREASTFEED', 'BOTTLE', 'PUMP']
 // 有时长的活动类型（同类型不允许重叠）
-const DURATION_ACTIVITY_TYPES = ['SLEEP', 'HEAD_LIFT', 'PASSIVE_EXERCISE', 'GAS_EXERCISE', 'BATH', 'OUTDOOR', 'EARLY_EDUCATION']
+const DURATION_ACTIVITY_TYPES = ['SLEEP', 'HEAD_LIFT', 'PASSIVE_EXERCISE', 'GAS_EXERCISE', 'BATH', 'OUTDOOR', 'EARLY_EDUCATION', 'PUMP']
 // 时间容差（毫秒）- 1分钟内视为相同时间
 const TIME_TOLERANCE_MS = 60 * 1000
 
@@ -172,6 +172,7 @@ const TYPE_LABELS: Record<string, string> = {
   SLEEP: '睡眠',
   BREASTFEED: '亲喂',
   BOTTLE: '瓶喂',
+  PUMP: '吸奶',
   DIAPER: '换尿布',
   SUPPLEMENT: '补剂',
   SPIT_UP: '吐奶',
@@ -346,6 +347,7 @@ export async function POST(request: NextRequest) {
       peeAmount,
       burpSuccess,
       milkAmount,
+      milkSource,
       breastFirmness,
       supplementType,
       spitUpType,
@@ -388,6 +390,7 @@ export async function POST(request: NextRequest) {
         peeAmount,
         burpSuccess,
         milkAmount,
+        milkSource,
         breastFirmness,
         supplementType,
         spitUpType,

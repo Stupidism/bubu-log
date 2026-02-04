@@ -74,6 +74,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       peeAmount,
       burpSuccess,
       milkAmount,
+      milkSource,
       breastFirmness,
       count,
       notes,
@@ -105,6 +106,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (peeAmount !== undefined) updateData.peeAmount = peeAmount
     if (burpSuccess !== undefined) updateData.burpSuccess = burpSuccess
     if (milkAmount !== undefined) updateData.milkAmount = milkAmount
+    if (milkSource !== undefined) updateData.milkSource = milkSource
     if (breastFirmness !== undefined) updateData.breastFirmness = breastFirmness
     if (count !== undefined) updateData.count = count
     if (notes !== undefined) updateData.notes = notes

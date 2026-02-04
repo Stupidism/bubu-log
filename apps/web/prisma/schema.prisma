@@ -134,7 +134,8 @@ enum ActivityType {
   SLEEP            // 睡眠（startTime=入睡时间，endTime=睡醒时间，endTime为null表示正在睡）
   DIAPER           // 换尿布（只有startTime）
   BREASTFEED       // 亲喂（startTime=开始时间，endTime=结束时间）
-  BOTTLE           // 瓶喂（startTime=开始时间，endTime=结束时间，milkAmount=奶量）
+  BOTTLE           // 瓶喂（startTime=开始时间，endTime=结束时间，milkAmount=奶量，milkSource=奶源）
+  PUMP             // 吸奶（startTime=开始时间，endTime=结束时间，milkAmount=奶量）
   HEAD_LIFT        // 抬头
   PASSIVE_EXERCISE // 被动操
   ROLL_OVER        // 翻身（startTime=endTime，count=次数）
@@ -145,6 +146,12 @@ enum ActivityType {
   EARLY_EDUCATION  // 早教
   SUPPLEMENT       // 补剂（AD或D3）
   SPIT_UP          // 吐奶（只有startTime）
+}
+
+// 奶源类型枚举
+enum MilkSource {
+  BREAST_MILK  // 母乳
+  FORMULA      // 奶粉
 }
 
 // 补剂类型枚举
@@ -207,7 +214,8 @@ model Activity {
 
   // 喂奶相关字段
   burpSuccess     Boolean?     // 拍嗝是否成功
-  milkAmount      Int?         // 奶量（毫升）- 瓶喂专用
+  milkAmount      Int?         // 奶量（毫升）- 瓶喂/吸奶专用
+  milkSource      MilkSource?  // 奶源（母乳/奶粉）- 瓶喂专用
   breastFirmness  BreastFirmness? // 乳房硬度（亲喂后）- 软、弹、硬
 
   // 补剂相关字段

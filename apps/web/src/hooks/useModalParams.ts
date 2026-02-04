@@ -11,6 +11,7 @@ export type ModalType =
   | 'diaper'          // 换尿布表单
   | 'breastfeed'      // 亲喂表单
   | 'bottle'          // 瓶喂表单
+  | 'pump'            // 吸奶表单
   | 'sleep_start'     // 入睡表单
   | 'sleep_end'       // 睡醒表单
   | 'head_lift'       // 抬头
@@ -31,6 +32,7 @@ export const activityTypeToModalType: Record<ActivityType | 'wake', ModalType> =
   [ActivityType.DIAPER]: 'diaper',
   [ActivityType.BREASTFEED]: 'breastfeed',
   [ActivityType.BOTTLE]: 'bottle',
+  [ActivityType.PUMP]: 'pump',
   [ActivityType.SLEEP]: 'sleep_start',
   [ActivityType.HEAD_LIFT]: 'head_lift',
   [ActivityType.PASSIVE_EXERCISE]: 'passive_exercise',

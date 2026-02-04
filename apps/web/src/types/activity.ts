@@ -3,6 +3,7 @@ export enum ActivityType {
   DIAPER = 'DIAPER',
   BREASTFEED = 'BREASTFEED',
   BOTTLE = 'BOTTLE',
+  PUMP = 'PUMP',
   HEAD_LIFT = 'HEAD_LIFT',
   PASSIVE_EXERCISE = 'PASSIVE_EXERCISE',
   ROLL_OVER = 'ROLL_OVER',
@@ -42,6 +43,10 @@ export type SupplementType = typeof supplementTypes[number]
 const spitUpTypes = ['NORMAL', 'PROJECTILE'] as const
 export type SpitUpType = typeof spitUpTypes[number]
 
+// 奶源类型
+const milkSourceTypes = ['BREAST_MILK', 'FORMULA'] as const
+export type MilkSource = typeof milkSourceTypes[number]
+
 export interface Activity {
   id: string
   type: ActivityType
@@ -56,6 +61,7 @@ export interface Activity {
   burpSuccess?: boolean | null
   duration?: number | null
   milkAmount?: number | null
+  milkSource?: MilkSource | null
   supplementType?: SupplementType | null
   spitUpType?: SpitUpType | null
   count?: number | null
@@ -67,6 +73,7 @@ export const ActivityTypeLabels: Record<ActivityType, string> = {
   [ActivityType.DIAPER]: '换尿布',
   [ActivityType.BREASTFEED]: '亲喂',
   [ActivityType.BOTTLE]: '瓶喂',
+  [ActivityType.PUMP]: '吸奶',
   [ActivityType.HEAD_LIFT]: '抬头',
   [ActivityType.PASSIVE_EXERCISE]: '被动操',
   [ActivityType.ROLL_OVER]: '翻身',
@@ -119,12 +126,18 @@ export const SpitUpTypeLabels: Record<SpitUpType, string> = {
   PROJECTILE: '喷射性吐奶',
 }
 
+export const MilkSourceLabels: Record<MilkSource, string> = {
+  BREAST_MILK: '母乳',
+  FORMULA: '奶粉',
+}
+
 // 活动图标名称映射（用于 Lucide React 图标）
 export const ActivityIconNames: Record<ActivityType, string> = {
   [ActivityType.SLEEP]: 'Moon',
   [ActivityType.DIAPER]: 'Baby',
   [ActivityType.BREASTFEED]: 'Heart',
   [ActivityType.BOTTLE]: 'Milk',
+  [ActivityType.PUMP]: 'CircleDot',
   [ActivityType.HEAD_LIFT]: 'ArrowUp',
   [ActivityType.PASSIVE_EXERCISE]: 'Activity',
   [ActivityType.ROLL_OVER]: 'RotateCcw',
@@ -140,7 +153,7 @@ export const ActivityIconNames: Record<ActivityType, string> = {
 // 活动分类（用于过滤）
 export const ActivityCategories = {
   sleep: [ActivityType.SLEEP],
-  feeding: [ActivityType.BREASTFEED, ActivityType.BOTTLE],
+  feeding: [ActivityType.BREASTFEED, ActivityType.BOTTLE, ActivityType.PUMP],
   diaper: [ActivityType.DIAPER],
   supplement: [ActivityType.SUPPLEMENT],
   spitUp: [ActivityType.SPIT_UP],

@@ -88,39 +88,50 @@ export function ActivityPicker({
               <Milk size={14} />
               喂奶
             </h3>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => {
                   onSelect(ActivityType.BREASTFEED)
                   onClose()
                 }}
-                className="flex flex-col items-center gap-1 p-3 rounded-xl bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300"
+                className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300"
                 data-testid="picker-breastfeed"
               >
-                <ActivityIcon type={ActivityType.BREASTFEED} size={24} />
-                <span className="text-sm font-medium">{ActivityTypeLabels[ActivityType.BREASTFEED]}</span>
+                <ActivityIcon type={ActivityType.BREASTFEED} size={22} />
+                <span className="text-xs font-medium">{ActivityTypeLabels[ActivityType.BREASTFEED]}</span>
               </button>
               <button
                 onClick={() => {
                   onSelect(ActivityType.BOTTLE)
                   onClose()
                 }}
-                className="flex flex-col items-center gap-1 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                 data-testid="picker-bottle"
               >
-                <ActivityIcon type={ActivityType.BOTTLE} size={24} />
-                <span className="text-sm font-medium">{ActivityTypeLabels[ActivityType.BOTTLE]}</span>
+                <ActivityIcon type={ActivityType.BOTTLE} size={22} />
+                <span className="text-xs font-medium">{ActivityTypeLabels[ActivityType.BOTTLE]}</span>
+              </button>
+              <button
+                onClick={() => {
+                  onSelect(ActivityType.PUMP)
+                  onClose()
+                }}
+                className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                data-testid="picker-pump"
+              >
+                <ActivityIcon type={ActivityType.PUMP} size={22} />
+                <span className="text-xs font-medium">{ActivityTypeLabels[ActivityType.PUMP]}</span>
               </button>
               <button
                 onClick={() => {
                   onSelect(ActivityType.SPIT_UP)
                   onClose()
                 }}
-                className="flex flex-col items-center gap-1 p-3 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300"
                 data-testid="picker-spitup"
               >
-                <Droplets size={24} />
-                <span className="text-sm font-medium">{ActivityTypeLabels[ActivityType.SPIT_UP]}</span>
+                <Droplets size={22} />
+                <span className="text-xs font-medium">{ActivityTypeLabels[ActivityType.SPIT_UP]}</span>
               </button>
             </div>
           </section>

@@ -6,7 +6,7 @@ import { BottomSheet } from '@/components/BottomSheet'
 import { BottleForm } from '@/components/forms'
 import { useModalParams } from '@/hooks/useModalParams'
 import { useCreateActivityWithConflictCheck, useUpdateActivity, useActivity } from '@/lib/api/hooks'
-import { ActivityType } from '@/types/activity'
+import { ActivityType, MilkSource } from '@/types/activity'
 import { Loader2 } from 'lucide-react'
 import { OverlapConfirmModal } from './OverlapConfirmModal'
 
@@ -32,6 +32,7 @@ export function BottleModal() {
     const startTime = searchParams.get('startTime')
     const endTime = searchParams.get('endTime')
     const milkAmount = searchParams.get('milkAmount')
+    const milkSource = searchParams.get('milkSource')
     const burpSuccess = searchParams.get('burpSuccess')
     
     // 使用 URL 中的时间，或者使用当前选中日期的当前时间
@@ -42,6 +43,7 @@ export function BottleModal() {
       startTime: startTime ? new Date(startTime) : defaultTime,
       endTime: endTime ? new Date(endTime) : undefined,
       milkAmount: milkAmount ? parseInt(milkAmount, 10) : undefined,
+      milkSource: milkSource as MilkSource | undefined,
       burpSuccess: burpSuccess ? burpSuccess === 'true' : undefined,
     }
   }, [isEditing, isOpen, searchParams, selectedDate])
@@ -53,6 +55,7 @@ export function BottleModal() {
         startTime: new Date(activity.startTime),
         endTime: activity.endTime ? new Date(activity.endTime) : undefined,
         milkAmount: activity.milkAmount ?? undefined,
+        milkSource: activity.milkSource as MilkSource | undefined,
         burpSuccess: activity.burpSuccess ?? undefined,
       }
     }
@@ -68,6 +71,7 @@ export function BottleModal() {
             startTime: (data.startTime as Date).toISOString(),
             endTime: data.endTime ? (data.endTime as Date).toISOString() : undefined,
             milkAmount: data.milkAmount as number,
+            milkSource: data.milkSource as MilkSource,
             burpSuccess: data.burpSuccess as boolean,
           },
         },
@@ -83,6 +87,7 @@ export function BottleModal() {
           startTime: (data.startTime as Date).toISOString(),
           endTime: data.endTime ? (data.endTime as Date).toISOString() : undefined,
           milkAmount: data.milkAmount as number,
+          milkSource: data.milkSource as MilkSource,
           burpSuccess: data.burpSuccess as boolean,
         },
         {

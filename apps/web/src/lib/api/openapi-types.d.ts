@@ -201,7 +201,9 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        ActivityType: "SLEEP" | "DIAPER" | "BREASTFEED" | "BOTTLE" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "ROLL_OVER" | "PULL_TO_SIT" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION" | "SUPPLEMENT" | "SPIT_UP";
+        ActivityType: "SLEEP" | "DIAPER" | "BREASTFEED" | "BOTTLE" | "PUMP" | "HEAD_LIFT" | "PASSIVE_EXERCISE" | "ROLL_OVER" | "PULL_TO_SIT" | "GAS_EXERCISE" | "BATH" | "OUTDOOR" | "EARLY_EDUCATION" | "SUPPLEMENT" | "SPIT_UP";
+        /** @enum {string} */
+        MilkSource: "BREAST_MILK" | "FORMULA";
         /** @enum {string} */
         PoopColor: "YELLOW" | "GREEN" | "BROWN" | "BLACK" | "WHITE" | "RED";
         /** @enum {string} */
@@ -269,6 +271,7 @@ export interface components {
             peeAmount?: components["schemas"]["PeeAmount"];
             burpSuccess?: boolean | null;
             milkAmount?: number | null;
+            milkSource?: components["schemas"]["MilkSource"];
             breastFirmness?: components["schemas"]["BreastFirmness"];
             supplementType?: components["schemas"]["SupplementType"];
             spitUpType?: components["schemas"]["SpitUpType"];
@@ -295,6 +298,7 @@ export interface components {
             peeAmount?: components["schemas"]["PeeAmount"];
             burpSuccess?: boolean;
             milkAmount?: number;
+            milkSource?: components["schemas"]["MilkSource"];
             breastFirmness?: components["schemas"]["BreastFirmness"];
             supplementType?: components["schemas"]["SupplementType"];
             spitUpType?: components["schemas"]["SpitUpType"];
@@ -323,6 +327,7 @@ export interface components {
             peeAmount?: components["schemas"]["PeeAmount"];
             burpSuccess?: boolean;
             milkAmount?: number;
+            milkSource?: components["schemas"]["MilkSource"];
             breastFirmness?: components["schemas"]["BreastFirmness"];
             supplementType?: components["schemas"]["SupplementType"];
             spitUpType?: components["schemas"]["SpitUpType"];

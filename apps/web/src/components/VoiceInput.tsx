@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query'
 // 语音输入示例
 const VOICE_INPUT_EXAMPLES = [
   { category: '睡眠', examples: ['入睡', '睡醒', '睡了30分钟', '睡了2小时'] },
-  { category: '喂奶', examples: ['瓶喂80毫升', '亲喂15分钟', '吐奶'] },
+  { category: '喂奶', examples: ['瓶喂母乳80毫升', '瓶喂奶粉90毫升', '亲喂15分钟', '吸奶100毫升', '吐奶'] },
   { category: '换尿布', examples: ['换尿布有大便', '换尿布小便', '大小便黄色'] },
   { category: '补剂', examples: ['吃了AD', '吃了D3'] },
   { category: '运动', examples: ['抬头5分钟', '被动操10分钟', '翻身3次', '拉坐5次'] },

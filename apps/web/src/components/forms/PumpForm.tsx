@@ -4,62 +4,52 @@ import { useState, useEffect, useMemo } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { SliderInput } from '../SliderInput'
 import { ActivityIcon } from '../ActivityIcon'
-import { ActivityType, ActivityTypeLabels, MilkSource, MilkSourceLabels } from '@/types/activity'
-import { Check, Droplet, FlaskConical } from 'lucide-react'
+import { ActivityType, ActivityTypeLabels } from '@/types/activity'
+import { Check } from 'lucide-react'
 import { dayjs, calculateDurationMinutes } from '@/lib/dayjs'
 
-interface BottleFormProps {
+interface PumpFormProps {
   onSubmit: (data: {
     startTime: Date
     endTime?: Date
     milkAmount: number
-    milkSource?: MilkSource
-    burpSuccess?: boolean
   }) => void
   onCancel: () => void
   initialValues?: {
     startTime?: Date
     endTime?: Date
     milkAmount?: number
-    milkSource?: MilkSource
-    burpSuccess?: boolean
   }
   isEditing?: boolean
 }
 
-const STORAGE_KEY = 'bottle_form_preferences'
+const STORAGE_KEY = 'pump_form_preferences'
 
 interface Preferences {
   rememberSelection: boolean
   defaultDuration: number
   defaultMilkAmount: number
-  defaultMilkSource: MilkSource
-  defaultBurpSuccess: boolean
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
   rememberSelection: false,
-  defaultDuration: 15,
-  defaultMilkAmount: 90,
-  defaultMilkSource: 'BREAST_MILK',
-  defaultBurpSuccess: true,
+  defaultDuration: 20,
+  defaultMilkAmount: 100,
 }
 
-export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: BottleFormProps) {
+export function PumpForm({ onSubmit, onCancel, initialValues, isEditing }: PumpFormProps) {
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES)
   
   // 计算初始的开始时间和结束时间
   const initialEndTime = useMemo(() => initialValues?.endTime || new Date(), [initialValues?.endTime])
   const initialStartTime = useMemo(() => {
     if (initialValues?.startTime) return initialValues.startTime
-    return dayjs(initialEndTime).subtract(15, 'minute').toDate()
+    return dayjs(initialEndTime).subtract(20, 'minute').toDate()
   }, [initialEndTime, initialValues?.startTime])
   
   const [startTime, setStartTime] = useState(initialStartTime)
   const [endTime, setEndTime] = useState(initialEndTime)
-  const [milkAmount, setMilkAmount] = useState<number>(initialValues?.milkAmount || 90)
-  const [milkSource, setMilkSource] = useState<MilkSource>(initialValues?.milkSource || 'BREAST_MILK')
-  const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialValues?.burpSuccess)
+  const [milkAmount, setMilkAmount] = useState<number>(initialValues?.milkAmount || 100)
 
   // 计算时长
   const duration = calculateDurationMinutes(startTime, endTime)
@@ -92,8 +82,6 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
           setEndTime(now.toDate())
           setStartTime(now.subtract(savedPrefs.defaultDuration, 'minute').toDate())
           setMilkAmount(savedPrefs.defaultMilkAmount)
-          setMilkSource(savedPrefs.defaultMilkSource || 'BREAST_MILK')
-          setBurpSuccess(savedPrefs.defaultBurpSuccess)
         }
       }
     } catch (e) {
@@ -106,8 +94,6 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
       rememberSelection: true,
       defaultDuration: duration,
       defaultMilkAmount: milkAmount,
-      defaultMilkSource: milkSource,
-      defaultBurpSuccess: burpSuccess ?? true,
     }
     setPreferences(newPrefs)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newPrefs))
@@ -124,8 +110,6 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
       startTime,
       endTime,
       milkAmount,
-      milkSource,
-      burpSuccess,
     })
   }
 
@@ -148,9 +132,9 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
     <div className="space-y-6 animate-fade-in">
       {/* 活动图标和名称 */}
       <div className="text-center flex flex-col items-center">
-        <ActivityIcon type={ActivityType.BOTTLE} size={48} className="text-blue-500" />
+        <ActivityIcon type={ActivityType.PUMP} size={48} className="text-purple-500" />
         <h3 className="text-xl font-bold mt-2 text-gray-800 dark:text-gray-100">
-          {ActivityTypeLabels[ActivityType.BOTTLE]}
+          {ActivityTypeLabels[ActivityType.PUMP]}
         </h3>
       </div>
 
@@ -171,9 +155,9 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
       />
 
       {/* 时长显示 */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 text-center">
-        <p className="text-base text-blue-600 dark:text-blue-400 mb-1">喂奶时长</p>
-        <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+      <div className="bg-purple-50 dark:bg-purple-900/20 rounded-2xl p-4 text-center">
+        <p className="text-base text-purple-600 dark:text-purple-400 mb-1">吸奶时长</p>
+        <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">
           {formatDuration(duration)}
         </p>
       </div>
@@ -183,73 +167,12 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
         value={milkAmount}
         onChange={setMilkAmount}
         min={10}
-        max={200}
+        max={300}
         step={10}
         unit="ml"
-        label="奶量"
-        color="blue"
+        label="吸奶量"
+        color="pink"
       />
-
-      {/* 奶源选择 */}
-      <div>
-        <p className="text-base font-medium text-gray-600 dark:text-gray-400 mb-2">
-          奶源
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => setMilkSource('BREAST_MILK')}
-            className={`p-4 rounded-xl text-lg font-semibold flex items-center justify-center gap-2 transition-all ${
-              milkSource === 'BREAST_MILK'
-                ? 'bg-pink-500 text-white shadow-lg scale-105'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            <Droplet size={24} />
-            {MilkSourceLabels.BREAST_MILK}
-          </button>
-          <button
-            onClick={() => setMilkSource('FORMULA')}
-            className={`p-4 rounded-xl text-lg font-semibold flex items-center justify-center gap-2 transition-all ${
-              milkSource === 'FORMULA'
-                ? 'bg-amber-500 text-white shadow-lg scale-105'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            <FlaskConical size={24} />
-            {MilkSourceLabels.FORMULA}
-          </button>
-        </div>
-      </div>
-
-      {/* 拍嗝是否成功 */}
-      <div>
-        <p className="text-base font-medium text-gray-600 dark:text-gray-400 mb-2">
-          拍嗝成功？
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => setBurpSuccess(true)}
-            className={`p-4 rounded-xl text-lg font-semibold flex items-center justify-center gap-2 transition-all ${
-              burpSuccess === true
-                ? 'bg-green-500 text-white shadow-lg scale-105'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            <Check size={24} />
-            成功
-          </button>
-          <button
-            onClick={() => setBurpSuccess(false)}
-            className={`p-4 rounded-xl text-lg font-semibold flex items-center justify-center gap-2 transition-all ${
-              burpSuccess === false
-                ? 'bg-red-500 text-white shadow-lg scale-105'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            未成功
-          </button>
-        </div>
-      </div>
 
       {/* 记住选择 */}
       <button
@@ -279,7 +202,7 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
           disabled={duration <= 0 || milkAmount <= 0}
           className={`p-4 rounded-2xl font-semibold text-lg transition-all ${
             duration > 0 && milkAmount > 0
-              ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
+              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
               : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
           }`}
         >

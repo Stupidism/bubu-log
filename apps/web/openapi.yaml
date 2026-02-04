@@ -643,6 +643,7 @@ components:
         - DIAPER
         - BREASTFEED
         - BOTTLE
+        - PUMP
         - HEAD_LIFT
         - PASSIVE_EXERCISE
         - ROLL_OVER
@@ -653,6 +654,12 @@ components:
         - EARLY_EDUCATION
         - SUPPLEMENT
         - SPIT_UP
+
+    MilkSource:
+      type: string
+      enum:
+        - BREAST_MILK
+        - FORMULA
 
     PoopColor:
       type: string
@@ -809,6 +816,9 @@ components:
         milkAmount:
           type: integer
           nullable: true
+        milkSource:
+          $ref: '#/components/schemas/MilkSource'
+          nullable: true
         breastFirmness:
           $ref: '#/components/schemas/BreastFirmness'
           nullable: true
@@ -856,6 +866,8 @@ components:
           type: boolean
         milkAmount:
           type: integer
+        milkSource:
+          $ref: '#/components/schemas/MilkSource'
         breastFirmness:
           $ref: '#/components/schemas/BreastFirmness'
         supplementType:
@@ -898,6 +910,8 @@ components:
           type: boolean
         milkAmount:
           type: integer
+        milkSource:
+          $ref: '#/components/schemas/MilkSource'
         breastFirmness:
           $ref: '#/components/schemas/BreastFirmness'
         supplementType:

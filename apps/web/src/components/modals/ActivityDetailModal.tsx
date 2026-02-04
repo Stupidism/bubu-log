@@ -6,11 +6,12 @@ import { BottomSheet } from '@/components/BottomSheet'
 import { ActivityIcon } from '@/components/ActivityIcon'
 import { useModalParams } from '@/hooks/useModalParams'
 import { useActivity, useUpdateActivity, useDeleteActivity } from '@/lib/api/hooks'
-import { ActivityType, ActivityTypeLabels, PoopColorStyles, PoopColorLabels, PeeAmountLabels, PoopColor, PeeAmount, BreastFirmness, BreastFirmnessLabels, SupplementType, SupplementTypeLabels, SpitUpType, SpitUpTypeLabels } from '@/types/activity'
+import { ActivityType, ActivityTypeLabels, PoopColorStyles, PoopColorLabels, PeeAmountLabels, PoopColor, PeeAmount, BreastFirmness, BreastFirmnessLabels, SupplementType, SupplementTypeLabels, SpitUpType, SpitUpTypeLabels, MilkSource, MilkSourceLabels } from '@/types/activity'
 import {
   DiaperForm,
   BreastfeedForm,
   BottleForm,
+  PumpForm,
   ActivityDurationForm,
   CountActivityForm,
   SleepEndForm,
@@ -132,6 +133,7 @@ export function ActivityDetailModal() {
           <div className="space-y-1">
             <p className="text-lg text-gray-700 dark:text-gray-300">
               {activity.milkAmount ? `${activity.milkAmount}ml` : '未记录奶量'}
+              {activity.milkSource && ` · ${MilkSourceLabels[activity.milkSource as MilkSource]}`}
               {duration ? ` · ${formatDuration(duration)}` : ''}
             </p>
             {activity.burpSuccess !== null && (
@@ -139,6 +141,16 @@ export function ActivityDetailModal() {
                 {activity.burpSuccess ? '拍嗝成功' : '拍嗝未成功'}
               </p>
             )}
+          </div>
+        )
+      
+      case 'PUMP':
+        return (
+          <div className="space-y-1">
+            <p className="text-lg text-gray-700 dark:text-gray-300">
+              {activity.milkAmount ? `${activity.milkAmount}ml` : '未记录奶量'}
+              {duration ? ` · ${formatDuration(duration)}` : ''}
+            </p>
           </div>
         )
       
@@ -241,6 +253,18 @@ export function ActivityDetailModal() {
       case ActivityType.BOTTLE:
         return (
           <BottleForm
+            onSubmit={handleSubmit}
+            onCancel={handleClose}
+            initialValues={{
+              ...baseValues,
+              milkSource: activity.milkSource as MilkSource | undefined,
+            }}
+            isEditing
+          />
+        )
+      case ActivityType.PUMP:
+        return (
+          <PumpForm
             onSubmit={handleSubmit}
             onCancel={handleClose}
             initialValues={baseValues}
