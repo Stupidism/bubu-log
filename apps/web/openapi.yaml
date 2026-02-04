@@ -645,6 +645,8 @@ components:
         - BOTTLE
         - HEAD_LIFT
         - PASSIVE_EXERCISE
+        - ROLL_OVER
+        - PULL_TO_SIT
         - GAS_EXERCISE
         - BATH
         - OUTDOOR
@@ -816,6 +818,10 @@ components:
         spitUpType:
           $ref: '#/components/schemas/SpitUpType'
           nullable: true
+        count:
+          type: integer
+          nullable: true
+          description: 次数（用于翻身、拉坐等计数类活动）
         notes:
           type: string
           nullable: true
@@ -856,6 +862,9 @@ components:
           $ref: '#/components/schemas/SupplementType'
         spitUpType:
           $ref: '#/components/schemas/SpitUpType'
+        count:
+          type: integer
+          description: 次数（用于翻身、拉坐等计数类活动）
         notes:
           type: string
         force:
@@ -895,6 +904,9 @@ components:
           $ref: '#/components/schemas/SupplementType'
         spitUpType:
           $ref: '#/components/schemas/SpitUpType'
+        count:
+          type: integer
+          description: 次数（用于翻身、拉坐等计数类活动）
         notes:
           type: string
 
