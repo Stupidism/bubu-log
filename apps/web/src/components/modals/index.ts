@@ -6,6 +6,7 @@ export { BottleModal } from './BottleModal'
 export { SleepStartModal } from './SleepStartModal'
 export { SleepEndModal } from './SleepEndModal'
 export { ActivityDurationModal } from './ActivityDurationModal'
+export { CountActivityModal } from './CountActivityModal'
 export { SupplementModal } from './SupplementModal'
 export { OverlapConfirmModal } from './OverlapConfirmModal'
 

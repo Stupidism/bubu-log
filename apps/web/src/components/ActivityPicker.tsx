@@ -1,6 +1,6 @@
 'use client'
 
-import { Moon, Sun, Milk, Baby, Target, Droplet, Pill, Droplets } from 'lucide-react'
+import { Moon, Sun, Milk, Baby, Target, Droplet, Pill, Droplets, Dumbbell } from 'lucide-react'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import type { SupplementType } from '@/types/activity'
 import { ActivityIcon } from './ActivityIcon'
@@ -200,16 +200,45 @@ export function ActivityPicker({
             </div>
           </section>
 
+          {/* 运动区域 */}
+          <section className="mb-4">
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1 flex items-center gap-1">
+              <Dumbbell size={14} />
+              运动
+            </h3>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                ActivityType.HEAD_LIFT,
+                ActivityType.PASSIVE_EXERCISE,
+                ActivityType.ROLL_OVER,
+                ActivityType.PULL_TO_SIT,
+              ].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    onSelect(type)
+                    onClose()
+                  }}
+                  className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                  data-testid={`picker-activity-${type.toLowerCase().replace('_', '-')}`}
+                >
+                  <ActivityIcon type={type} size={22} />
+                  <span className="text-xs font-medium text-center leading-tight">
+                    {ActivityTypeLabels[type]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+
           {/* 其他活动区域 */}
           <section>
             <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1 flex items-center gap-1">
               <Target size={14} />
               其他活动
             </h3>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {[
-                ActivityType.HEAD_LIFT,
-                ActivityType.PASSIVE_EXERCISE,
                 ActivityType.GAS_EXERCISE,
                 ActivityType.BATH,
                 ActivityType.OUTDOOR,

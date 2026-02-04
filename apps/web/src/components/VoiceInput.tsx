@@ -1,8 +1,18 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Mic, Keyboard, Send, Loader2, Check, X } from 'lucide-react'
+import { Mic, Keyboard, Send, Loader2, Check, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
+
+// 语音输入示例
+const VOICE_INPUT_EXAMPLES = [
+  { category: '睡眠', examples: ['入睡', '睡醒', '睡了30分钟', '睡了2小时'] },
+  { category: '喂奶', examples: ['瓶喂80毫升', '亲喂15分钟', '吐奶'] },
+  { category: '换尿布', examples: ['换尿布有大便', '换尿布小便', '大小便黄色'] },
+  { category: '补剂', examples: ['吃了AD', '吃了D3'] },
+  { category: '运动', examples: ['抬头5分钟', '被动操10分钟', '翻身3次', '拉坐5次'] },
+  { category: '其他', examples: ['排气操', '洗澡', '户外晒太阳', '早教'] },
+]
 
 interface VoiceInputProps {
   onSuccess?: (message: string) => void
@@ -30,6 +40,7 @@ export function VoiceInput({ onSuccess, onError }: VoiceInputProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [showExamples, setShowExamples] = useState(false)
   const queryClient = useQueryClient()
   const inputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
@@ -282,13 +293,47 @@ export function VoiceInput({ onSuccess, onError }: VoiceInputProps) {
             </div>
           )}
 
-          {/* 提示文字 */}
-          <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
-            {mode === 'voice' 
-              ? (speechSupported ? '点击麦克风说话，如 "喝了80毫升奶"' : '点击键盘图标切换到文字输入')
-              : '输入宝宝活动，如 "换尿布有便便" "睡了一个小时"'
-            }
-          </p>
+          {/* 提示文字和语音示例 */}
+          <div className="mt-2">
+            <button
+              onClick={() => setShowExamples(!showExamples)}
+              className="flex items-center justify-center gap-1 text-xs text-gray-400 dark:text-gray-500 mx-auto hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            >
+              <span>
+                {mode === 'voice' 
+                  ? (speechSupported ? '点击麦克风说话' : '点击键盘图标切换到文字输入')
+                  : '输入宝宝活动'
+                }
+              </span>
+              {showExamples ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+            
+            {/* 语音输入示例 */}
+            {showExamples && (
+              <div className="mt-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 text-center">
+                  语音输入示例
+                </p>
+                <div className="space-y-2">
+                  {VOICE_INPUT_EXAMPLES.map((section) => (
+                    <div key={section.category}>
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                        {section.category}：
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {section.examples.map((example, idx) => (
+                          <span key={example}>
+                            &ldquo;{example}&rdquo;
+                            {idx < section.examples.length - 1 && '、'}
+                          </span>
+                        ))}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

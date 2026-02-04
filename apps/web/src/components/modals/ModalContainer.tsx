@@ -9,6 +9,7 @@ import { BottleModal } from './BottleModal'
 import { SleepStartModal } from './SleepStartModal'
 import { SleepEndModal } from './SleepEndModal'
 import { ActivityDurationModal } from './ActivityDurationModal'
+import { CountActivityModal } from './CountActivityModal'
 import { SupplementModal } from './SupplementModal'
 import { SpitUpModal } from './SpitUpModal'
 
@@ -44,6 +45,9 @@ export function ModalContainer() {
       
       {/* 其他活动弹窗（抬头、被动操、排气操、洗澡、户外、早教） */}
       <ActivityDurationModal />
+      
+      {/* 计数类活动弹窗（翻身、拉坐） */}
+      <CountActivityModal />
       
       {/* 补剂弹窗 */}
       <SupplementModal />

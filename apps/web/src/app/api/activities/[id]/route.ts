@@ -5,7 +5,7 @@ import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { requireAuth } from '@/lib/auth/get-current-baby'
 
 // 点事件类型（没有时长的活动，endTime 应该与 startTime 相同）
-const POINT_EVENT_TYPES = ['DIAPER', 'SUPPLEMENT']
+const POINT_EVENT_TYPES = ['DIAPER', 'SUPPLEMENT', 'SPIT_UP', 'ROLL_OVER', 'PULL_TO_SIT']
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -75,6 +75,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       burpSuccess,
       milkAmount,
       breastFirmness,
+      count,
       notes,
     } = body
 
@@ -105,6 +106,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (burpSuccess !== undefined) updateData.burpSuccess = burpSuccess
     if (milkAmount !== undefined) updateData.milkAmount = milkAmount
     if (breastFirmness !== undefined) updateData.breastFirmness = breastFirmness
+    if (count !== undefined) updateData.count = count
     if (notes !== undefined) updateData.notes = notes
 
     const activity = await prisma.activity.update({

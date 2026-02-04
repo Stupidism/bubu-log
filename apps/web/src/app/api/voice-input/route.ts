@@ -20,6 +20,10 @@ const SYSTEM_PROMPT = `你是一个宝宝活动记录助手。用户会用自然
   【吐奶类型】：默认为喷射性吐奶(PROJECTILE)，如果用户说"普通吐奶"/"轻微吐奶"/"溢奶"则为普通吐奶(NORMAL)
 - HEAD_LIFT: 抬头/趴着/俯卧/趴趴
 - PASSIVE_EXERCISE: 被动操/体操/运动操
+- ROLL_OVER: 翻身/翻/翻个身（计数类活动，需要记录次数）
+  【语音识别纠错】：反身/番身/翻生 → "翻身"的误识别，应解析为 ROLL_OVER
+- PULL_TO_SIT: 拉坐/拉起来/拉着坐（计数类活动，需要记录次数）
+  【语音识别纠错】：拉作/拉做/拉座 → "拉坐"的误识别，应解析为 PULL_TO_SIT
 - GAS_EXERCISE: 排气操/排气/蹬腿
 - BATH: 洗澡/沐浴/泡澡
 - OUTDOOR: 户外/晒太阳/出门/外面/遛弯
@@ -49,6 +53,7 @@ const SYSTEM_PROMPT = `你是一个宝宝活动记录助手。用户会用自然
   "poopColor": "便便颜色"，如果没提到返回 null,
   "peeAmount": "小便量"，如果没提到返回 null,
   "spitUpType": "吐奶类型（PROJECTILE喷射性/NORMAL普通）"，仅当type为SPIT_UP时返回，默认PROJECTILE,
+  "count": 次数（整数），仅当type为ROLL_OVER或PULL_TO_SIT时使用，如果没提到默认为3,
   "notes": "用户提到的其他备注信息",
   "confidence": 0-1 之间的置信度，表示你对解析结果的信心
 }
@@ -118,8 +123,18 @@ const SYSTEM_PROMPT = `你是一个宝宝活动记录助手。用户会用自然
      * "平喂"/"瓶为"/"瓶味" → "瓶喂" (BOTTLE)
      * "排起操"/"排弃操" → "排气操" (GAS_EXERCISE)
      * "被动草"/"被懂操" → "被动操" (PASSIVE_EXERCISE)
+     * "反身"/"番身"/"翻生" → "翻身" (ROLL_OVER)
+     * "拉作"/"拉做"/"拉座" → "拉坐" (PULL_TO_SIT)
      * "洗脚"（在宝宝语境下）→ 可能是"洗澡" (BATH)
-   - 请智能纠正这些语音识别错误，正确理解用户意图`
+   - 请智能纠正这些语音识别错误，正确理解用户意图
+8. 【计数类活动规则 - 翻身/拉坐】：
+   - ROLL_OVER（翻身）和 PULL_TO_SIT（拉坐）是计数类活动
+   - 这类活动的 startTime 和 endTime 应该相同（瞬时事件）
+   - 需要记录 count（次数），如果用户没有明确说次数，默认为 3
+   - 示例：
+     * "翻身3次" → type=ROLL_OVER, count=3, startTime=endTime=当前时间
+     * "拉坐5次" → type=PULL_TO_SIT, count=5, startTime=endTime=当前时间
+     * "翻身" → type=ROLL_OVER, count=3（默认）, startTime=endTime=当前时间`
 
 interface DeepseekMessage {
   role: 'system' | 'user' | 'assistant'
@@ -144,6 +159,7 @@ interface ParsedActivity {
   poopColor: PoopColor | null
   peeAmount: PeeAmount | null
   spitUpType: SpitUpType | null
+  count: number | null
   notes: string | null
   confidence: number
 }
@@ -212,6 +228,8 @@ const typeLabelsForLog: Record<ActivityType, string> = {
   [ActivityType.BOTTLE]: '瓶喂',
   [ActivityType.HEAD_LIFT]: '抬头',
   [ActivityType.PASSIVE_EXERCISE]: '被动操',
+  [ActivityType.ROLL_OVER]: '翻身',
+  [ActivityType.PULL_TO_SIT]: '拉坐',
   [ActivityType.GAS_EXERCISE]: '排气操',
   [ActivityType.BATH]: '洗澡',
   [ActivityType.OUTDOOR]: '户外',
@@ -307,9 +325,12 @@ export async function POST(request: NextRequest) {
     const startTime = parsed.startTime 
       ? new Date(parsed.startTime)
       : new Date()
-    const endTime = parsed.endTime 
-      ? new Date(parsed.endTime)
-      : null
+    
+    // For count-based activities (ROLL_OVER, PULL_TO_SIT), startTime = endTime
+    const isCountActivity = parsed.type === ActivityType.ROLL_OVER || parsed.type === ActivityType.PULL_TO_SIT
+    const endTime = isCountActivity 
+      ? startTime 
+      : (parsed.endTime ? new Date(parsed.endTime) : null)
 
     // If confidence is low, return parsed data for confirmation
     if (parsed.confidence < CONFIDENCE_THRESHOLD) {
@@ -345,6 +366,7 @@ export async function POST(request: NextRequest) {
           poopColor: parsed.poopColor,
           peeAmount: parsed.peeAmount,
           spitUpType: parsed.spitUpType,
+          count: parsed.count,
           notes: parsed.notes,
           confidence: parsed.confidence,
           originalText: text
@@ -366,6 +388,7 @@ export async function POST(request: NextRequest) {
         poopColor: parsed.poopColor,
         peeAmount: parsed.peeAmount,
         spitUpType: parsed.spitUpType,
+        count: parsed.count,
         notes: parsed.notes,
       },
     })
@@ -462,6 +485,8 @@ function generateConfirmationMessage(parsed: ParsedActivity): string {
     [ActivityType.BOTTLE]: '瓶喂',
     [ActivityType.HEAD_LIFT]: '抬头',
     [ActivityType.PASSIVE_EXERCISE]: '被动操',
+    [ActivityType.ROLL_OVER]: '翻身',
+    [ActivityType.PULL_TO_SIT]: '拉坐',
     [ActivityType.GAS_EXERCISE]: '排气操',
     [ActivityType.BATH]: '洗澡',
     [ActivityType.OUTDOOR]: '户外',
@@ -472,9 +497,14 @@ function generateConfirmationMessage(parsed: ParsedActivity): string {
 
   let message = `已记录: ${typeLabels[parsed.type]}`
 
-  const duration = calculateDuration(parsed.startTime, parsed.endTime)
-  if (duration) {
-    message += `，时长 ${duration} 分钟`
+  // For count-based activities, show count instead of duration
+  if (parsed.count && (parsed.type === ActivityType.ROLL_OVER || parsed.type === ActivityType.PULL_TO_SIT)) {
+    message += `，${parsed.count} 次`
+  } else {
+    const duration = calculateDuration(parsed.startTime, parsed.endTime)
+    if (duration) {
+      message += `，时长 ${duration} 分钟`
+    }
   }
 
   if (parsed.milkAmount) {

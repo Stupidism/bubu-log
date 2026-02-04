@@ -12,6 +12,7 @@ import {
   BreastfeedForm,
   BottleForm,
   ActivityDurationForm,
+  CountActivityForm,
   SleepEndForm,
   SupplementForm,
   SpitUpForm,
@@ -184,6 +185,14 @@ export function ActivityDetailModal() {
           </p>
         )
       
+      case 'ROLL_OVER':
+      case 'PULL_TO_SIT':
+        return (
+          <p className="text-lg text-gray-700 dark:text-gray-300">
+            {activity.count ? `${activity.count} 次` : '未记录次数'}
+          </p>
+        )
+      
       default:
         return activity.endTime ? (
           <p className="text-lg text-gray-700 dark:text-gray-300">
@@ -282,6 +291,20 @@ export function ActivityDetailModal() {
             initialValues={{
               ...baseValues,
               spitUpType: activity.spitUpType as SpitUpType | undefined,
+            }}
+            isEditing
+          />
+        )
+      case ActivityType.ROLL_OVER:
+      case ActivityType.PULL_TO_SIT:
+        return (
+          <CountActivityForm
+            type={activityType}
+            onSubmit={handleSubmit}
+            onCancel={handleClose}
+            initialValues={{
+              ...baseValues,
+              count: activity.count || undefined,
             }}
             isEditing
           />

@@ -545,9 +545,13 @@ export function ActivityFAB({
 
             {/* 示例提示 */}
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-              <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
-                试试说: "喝了80毫升奶" "换尿布有便便" "睡了一个小时"
-              </p>
+              <div className="space-y-1.5 text-xs text-gray-400 dark:text-gray-500">
+                <p className="text-center font-medium text-gray-500 dark:text-gray-400">标准语音输入示例：</p>
+                <p><span className="text-gray-500 dark:text-gray-400">喂养：</span>"喝了80毫升奶" "亲喂15分钟"</p>
+                <p><span className="text-gray-500 dark:text-gray-400">睡眠：</span>"睡了一个小时" "入睡了"</p>
+                <p><span className="text-gray-500 dark:text-gray-400">尿布：</span>"换尿布有便便" "大便黄色"</p>
+                <p><span className="text-gray-500 dark:text-gray-400">运动：</span>"抬头5分钟" "被动操" "翻身3次" "拉坐"</p>
+              </div>
             </div>
           </div>
         </div>

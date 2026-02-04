@@ -15,6 +15,8 @@ export type ModalType =
   | 'sleep_end'       // 睡醒表单
   | 'head_lift'       // 抬头
   | 'passive_exercise' // 被动操
+  | 'roll_over'       // 翻身
+  | 'pull_to_sit'     // 拉坐
   | 'gas_exercise'    // 排气操
   | 'bath'            // 洗澡
   | 'outdoor'         // 户外
@@ -32,6 +34,8 @@ export const activityTypeToModalType: Record<ActivityType | 'wake', ModalType> =
   [ActivityType.SLEEP]: 'sleep_start',
   [ActivityType.HEAD_LIFT]: 'head_lift',
   [ActivityType.PASSIVE_EXERCISE]: 'passive_exercise',
+  [ActivityType.ROLL_OVER]: 'roll_over',
+  [ActivityType.PULL_TO_SIT]: 'pull_to_sit',
   [ActivityType.GAS_EXERCISE]: 'gas_exercise',
   [ActivityType.BATH]: 'bath',
   [ActivityType.OUTDOOR]: 'outdoor',

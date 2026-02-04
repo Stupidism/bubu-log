@@ -5,6 +5,8 @@ export enum ActivityType {
   BOTTLE = 'BOTTLE',
   HEAD_LIFT = 'HEAD_LIFT',
   PASSIVE_EXERCISE = 'PASSIVE_EXERCISE',
+  ROLL_OVER = 'ROLL_OVER',
+  PULL_TO_SIT = 'PULL_TO_SIT',
   GAS_EXERCISE = 'GAS_EXERCISE',
   BATH = 'BATH',
   OUTDOOR = 'OUTDOOR',
@@ -56,6 +58,7 @@ export interface Activity {
   milkAmount?: number | null
   supplementType?: SupplementType | null
   spitUpType?: SpitUpType | null
+  count?: number | null
   notes?: string | null
 }
 
@@ -66,6 +69,8 @@ export const ActivityTypeLabels: Record<ActivityType, string> = {
   [ActivityType.BOTTLE]: '瓶喂',
   [ActivityType.HEAD_LIFT]: '抬头',
   [ActivityType.PASSIVE_EXERCISE]: '被动操',
+  [ActivityType.ROLL_OVER]: '翻身',
+  [ActivityType.PULL_TO_SIT]: '拉坐',
   [ActivityType.GAS_EXERCISE]: '排气操',
   [ActivityType.BATH]: '洗澡',
   [ActivityType.OUTDOOR]: '户外晒太阳',
@@ -122,6 +127,8 @@ export const ActivityIconNames: Record<ActivityType, string> = {
   [ActivityType.BOTTLE]: 'Milk',
   [ActivityType.HEAD_LIFT]: 'ArrowUp',
   [ActivityType.PASSIVE_EXERCISE]: 'Activity',
+  [ActivityType.ROLL_OVER]: 'RotateCcw',
+  [ActivityType.PULL_TO_SIT]: 'ArrowUpFromLine',
   [ActivityType.GAS_EXERCISE]: 'Wind',
   [ActivityType.BATH]: 'Bath',
   [ActivityType.OUTDOOR]: 'SunMedium',
@@ -137,9 +144,19 @@ export const ActivityCategories = {
   diaper: [ActivityType.DIAPER],
   supplement: [ActivityType.SUPPLEMENT],
   spitUp: [ActivityType.SPIT_UP],
+  // 运动相关活动
+  exercise: [
+    ActivityType.HEAD_LIFT,
+    ActivityType.PASSIVE_EXERCISE,
+    ActivityType.ROLL_OVER,
+    ActivityType.PULL_TO_SIT,
+  ],
+  // 其他活动
   activities: [
     ActivityType.HEAD_LIFT,
     ActivityType.PASSIVE_EXERCISE,
+    ActivityType.ROLL_OVER,
+    ActivityType.PULL_TO_SIT,
     ActivityType.GAS_EXERCISE,
     ActivityType.BATH,
     ActivityType.OUTDOOR,

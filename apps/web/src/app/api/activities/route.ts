@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
 }
 
 // 点事件类型（没有时长的活动）
-const POINT_EVENT_TYPES = ['DIAPER', 'SUPPLEMENT', 'SPIT_UP']
+const POINT_EVENT_TYPES = ['DIAPER', 'SUPPLEMENT', 'SPIT_UP', 'ROLL_OVER', 'PULL_TO_SIT']
 // 喂奶类型（互斥的活动）
 const FEEDING_TYPES = ['BREASTFEED', 'BOTTLE']
 // 有时长的活动类型（同类型不允许重叠）
@@ -177,6 +177,8 @@ const TYPE_LABELS: Record<string, string> = {
   SPIT_UP: '吐奶',
   HEAD_LIFT: '抬头',
   PASSIVE_EXERCISE: '被动操',
+  ROLL_OVER: '翻身',
+  PULL_TO_SIT: '拉坐',
   GAS_EXERCISE: '排气操',
   BATH: '洗澡',
   OUTDOOR: '户外',
@@ -347,6 +349,7 @@ export async function POST(request: NextRequest) {
       breastFirmness,
       supplementType,
       spitUpType,
+      count,
       notes,
       force, // 强制创建（忽略重叠警告）
     } = body
@@ -388,6 +391,7 @@ export async function POST(request: NextRequest) {
         breastFirmness,
         supplementType,
         spitUpType,
+        count,
         notes,
       },
     })

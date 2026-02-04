@@ -137,6 +137,8 @@ enum ActivityType {
   BOTTLE           // 瓶喂（startTime=开始时间，endTime=结束时间，milkAmount=奶量）
   HEAD_LIFT        // 抬头
   PASSIVE_EXERCISE // 被动操
+  ROLL_OVER        // 翻身（startTime=endTime，count=次数）
+  PULL_TO_SIT      // 拉坐（startTime=endTime，count=次数）
   GAS_EXERCISE     // 排气操
   BATH             // 洗澡
   OUTDOOR          // 户外晒太阳
@@ -213,6 +215,9 @@ model Activity {
 
   // 吐奶相关字段
   spitUpType      SpitUpType?     // 吐奶类型（普通或喷射性）
+
+  // 计数活动相关字段
+  count           Int?            // 次数（用于翻身、拉坐等计数类活动）
 
   // 备注
   notes           String?
