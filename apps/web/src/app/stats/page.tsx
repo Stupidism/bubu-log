@@ -33,21 +33,7 @@ import {
   TrendingUp,
   Calendar,
 } from 'lucide-react'
-import { StatsCardList, type StatFilter } from '@/components/StatsCardList'
-
-interface DaySummary {
-  sleepCount: number
-  totalSleepMinutes: number
-  diaperCount: number
-  poopCount: number
-  peeCount: number
-  breastfeedCount: number
-  totalBreastfeedMinutes: number
-  bottleCount: number
-  totalMilkAmount: number
-  exerciseCount: number
-  totalHeadLiftMinutes: number
-}
+import { StatsCardList, type StatFilter, type DaySummary } from '@/components/StatsCardList'
 
 // FilterType 与 StatsCardList 的 StatFilter 保持一致
 type FilterType = StatFilter
@@ -135,41 +121,40 @@ function StatsPageContent() {
     })
   }, [])
 
-  // Calculate summary from activities
+  // Calculate summary from activities (shape matches StatsCardList DaySummary)
   const summary = useMemo<DaySummary | null>(() => {
     if (!activities || activities.length === 0) {
       return {
         sleepCount: 0,
         totalSleepMinutes: 0,
-        diaperCount: 0,
-        poopCount: 0,
-        peeCount: 0,
-        breastfeedCount: 0,
+        totalBottleMilkAmount: 0,
         totalBreastfeedMinutes: 0,
-        bottleCount: 0,
-        totalMilkAmount: 0,
-        exerciseCount: 0,
+        totalPumpMilkAmount: 0,
+        diaperCount: 0,
+        largePeeDiaperCount: 0,
+        smallMediumPeeDiaperCount: 0,
         totalHeadLiftMinutes: 0,
+        totalRollOverCount: 0,
+        totalPullToSitCount: 0,
       }
     }
 
     const summary: DaySummary = {
       sleepCount: 0,
       totalSleepMinutes: 0,
-      diaperCount: 0,
-      poopCount: 0,
-      peeCount: 0,
-      breastfeedCount: 0,
+      totalBottleMilkAmount: 0,
       totalBreastfeedMinutes: 0,
-      bottleCount: 0,
-      totalMilkAmount: 0,
-      exerciseCount: 0,
+      totalPumpMilkAmount: 0,
+      diaperCount: 0,
+      largePeeDiaperCount: 0,
+      smallMediumPeeDiaperCount: 0,
       totalHeadLiftMinutes: 0,
+      totalRollOverCount: 0,
+      totalPullToSitCount: 0,
     }
 
     // 睡眠统计 - 有 endTime 才计为完整睡眠，只计算当天范围内的部分
     const sleeps = activities.filter((a) => a.type === 'SLEEP' && a.endTime)
-    // 计算每个睡眠在当天范围内的时长，只有大于0的才计入统计
     const sleepMinutesPerActivity = sleeps.map(a =>
       calculateDurationInDay(a.startTime, a.endTime!, selectedDate)
     )
@@ -179,33 +164,39 @@ function StatsPageContent() {
     // 尿布统计
     const diapers = activities.filter((a) => a.type === 'DIAPER')
     summary.diaperCount = diapers.length
-    summary.poopCount = diapers.filter((a) => a.hasPoop).length
-    summary.peeCount = diapers.filter((a) => a.hasPee).length
+    for (const d of diapers) {
+      if (d.hasPee) {
+        if (d.peeAmount === 'LARGE') summary.largePeeDiaperCount++
+        else if (d.peeAmount === 'MEDIUM' || d.peeAmount === 'SMALL') summary.smallMediumPeeDiaperCount++
+      }
+    }
 
     // 亲喂统计
     const breastfeeds = activities.filter((a) => a.type === 'BREASTFEED')
-    summary.breastfeedCount = breastfeeds.length
     summary.totalBreastfeedMinutes = breastfeeds.reduce((acc, a) =>
       acc + (a.endTime ? calculateDurationMinutes(a.startTime, a.endTime) : 0), 0)
 
     // 瓶喂统计
     const bottles = activities.filter((a) => a.type === 'BOTTLE')
-    summary.bottleCount = bottles.length
-    summary.totalMilkAmount = bottles.reduce((acc, a) => acc + (a.milkAmount || 0), 0)
+    summary.totalBottleMilkAmount = bottles.reduce((acc, a) => acc + (a.milkAmount || 0), 0)
 
-    // 活动统计
-    const exercises = activities.filter((a) =>
-      ['HEAD_LIFT', 'PASSIVE_EXERCISE', 'GAS_EXERCISE', 'BATH', 'OUTDOOR', 'EARLY_EDUCATION'].includes(a.type)
-    )
-    summary.exerciseCount = exercises.length
+    // 吸奶统计
+    const pumps = activities.filter((a) => a.type === 'PUMP')
+    summary.totalPumpMilkAmount = pumps.reduce((acc, a) => acc + (a.milkAmount || 0), 0)
 
     // 抬头时间统计
     const headLifts = activities.filter((a) => a.type === 'HEAD_LIFT' && a.endTime)
     summary.totalHeadLiftMinutes = headLifts.reduce((acc, a) =>
       acc + calculateDurationMinutes(a.startTime, a.endTime!), 0)
 
+    // 翻身 / 拉坐
+    const rollOvers = activities.filter((a) => a.type === 'ROLL_OVER')
+    summary.totalRollOverCount = rollOvers.reduce((acc, a) => acc + (a.count ?? 1), 0)
+    const pullToSits = activities.filter((a) => a.type === 'PULL_TO_SIT')
+    summary.totalPullToSitCount = pullToSits.reduce((acc, a) => acc + (a.count ?? 1), 0)
+
     return summary
-  }, [activities])
+  }, [activities, selectedDate])
 
   // 日期导航
   const navigateDate = (days: number) => {

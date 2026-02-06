@@ -4,7 +4,7 @@ import { Moon, Milk, Baby, Target } from 'lucide-react'
 
 export type StatFilter = 'all' | 'sleep' | 'feeding' | 'diaper' | 'activities'
 
-interface DaySummary {
+export interface DaySummary {
   sleepCount: number
   totalSleepMinutes: number
   // 喂养统计
