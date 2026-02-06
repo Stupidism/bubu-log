@@ -16,10 +16,10 @@ import { BottomSheet } from '@/components/BottomSheet'
 import { toast } from 'sonner'
 import { useActivities, useBatchDeleteActivities, useBatchUpdateActivityDate, type Activity } from '@/lib/api/hooks'
 import { useModalParams } from '@/hooks/useModalParams'
-import { 
-  BarChart3, 
-  ArrowLeft, 
-  ChevronLeft, 
+import {
+  BarChart3,
+  ArrowLeft,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
   Droplet,
@@ -65,20 +65,20 @@ const sortFieldLabels: Record<SortField, string> = {
 function StatsPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  
+
   // 从 URL 读取 filter
   const filterFromUrl = searchParams.get('filter') as FilterType | null
-  const filter: FilterType = filterFromUrl && ['sleep', 'feeding', 'diaper', 'activities'].includes(filterFromUrl) 
-    ? filterFromUrl 
+  const filter: FilterType = filterFromUrl && ['sleep', 'feeding', 'diaper', 'activities'].includes(filterFromUrl)
+    ? filterFromUrl
     : 'all'
-  
+
   // 多选状态
   const [isSelectMode, setIsSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false)
   const [showBatchDateChange, setShowBatchDateChange] = useState(false)
   const [targetDateInput, setTargetDateInput] = useState('')
-  
+
   // 排序状态：默认按结束时间倒序
   const [sortField, setSortField] = useState<SortField>('endTime')
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -100,18 +100,18 @@ function StatsPageContent() {
   // Filter and sort activities based on selected filter and sort field
   const filteredActivities = useMemo(() => {
     let result = activities
-    
+
     // 先过滤
     if (filter !== 'all') {
       const filterTypes = ActivityCategories[filter as keyof typeof ActivityCategories] || []
       result = result.filter(a => filterTypes.includes(a.type as ActivityType))
     }
-    
+
     // 再排序（倒序）
     return [...result].sort((a, b) => {
       let aValue: string | null | undefined
       let bValue: string | null | undefined
-      
+
       if (sortField === 'endTime') {
         // 结束时间排序：没有 endTime 的用 startTime 代替
         aValue = a.endTime || a.startTime
@@ -120,12 +120,12 @@ function StatsPageContent() {
         aValue = a[sortField]
         bValue = b[sortField]
       }
-      
+
       // 倒序排列
       return new Date(bValue || 0).getTime() - new Date(aValue || 0).getTime()
     })
   }, [activities, filter, sortField])
-  
+
   // 切换排序字段
   const cycleSortField = useCallback(() => {
     setSortField(current => {
@@ -170,7 +170,7 @@ function StatsPageContent() {
     // 睡眠统计 - 有 endTime 才计为完整睡眠，只计算当天范围内的部分
     const sleeps = activities.filter((a) => a.type === 'SLEEP' && a.endTime)
     // 计算每个睡眠在当天范围内的时长，只有大于0的才计入统计
-    const sleepMinutesPerActivity = sleeps.map(a => 
+    const sleepMinutesPerActivity = sleeps.map(a =>
       calculateDurationInDay(a.startTime, a.endTime!, selectedDate)
     )
     summary.sleepCount = sleepMinutesPerActivity.filter(m => m > 0).length
@@ -185,7 +185,7 @@ function StatsPageContent() {
     // 亲喂统计
     const breastfeeds = activities.filter((a) => a.type === 'BREASTFEED')
     summary.breastfeedCount = breastfeeds.length
-    summary.totalBreastfeedMinutes = breastfeeds.reduce((acc, a) => 
+    summary.totalBreastfeedMinutes = breastfeeds.reduce((acc, a) =>
       acc + (a.endTime ? calculateDurationMinutes(a.startTime, a.endTime) : 0), 0)
 
     // 瓶喂统计
@@ -201,7 +201,7 @@ function StatsPageContent() {
 
     // 抬头时间统计
     const headLifts = activities.filter((a) => a.type === 'HEAD_LIFT' && a.endTime)
-    summary.totalHeadLiftMinutes = headLifts.reduce((acc, a) => 
+    summary.totalHeadLiftMinutes = headLifts.reduce((acc, a) =>
       acc + calculateDurationMinutes(a.startTime, a.endTime!), 0)
 
     return summary
@@ -244,14 +244,14 @@ function StatsPageContent() {
   // 长按开始多选（支持滑动取消）
   const handleLongPressStart = useCallback((activityId: string, e: React.TouchEvent | React.MouseEvent) => {
     longPressTriggered.current = false
-    
+
     // 记录起始位置
     if ('touches' in e) {
       touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
     } else {
       touchStartPos.current = { x: e.clientX, y: e.clientY }
     }
-    
+
     longPressTimer.current = setTimeout(() => {
       longPressTriggered.current = true
       setIsSelectMode(true)
@@ -262,7 +262,7 @@ function StatsPageContent() {
   // 长按移动检测（滑动超过 10px 取消长按）
   const handleLongPressMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     if (!touchStartPos.current) return
-    
+
     let currentX: number, currentY: number
     if ('touches' in e) {
       currentX = e.touches[0].clientX
@@ -271,10 +271,10 @@ function StatsPageContent() {
       currentX = e.clientX
       currentY = e.clientY
     }
-    
+
     const deltaX = Math.abs(currentX - touchStartPos.current.x)
     const deltaY = Math.abs(currentY - touchStartPos.current.y)
-    
+
     // 滑动超过 10px，取消长按
     if (deltaX > 10 || deltaY > 10) {
       if (longPressTimer.current) {
@@ -330,7 +330,7 @@ function StatsPageContent() {
   // 批量删除
   const handleBatchDelete = useCallback(async () => {
     if (selectedIds.size === 0) return
-    
+
     batchDeleteMutation.mutate(
       { body: { ids: Array.from(selectedIds) } },
       {
@@ -350,7 +350,7 @@ function StatsPageContent() {
   // 批量修改日期
   const handleBatchDateChange = useCallback(async () => {
     if (selectedIds.size === 0 || !targetDateInput) return
-    
+
     batchUpdateDateMutation.mutate(
       { body: { ids: Array.from(selectedIds), targetDate: targetDateInput } },
       {
@@ -394,8 +394,8 @@ function StatsPageContent() {
           </div>
         )
       case 'BREASTFEED': {
-        const duration = activity.endTime 
-          ? calculateDurationMinutes(activity.startTime, activity.endTime) 
+        const duration = activity.endTime
+          ? calculateDurationMinutes(activity.startTime, activity.endTime)
           : null
         return (
           <div className="text-base text-gray-600 dark:text-gray-400 flex items-center gap-2">
@@ -417,8 +417,8 @@ function StatsPageContent() {
         )
       }
       case 'BOTTLE': {
-        const duration = activity.endTime 
-          ? calculateDurationMinutes(activity.startTime, activity.endTime) 
+        const duration = activity.endTime
+          ? calculateDurationMinutes(activity.startTime, activity.endTime)
           : null
         return (
           <div className="text-base text-gray-600 dark:text-gray-400 flex flex-wrap items-center gap-2">
@@ -444,9 +444,31 @@ function StatsPageContent() {
           </div>
         )
       }
+      case 'PUMP': {
+        const duration = activity.endTime
+          ? calculateDurationMinutes(activity.startTime, activity.endTime)
+          : null
+        return (
+          <div className="text-base text-gray-600 dark:text-gray-400 flex flex-wrap items-center gap-2">
+            {activity.milkAmount && (
+              <span className="text-purple-600 dark:text-purple-400 font-medium text-lg">
+                {activity.milkAmount}ml
+              </span>
+            )}
+            {activity.endTime && (
+              <>
+                <span className="text-gray-500">
+                  {formatTimeRange(activity.startTime, activity.endTime)}
+                </span>
+                <span>({duration}分钟)</span>
+              </>
+            )}
+          </div>
+        )
+      }
       case 'SLEEP': {
-        const duration = activity.endTime 
-          ? calculateDurationMinutes(activity.startTime, activity.endTime) 
+        const duration = activity.endTime
+          ? calculateDurationMinutes(activity.startTime, activity.endTime)
           : null
         return activity.endTime ? (
           <span className="text-base text-amber-600 dark:text-amber-400 font-medium">
@@ -459,8 +481,8 @@ function StatsPageContent() {
         )
       }
       default: {
-        const duration = activity.endTime 
-          ? calculateDurationMinutes(activity.startTime, activity.endTime) 
+        const duration = activity.endTime
+          ? calculateDurationMinutes(activity.startTime, activity.endTime)
           : null
         return duration ? (
           <span className="text-base text-gray-600 dark:text-gray-400">
@@ -659,11 +681,10 @@ function StatsPageContent() {
                   onMouseMove={handleLongPressMove}
                   onMouseUp={handleLongPressEnd}
                   onMouseLeave={handleLongPressEnd}
-                  className={`w-full bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm flex items-start gap-4 text-left transition-all ${
-                    isSelectMode && selectedIds.has(activity.id)
+                  className={`w-full bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm flex items-start gap-4 text-left transition-all ${isSelectMode && selectedIds.has(activity.id)
                       ? 'ring-2 ring-primary ring-offset-2 bg-primary/5'
                       : 'hover:shadow-md'
-                  }`}
+                    }`}
                   data-testid={`stats-activity-${activity.id}`}
                 >
                   {/* 多选模式下显示选择框 */}

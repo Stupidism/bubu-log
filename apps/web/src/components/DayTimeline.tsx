@@ -24,6 +24,7 @@ const activityColors: Record<string, { bg: string; border: string; text: string;
   SLEEP: { bg: 'bg-indigo-100 dark:bg-indigo-900/40', border: 'border-indigo-400', text: 'text-indigo-700 dark:text-indigo-300' },
   BREASTFEED: { bg: 'bg-pink-100 dark:bg-pink-900/40', border: 'border-pink-400', text: 'text-pink-700 dark:text-pink-300' },
   BOTTLE: { bg: 'bg-blue-100 dark:bg-blue-900/40', border: 'border-blue-400', text: 'text-blue-700 dark:text-blue-300' },
+  PUMP: { bg: 'bg-purple-100 dark:bg-purple-900/40', border: 'border-purple-400', text: 'text-purple-700 dark:text-purple-300' },
   DIAPER: { bg: 'bg-teal-100 dark:bg-teal-900/40', border: 'border-teal-400', text: 'text-teal-700 dark:text-teal-300', divider: 'bg-yellow-400' },
   HEAD_LIFT: { bg: 'bg-amber-100 dark:bg-amber-900/40', border: 'border-amber-400', text: 'text-amber-700 dark:text-amber-300' },
   PASSIVE_EXERCISE: { bg: 'bg-green-100 dark:bg-green-900/40', border: 'border-green-400', text: 'text-green-700 dark:text-green-300' },
@@ -51,7 +52,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
       const now = new Date()
       return now.getHours() * 60 + now.getMinutes()
     })
-    
+
     // 长按检测状态
     const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const longPressTriggered = useRef(false)
@@ -60,12 +61,12 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
     // 更新当前时间（每分钟）
     useEffect(() => {
       if (!showCurrentTime) return
-      
+
       const updateTime = () => {
         const now = new Date()
         setCurrentMinutes(now.getHours() * 60 + now.getMinutes())
       }
-      
+
       const interval = setInterval(updateTime, 60000)
       return () => clearInterval(interval)
     }, [showCurrentTime])
@@ -92,9 +93,9 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
     // 长按开始（在空白处）
     const handleBlankLongPressStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
       if (!onLongPressBlank) return
-      
+
       longPressTriggered.current = false
-      
+
       // 获取点击位置
       const target = e.currentTarget as HTMLElement
       const rect = target.getBoundingClientRect()
@@ -106,10 +107,10 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
         clientX = e.clientX
         clientY = e.clientY
       }
-      
+
       const offsetY = clientY - rect.top
       touchStartPos.current = { x: clientX, y: clientY, offsetY }
-      
+
       longPressTimer.current = setTimeout(() => {
         longPressTriggered.current = true
         const selectedTime = calculateTimeFromY(offsetY)
@@ -120,7 +121,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
     // 长按移动检测
     const handleBlankLongPressMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
       if (!touchStartPos.current) return
-      
+
       let currentX: number, currentY: number
       if ('touches' in e) {
         currentX = e.touches[0].clientX
@@ -129,10 +130,10 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
         currentX = e.clientX
         currentY = e.clientY
       }
-      
+
       const deltaX = Math.abs(currentX - touchStartPos.current.x)
       const deltaY = Math.abs(currentY - touchStartPos.current.y)
-      
+
       // 滑动超过 10px，取消长按
       if (deltaX > 10 || deltaY > 10) {
         if (longPressTimer.current) {
@@ -157,25 +158,25 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
     // 计算活动在时间线上的位置
     const positionedActivities = useMemo(() => {
       const dayStart = dayjs(date).startOf('day')
-      
+
       return activities.map(activity => {
         const startTime = dayjs(activity.startTime)
         const minutesFromStart = startTime.diff(dayStart, 'minute')
         const top = (minutesFromStart / 60) * HOUR_HEIGHT
-        
+
         // 换尿布、补剂、吐奶是瞬时事件，显示为线条
         const isLineType = activity.type === 'DIAPER' || activity.type === 'SUPPLEMENT' || activity.type === 'SPIT_UP'
-        
+
         // 计算时长：有 endTime 则计算差值，否则默认 5 分钟（非线条类型）
-        const duration = activity.endTime 
-          ? calculateDurationMinutes(activity.startTime, activity.endTime) 
+        const duration = activity.endTime
+          ? calculateDurationMinutes(activity.startTime, activity.endTime)
           : (isLineType ? 0 : 5)
-        
+
         // 线条类型固定高度为 2px，其他按时长计算（有最小高度确保可点击）
-        const height = isLineType 
-          ? 2 
+        const height = isLineType
+          ? 2
           : Math.max((duration / 60) * HOUR_HEIGHT, MIN_DURATION_BLOCK_HEIGHT)
-        
+
         return {
           ...activity,
           top,
@@ -191,40 +192,40 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
     // 处理重叠的活动（简单实现：按顺序排列）
     const layoutActivities = useMemo(() => {
       const result: Array<typeof positionedActivities[0] & { left: number; width: number }> = []
-      
+
       for (const activity of positionedActivities) {
         // 线条类型不参与重叠计算，始终全宽
         if (activity.isLineType) {
           result.push({ ...activity, left: 0, width: 100 })
           continue
         }
-        
+
         // 户外活动总是在右边（因为户外时可以睡觉、换尿布等）
         if (activity.type === 'OUTDOOR') {
           result.push({ ...activity, left: 50, width: 48 })
           continue
         }
-        
+
         // 检查是否与已有的非线条、非户外活动重叠
         const overlapping = result.filter(
           a => !a.isLineType && a.type !== 'OUTDOOR' && !(activity.top >= a.top + a.height || activity.top + activity.height <= a.top)
         )
-        
+
         // 简单处理：如果重叠，缩小宽度并偏移
         const left = overlapping.length > 0 ? 50 : 0
         const width = overlapping.length > 0 ? 48 : 100
-        
+
         result.push({ ...activity, left, width })
       }
-      
+
       return result
     }, [positionedActivities])
 
     const getActivityLabel = (activity: typeof positionedActivities[0]) => {
       const type = activity.type as ActivityType
       let label = ActivityTypeLabels[type] || activity.type
-      
-      if (activity.type === 'BOTTLE' && activity.milkAmount) {
+
+      if ((activity.type === 'BOTTLE' || activity.type === 'PUMP') && activity.milkAmount) {
         label += ` ${activity.milkAmount}ml`
       } else if (activity.type === 'DIAPER') {
         if (activity.hasPoop && activity.hasPee) {
@@ -249,7 +250,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
       } else if (activity.duration && activity.duration > 0) {
         label += ` ${activity.duration}分钟`
       }
-      
+
       return label
     }
 
@@ -259,8 +260,8 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
     return (
       <div ref={containerRef} className="relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
         {/* 时间刻度 */}
-        <div 
-          className="relative" 
+        <div
+          className="relative"
           style={{ height: 24 * HOUR_HEIGHT }}
           onTouchStart={handleBlankLongPressStart}
           onTouchMove={handleBlankLongPressMove}
@@ -283,7 +284,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
               </span>
             </div>
           ))}
-          
+
           {/* 半小时虚线 */}
           {hours.map(hour => (
             <div
@@ -332,7 +333,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
                 spitUpType: activity.spitUpType,
                 notes: activity.notes,
               }
-              
+
               // 线条类型（换尿布）：显示为水平线 + 标签
               if (activity.isLineType) {
                 return (
@@ -362,7 +363,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
                   </button>
                 )
               }
-              
+
               // 块类型（睡眠、喂奶等）：严格按时长显示高度
               // 户外活动：虚线边框、半透明、悬浮在其他色块之上但在换尿布线下面
               const isOutdoor = activity.type === 'OUTDOOR'
@@ -370,11 +371,10 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
                 <button
                   key={activity.id}
                   onClick={() => onActivityClick?.(originalActivity)}
-                  className={`absolute rounded-lg px-2 py-1 overflow-hidden transition-all hover:shadow-md ${colors.bg} ${
-                    isOutdoor 
-                      ? `border-2 border-dashed ${colors.border} z-[5] hover:z-[6]` 
+                  className={`absolute rounded-lg px-2 py-1 overflow-hidden transition-all hover:shadow-md ${colors.bg} ${isOutdoor
+                      ? `border-2 border-dashed ${colors.border} z-[5] hover:z-[6]`
                       : `border-l-4 ${colors.border} hover:z-10`
-                  }`}
+                    }`}
                   style={{
                     top: activity.top,
                     height: activity.height,
