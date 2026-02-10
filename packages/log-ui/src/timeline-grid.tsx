@@ -63,7 +63,6 @@ export function TimelineGrid({
     touchStartPos.current = { x: clientX, y: clientY, offsetY }
 
     longPressTimer.current = setTimeout(() => {
-      longPressTriggered.current = true
       const selectedTime = calculateTimeFromOffsetY(offsetY)
       onLongPressBlank(selectedTime)
     }, 500)

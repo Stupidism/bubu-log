@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(entry)
   } catch (error) {
     const message = error instanceof z.ZodError
-      ? error.errors.map((err) => err.message).join(', ')
+      ? error.issues.map((err) => err.message).join(', ')
       : error instanceof Error
         ? error.message
         : 'Unknown error'

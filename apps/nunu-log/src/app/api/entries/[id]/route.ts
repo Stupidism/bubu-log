@@ -19,8 +19,9 @@ function parseDate(value: string) {
   return date
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const body = await request.json()
     const parsed = updateEntrySchema.parse(body)
 
@@ -43,14 +44,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 
     const entry = await prisma.timeEntry.update({
-      where: { id: params.id },
+      where: { id },
       data,
     })
 
     return NextResponse.json(entry)
   } catch (error) {
     const message = error instanceof z.ZodError
-      ? error.errors.map((err) => err.message).join(', ')
+      ? error.issues.map((err) => err.message).join(', ')
       : error instanceof Error
         ? error.message
         : 'Unknown error'
@@ -59,9 +60,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   await prisma.timeEntry.delete({
-    where: { id: params.id },
+    where: { id },
   })
 
   return NextResponse.json({ success: true })

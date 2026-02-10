@@ -54,8 +54,9 @@ export const EntryTimeline = forwardRef<EntryTimelineRef, EntryTimelineProps>(
           const minutesFromStart = displayStart.diff(dayStart, 'minute')
           const top = Math.max(0, (minutesFromStart / 60) * HOUR_HEIGHT)
 
-          const endTime = entry.endTime ? dayjs(entry.endTime) : null
-          const duration = endTime ? calculateDurationInDay(entry.startTime, entry.endTime, date) : 0
+          const endTimeValue = entry.endTime ?? null
+          const endTime = endTimeValue ? dayjs(endTimeValue) : null
+          const duration = endTimeValue ? calculateDurationInDay(entry.startTime, endTimeValue, date) : 0
           const isLineType = !endTime || duration === 0
 
           const height = isLineType
