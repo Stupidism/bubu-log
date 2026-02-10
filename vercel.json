@@ -20,6 +20,12 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/wedding/:path*",
+      "destination": "/apps/wedding-invite/:path*"
+    }
   ]
 }
 
