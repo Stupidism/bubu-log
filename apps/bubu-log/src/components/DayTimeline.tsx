@@ -1,10 +1,11 @@
 'use client'
 
-import { useMemo, useRef, useImperativeHandle, forwardRef, useEffect, useState, useCallback } from 'react'
+import { useMemo, useRef, useImperativeHandle, forwardRef, useEffect, useState } from 'react'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { ActivityIcon } from './ActivityIcon'
 import type { Activity } from '@/lib/api/hooks'
 import { dayjs, calculateDurationMinutes, formatTime } from '@/lib/dayjs'
+import { TimelineGrid } from '@bubu-log/log-ui'
 
 interface DayTimelineProps {
   activities: Activity[]
@@ -46,17 +47,11 @@ const MIN_DURATION_BLOCK_HEIGHT = 15
 
 export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
   function DayTimeline({ activities, date, onActivityClick, showCurrentTime = false, onLongPressBlank }, ref) {
-    const containerRef = useRef<HTMLDivElement>(null)
     const currentTimeRef = useRef<HTMLDivElement>(null)
     const [currentMinutes, setCurrentMinutes] = useState(() => {
       const now = new Date()
       return now.getHours() * 60 + now.getMinutes()
     })
-
-    // 长按检测状态
-    const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const longPressTriggered = useRef(false)
-    const touchStartPos = useRef<{ x: number; y: number; offsetY: number } | null>(null)
 
     // 更新当前时间（每分钟）
     useEffect(() => {
@@ -82,78 +77,6 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
         }
       }
     }))
-
-    // 根据 Y 偏移计算时间
-    const calculateTimeFromY = useCallback((offsetY: number) => {
-      const minutes = (offsetY / HOUR_HEIGHT) * 60
-      const dayStart = dayjs(date).startOf('day')
-      return dayStart.add(Math.round(minutes / 5) * 5, 'minute').toDate() // 四舍五入到 5 分钟
-    }, [date])
-
-    // 长按开始（在空白处）
-    const handleBlankLongPressStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-      if (!onLongPressBlank) return
-
-      longPressTriggered.current = false
-
-      // 获取点击位置
-      const target = e.currentTarget as HTMLElement
-      const rect = target.getBoundingClientRect()
-      let clientX: number, clientY: number
-      if ('touches' in e) {
-        clientX = e.touches[0].clientX
-        clientY = e.touches[0].clientY
-      } else {
-        clientX = e.clientX
-        clientY = e.clientY
-      }
-
-      const offsetY = clientY - rect.top
-      touchStartPos.current = { x: clientX, y: clientY, offsetY }
-
-      longPressTimer.current = setTimeout(() => {
-        longPressTriggered.current = true
-        const selectedTime = calculateTimeFromY(offsetY)
-        onLongPressBlank(selectedTime)
-      }, 500)
-    }, [onLongPressBlank, calculateTimeFromY])
-
-    // 长按移动检测
-    const handleBlankLongPressMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-      if (!touchStartPos.current) return
-
-      let currentX: number, currentY: number
-      if ('touches' in e) {
-        currentX = e.touches[0].clientX
-        currentY = e.touches[0].clientY
-      } else {
-        currentX = e.clientX
-        currentY = e.clientY
-      }
-
-      const deltaX = Math.abs(currentX - touchStartPos.current.x)
-      const deltaY = Math.abs(currentY - touchStartPos.current.y)
-
-      // 滑动超过 10px，取消长按
-      if (deltaX > 10 || deltaY > 10) {
-        if (longPressTimer.current) {
-          clearTimeout(longPressTimer.current)
-          longPressTimer.current = null
-        }
-      }
-    }, [])
-
-    // 长按结束
-    const handleBlankLongPressEnd = useCallback(() => {
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current)
-        longPressTimer.current = null
-      }
-      touchStartPos.current = null
-    }, [])
-
-    // 生成小时标记 (0-23)
-    const hours = useMemo(() => Array.from({ length: 24 }, (_, i) => i), [])
 
     // 计算活动在时间线上的位置
     const positionedActivities = useMemo(() => {
@@ -258,42 +181,14 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
     const currentTimeTop = (currentMinutes / 60) * HOUR_HEIGHT
 
     return (
-      <div ref={containerRef} className="relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-        {/* 时间刻度 */}
-        <div
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
+        <TimelineGrid
+          date={date}
+          hourHeight={HOUR_HEIGHT}
+          showHalfHours
+          onLongPressBlank={onLongPressBlank}
           className="relative"
-          style={{ height: 24 * HOUR_HEIGHT }}
-          onTouchStart={handleBlankLongPressStart}
-          onTouchMove={handleBlankLongPressMove}
-          onTouchEnd={handleBlankLongPressEnd}
-          onTouchCancel={handleBlankLongPressEnd}
-          onMouseDown={handleBlankLongPressStart}
-          onMouseMove={handleBlankLongPressMove}
-          onMouseUp={handleBlankLongPressEnd}
-          onMouseLeave={handleBlankLongPressEnd}
         >
-          {/* 小时线和标签 */}
-          {hours.map(hour => (
-            <div
-              key={hour}
-              className="absolute left-0 right-0 border-t border-gray-100 dark:border-gray-700"
-              style={{ top: hour * HOUR_HEIGHT }}
-            >
-              <span className="absolute -top-2.5 left-2 text-xs text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 px-1">
-                {hour.toString().padStart(2, '0')}:00
-              </span>
-            </div>
-          ))}
-
-          {/* 半小时虚线 */}
-          {hours.map(hour => (
-            <div
-              key={`${hour}-half`}
-              className="absolute left-12 right-0 border-t border-dashed border-gray-50 dark:border-gray-700/50"
-              style={{ top: hour * HOUR_HEIGHT + HOUR_HEIGHT / 2 }}
-            />
-          ))}
-
           {/* 当前时间指示器 */}
           {showCurrentTime && (
             <div
@@ -406,7 +301,7 @@ export const DayTimeline = forwardRef<DayTimelineRef, DayTimelineProps>(
               )
             })}
           </div>
-        </div>
+        </TimelineGrid>
       </div>
     )
   }

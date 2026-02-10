@@ -12,13 +12,14 @@ import { useVersionCheck } from '@/hooks/useVersionCheck'
 import { useModalParams, activityTypeToModalType } from '@/hooks/useModalParams'
 import Link from 'next/link'
 import { calculateDurationMinutes, calculateDurationInDay, formatDateChinese, formatWeekday, formatTime, dayjs } from '@/lib/dayjs'
-import { BarChart3, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { BarChart3, Loader2 } from 'lucide-react'
 import { useActivities, type Activity } from '@/lib/api/hooks'
 import { PreviousEveningSummary } from '@/components/PreviousEveningSummary'
 import { StatsCardList, type StatFilter } from '@/components/StatsCardList'
 import { ActivityPicker } from '@/components/ActivityPicker'
 import { ActivityType } from '@/types/activity'
 import { useRouter } from 'next/navigation'
+import { DateNavigator } from '@bubu-log/log-ui'
 
 // 每日统计
 interface DaySummary {
@@ -315,31 +316,17 @@ function HomeContent() {
           <AvatarUpload />
           
           {/* 日期切换器 */}
-          <div className="flex-1 flex items-center justify-center gap-2">
-            <button
-              onClick={() => navigateDate(-1)}
-              className="p-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-              data-testid="date-prev-btn"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <div className="text-center min-w-[80px]">
-              <p className="text-base font-bold text-gray-800 dark:text-gray-100">
-                {isToday ? '今天' : formatDateChinese(selectedDate)}
-              </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                {formatWeekday(selectedDate)}
-              </p>
-            </div>
-            <button
-              onClick={() => navigateDate(1)}
-              className="p-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30"
-              disabled={isToday}
-              data-testid="date-next-btn"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </div>
+          <DateNavigator
+            label={isToday ? '今天' : formatDateChinese(selectedDate)}
+            subLabel={formatWeekday(selectedDate)}
+            onPrev={() => navigateDate(-1)}
+            onNext={() => navigateDate(1)}
+            disableNext={isToday}
+            variant="inline"
+            className="flex-1"
+            prevTestId="date-prev-btn"
+            nextTestId="date-next-btn"
+          />
           
           {/* 右侧：数据入口 */}
           <Link 

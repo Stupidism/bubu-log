@@ -1,0 +1,27 @@
+{
+  "name": "暖暖日记",
+  "short_name": "暖暖日记",
+  "description": "记录睡眠、吃饭、工作、育儿与娱乐，回顾每一天的时间流向",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff7f2",
+  "theme_color": "#f7b6a3",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
