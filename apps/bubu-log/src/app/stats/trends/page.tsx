@@ -40,8 +40,12 @@ const sleepChartConfig = {
 
 const feedingChartConfig = {
   totalMilkAmount: {
-    label: '奶量',
+    label: '宝宝奶量',
     color: 'hsl(var(--chart-2))',
+  },
+  totalPumpMilkAmount: {
+    label: '妈妈吸奶量',
+    color: 'hsl(var(--chart-4))',
   },
 } satisfies ChartConfig
 
@@ -107,7 +111,7 @@ function ChartView({
   daysToShow,
   setDaysToShow,
 }: {
-  chartData: Array<{ date: string; dateLabel: string; totalSleepMinutes: number; totalMilkAmount: number; diaperCount: number; hasData: boolean }>
+  chartData: Array<{ date: string; dateLabel: string; totalSleepMinutes: number; totalMilkAmount: number; totalPumpMilkAmount: number; diaperCount: number; hasData: boolean }>
   daysToShow: number
   setDaysToShow: (days: number) => void
 }) {
@@ -157,8 +161,11 @@ function ChartView({
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} stroke="#9ca3af" />
             <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}ml`} stroke="#9ca3af" />
-            <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value}ml`} />} />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            {/* 宝宝摄入奶量 - 粉色 */}
             <Line type="linear" dataKey="totalMilkAmount" stroke="#ec4899" strokeWidth={2} dot={{ fill: '#ec4899', r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            {/* 妈妈吸奶量 - 紫色 */}
+            <Line type="linear" dataKey="totalPumpMilkAmount" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: '#8b5cf6', r: 3 }} activeDot={{ r: 5 }} connectNulls />
           </LineChart>
         </ChartContainer>
       </section>
@@ -680,6 +687,7 @@ function TrendsPageContent() {
         dateLabel: dayjs(date).format('M/D'),
         totalSleepMinutes: stat?.totalSleepMinutes ?? 0,
         totalMilkAmount: stat?.totalMilkAmount ?? 0,
+        totalPumpMilkAmount: stat?.totalPumpMilkAmount ?? 0,
         diaperCount: stat?.diaperCount ?? 0,
         hasData: !!stat,
       }

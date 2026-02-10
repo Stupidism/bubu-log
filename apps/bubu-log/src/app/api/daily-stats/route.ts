@@ -52,6 +52,8 @@ async function computeDailyStats(babyId: string, date: Date) {
     totalBreastfeedMinutes: 0,
     bottleCount: 0,
     totalMilkAmount: 0,
+    pumpCount: 0,
+    totalPumpMilkAmount: 0,
     diaperCount: 0,
     poopCount: 0,
     peeCount: 0,
@@ -90,6 +92,14 @@ async function computeDailyStats(babyId: string, date: Date) {
         if (activity.startTime >= dayStart && activity.startTime <= dayEnd) {
           stats.bottleCount++
           stats.totalMilkAmount += activity.milkAmount || 0
+        }
+        break
+
+      case ActivityType.PUMP:
+        // 只统计开始时间在当天的吸奶
+        if (activity.startTime >= dayStart && activity.startTime <= dayEnd) {
+          stats.pumpCount++
+          stats.totalPumpMilkAmount += activity.milkAmount || 0
         }
         break
         

@@ -385,6 +385,10 @@ export interface components {
             bottleCount?: number;
             /** @description 瓶喂总奶量（毫升） */
             totalMilkAmount?: number;
+            /** @description 吸奶次数 */
+            pumpCount?: number;
+            /** @description 吸奶总奶量（毫升） */
+            totalPumpMilkAmount?: number;
             /** @description 换尿布次数 */
             diaperCount?: number;
             /** @description 大便次数 */

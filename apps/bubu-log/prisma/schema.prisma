@@ -278,6 +278,10 @@ model DailyStat {
   bottleCount           Int      @default(0) // 瓶喂次数
   totalMilkAmount       Int      @default(0) // 瓶喂总奶量（毫升）
   
+  // 吸奶统计（妈妈）
+  pumpCount             Int      @default(0) // 吸奶次数
+  totalPumpMilkAmount   Int      @default(0) // 吸奶总奶量（毫升）
+  
   // 尿布统计
   diaperCount           Int      @default(0) // 换尿布次数
   poopCount             Int      @default(0) // 大便次数
