@@ -335,10 +335,11 @@ export async function POST(request: NextRequest) {
       ? new Date(parsed.startTime)
       : new Date()
     
-    // For count-based activities (ROLL_OVER, PULL_TO_SIT), startTime = endTime
-    const isCountActivity = parsed.type === ActivityType.ROLL_OVER || parsed.type === ActivityType.PULL_TO_SIT
-    const endTime = isCountActivity 
-      ? startTime 
+    // Point events (no duration): startTime = endTime
+    const POINT_EVENT_TYPES = ['DIAPER', 'SUPPLEMENT', 'SPIT_UP', 'ROLL_OVER', 'PULL_TO_SIT']
+    const isPointEvent = POINT_EVENT_TYPES.includes(parsed.type)
+    const endTime = isPointEvent
+      ? startTime
       : (parsed.endTime ? new Date(parsed.endTime) : null)
 
     // If confidence is low, return parsed data for confirmation
