@@ -31,7 +31,7 @@ pnpm build
 pnpm lint
 ```
 
-## 📱 宝宝日记 (apps/web)
+## 📱 宝宝日记 (apps/bubu-log)
 
 一个简单易用的婴儿护理记录应用，专为月嫂阿姨和家长设计。
 
@@ -55,11 +55,11 @@ pnpm lint
 
 ```bash
 # 配置环境变量
-cp apps/web/.env.example apps/web/.env.local
+cp apps/bubu-log/.env.example apps/bubu-log/.env.local
 # 编辑 .env.local 添加数据库连接
 
 # 初始化数据库
-cd apps/web && pnpm db:push
+cd apps/bubu-log && pnpm db:push
 ```
 
 ## 🎨 UI 组件库 (packages/ui)
@@ -81,7 +81,7 @@ import { Drawer, DrawerContent } from '@bubu-log/ui'
 
 ```bash
 # 方法 1: 使用脚本（推荐）
-cd apps/web && pnpm db:migrate:prod
+cd apps/bubu-log && pnpm db:migrate:prod
 
 # 方法 2: 手动操作
 # 1. 从 Vercel 拉取环境变量
@@ -90,7 +90,7 @@ vercel env pull .env.production
 # 2. 设置环境变量并运行迁移
 export DATABASE_URL=$(grep DATABASE_URL .env.production | cut -d '=' -f2-)
 export DATABASE_URL_UNPOOLED=$(grep DATABASE_URL_UNPOOLED .env.production | cut -d '=' -f2-)
-cd apps/web && pnpm prisma db push
+cd apps/bubu-log && pnpm prisma db push
 
 # 3. 清理临时文件
 rm .env.production

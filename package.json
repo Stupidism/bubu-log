@@ -1,11 +1,11 @@
 {
-  "name": "bubu-log-monorepo",
+  "name": "bubu-log",
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "dev:web": "turbo run dev --filter=@bubu-log/web"
+    "dev:web": "turbo run dev --filter=bubu-log"
   },
   "devDependencies": {
     "turbo": "^2.5.4"

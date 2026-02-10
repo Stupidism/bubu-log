@@ -1,5 +1,5 @@
 {
-  "name": "@bubu-log/web",
+  "name": "bubu-log",
   "version": "0.1.0",
   "private": true,
   "scripts": {
