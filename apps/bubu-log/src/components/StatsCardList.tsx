@@ -76,21 +76,20 @@ export function StatsCardList({
         <p className="text-xs text-gray-500">{summary.sleepCount}次</p>
       </button>
 
-      {/* 喂奶：瓶喂ml / 亲喂分钟 / 吸奶ml */}
+      {/* 喂奶：瓶喂ml / 亲喂分钟 */}
       <button
         onClick={() => handleClick('feeding')}
         className={`bg-white dark:bg-gray-800 rounded-xl p-2.5 text-center shadow-sm transition-all ${
-          activeFilter === 'feeding' 
-            ? 'ring-2 ring-pink-500 ring-offset-1' 
+          activeFilter === 'feeding'
+            ? 'ring-2 ring-pink-500 ring-offset-1'
             : 'hover:shadow-md active:scale-95'
         }`}
         data-testid="stat-card-feeding"
       >
         <Milk size={18} className="mx-auto text-pink-500 mb-1" />
-        <div className="text-xs text-pink-600 dark:text-pink-400 font-medium space-y-0.5">
-          <p>瓶{summary.totalBottleMilkAmount || '-'}</p>
-          <p>喂{summary.totalBreastfeedMinutes || '-'}</p>
-          <p>吸{summary.totalPumpMilkAmount || '-'}</p>
+        <div className="text-sm text-pink-600 dark:text-pink-400 font-medium space-y-1">
+          <p className="text-base font-bold">瓶{summary.totalBottleMilkAmount || '-'}</p>
+          <p className="text-xs">喂{summary.totalBreastfeedMinutes || '-'}</p>
         </div>
       </button>
 
