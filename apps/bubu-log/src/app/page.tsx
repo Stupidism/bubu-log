@@ -25,7 +25,7 @@ import { DateNavigator } from '@bubu-log/log-ui'
 const filterActivityTypes: Record<StatFilter, ActivityType[]> = {
   all: [],
   sleep: [ActivityType.SLEEP],
-  feeding: [ActivityType.BREASTFEED, ActivityType.BOTTLE, ActivityType.PUMP],
+  feeding: [ActivityType.BREASTFEED, ActivityType.BOTTLE], // 只显示瓶喂和亲喂，不含吸奶
   diaper: [ActivityType.DIAPER],
   activities: [ActivityType.HEAD_LIFT, ActivityType.PASSIVE_EXERCISE, ActivityType.ROLL_OVER, ActivityType.PULL_TO_SIT, ActivityType.GAS_EXERCISE, ActivityType.BATH, ActivityType.OUTDOOR, ActivityType.EARLY_EDUCATION],
 }
