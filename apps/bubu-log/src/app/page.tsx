@@ -18,8 +18,17 @@ import { PreviousEveningSummary } from '@/components/PreviousEveningSummary'
 import { StatsCardList, type StatFilter } from '@/components/StatsCardList'
 import { ActivityPicker } from '@/components/ActivityPicker'
 import { ActivityType } from '@/types/activity'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { DateNavigator } from '@bubu-log/log-ui'
+
+// 活动类型过滤器映射
+const filterActivityTypes: Record<StatFilter, ActivityType[]> = {
+  all: [],
+  sleep: [ActivityType.SLEEP],
+  feeding: [ActivityType.BREASTFEED, ActivityType.BOTTLE, ActivityType.PUMP],
+  diaper: [ActivityType.DIAPER],
+  activities: [ActivityType.HEAD_LIFT, ActivityType.PASSIVE_EXERCISE, ActivityType.ROLL_OVER, ActivityType.PULL_TO_SIT, ActivityType.GAS_EXERCISE, ActivityType.BATH, ActivityType.OUTDOOR, ActivityType.EARLY_EDUCATION],
+}
 
 // 每日统计
 interface DaySummary {
@@ -42,7 +51,11 @@ interface DaySummary {
 function HomeContent() {
   const queryClient = useQueryClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const timelineRef = useRef<DayTimelineRef>(null)
+  
+  // 从 URL 获取 filter 参数
+  const activeFilter = (searchParams.get('filter') as StatFilter) || 'all'
   
   // 活动选择器状态
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -228,18 +241,27 @@ function HomeContent() {
     openActivityDetail(activity.id)
   }, [openActivityDetail])
 
-  // 点击统计卡片 - 跳转到 stats 页面并带上过滤条件
+  // 点击统计卡片 - 更新 URL filter 参数来过滤主页活动
   const handleStatCardClick = useCallback((filter: StatFilter) => {
-    const params = new URLSearchParams()
-    if (!isToday) {
-      params.set('date', selectedDateStr)
+    const params = new URLSearchParams(searchParams.toString())
+    const newFilter = activeFilter === filter ? 'all' : filter
+    
+    if (newFilter === 'all') {
+      params.delete('filter')
+    } else {
+      params.set('filter', newFilter)
     }
-    if (filter !== 'all') {
-      params.set('filter', filter)
-    }
+    
     const queryString = params.toString()
-    router.push(`/stats${queryString ? `?${queryString}` : ''}`)
-  }, [isToday, selectedDateStr, router])
+    router.push(queryString ? `?${queryString}` : '/', { scroll: false })
+  }, [activeFilter, router, searchParams])
+
+  // 过滤后的活动列表
+  const filteredActivities = useMemo(() => {
+    if (activeFilter === 'all') return todayActivities
+    const allowedTypes = filterActivityTypes[activeFilter]
+    return todayActivities.filter(activity => allowedTypes.includes(activity.type as ActivityType))
+  }, [todayActivities, activeFilter])
 
   // 长按时间轴空白处 - 打开活动选择器
   const handleTimelineLongPress = useCallback((time: Date) => {
@@ -339,10 +361,11 @@ function HomeContent() {
           </Link>
         </header>
 
-        {/* 今日统计卡片 - 点击跳转到 stats 页面 */}
+        {/* 今日统计卡片 - 点击过滤主页活动 */}
         <div className="px-4 py-3">
           <StatsCardList 
             summary={summary} 
+            activeFilter={activeFilter}
             onStatCardClick={handleStatCardClick}
           />
         </div>
@@ -370,7 +393,7 @@ function HomeContent() {
               {/* 当天时间线 */}
               <DayTimeline
                 ref={timelineRef}
-                activities={todayActivities}
+                activities={filteredActivities}
                 date={selectedDate}
                 onActivityClick={handleActivityClick}
                 showCurrentTime={isToday}
