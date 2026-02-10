@@ -233,6 +233,7 @@ function WeeklyView({
     startTimeLt: endDateForQuery,
     crossStartTime: true,
     crossEndTime: true,
+    limit: 1000, // 增加 limit 以获取一周的所有活动
   })
 
   // 按日期分组活动（处理跨天活动）
