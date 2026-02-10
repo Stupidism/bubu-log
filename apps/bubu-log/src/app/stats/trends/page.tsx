@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, Suspense } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { dayjs, formatDateChinese } from '@/lib/dayjs'
 import { useDailyStats, useComputeDailyStat, useActivities, type DailyStat, type Activity } from '@/lib/api/hooks'
 import { toast } from 'sonner'
@@ -425,6 +426,15 @@ function MonthlyView({
   currentWeekStart: Date
   weeksToShow: number
 }) {
+  const router = useRouter()
+
+  // 点击日期跳转到首页，带上日期和过滤类型
+  const handleDateClick = useCallback((date: string, filterType: 'sleep' | 'feeding') => {
+    const params = new URLSearchParams()
+    params.set('date', date)
+    params.set('filter', filterType)
+    router.push(`/?${params.toString()}`)
+  }, [router])
   return (
     <div className="space-y-6">
       {/* 周导航 */}
@@ -479,11 +489,12 @@ function MonthlyView({
               const formatted = day.stat ? formatMinutesToHoursCompact(day.stat.totalSleepMinutes ?? 0) : ''
 
               return (
-                <div
+                <button
                   key={day.date}
+                  onClick={() => !isFuture && handleDateClick(day.date, 'sleep')}
                   className={`
                     aspect-square rounded-md flex flex-col items-center justify-center text-[10px] font-medium leading-tight p-0.5
-                    ${isFuture ? 'bg-gray-50 dark:bg-gray-900 text-gray-300 dark:text-gray-700' : ''}
+                    ${isFuture ? 'bg-gray-50 dark:bg-gray-900 text-gray-300 dark:text-gray-700 cursor-default' : 'cursor-pointer hover:ring-2 hover:ring-indigo-300 hover:ring-offset-1'}
                     ${!isFuture && intensity === 0 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400' : ''}
                     ${!isFuture && intensity === 1 ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : ''}
                     ${!isFuture && intensity === 2 ? 'bg-indigo-200 dark:bg-indigo-800/40 text-indigo-700 dark:text-indigo-300' : ''}
@@ -492,6 +503,7 @@ function MonthlyView({
                     ${isToday ? 'ring-2 ring-primary ring-offset-1' : ''}
                   `}
                   title={`${day.date}: ${day.stat ? formatMinutesToHours(day.stat.totalSleepMinutes ?? 0) : '无数据'}`}
+                  disabled={isFuture}
                 >
                   {!isFuture && formatted && typeof formatted === 'object' ? (
                     <>
@@ -501,7 +513,7 @@ function MonthlyView({
                   ) : (
                     <span>{formatted as string}</span>
                   )}
-                </div>
+                </button>
               )
             })}
           </div>
@@ -549,11 +561,12 @@ function MonthlyView({
               const isFuture = dayjs(day.date).isAfter(dayjs(), 'day')
 
               return (
-                <div
+                <button
                   key={day.date}
+                  onClick={() => !isFuture && handleDateClick(day.date, 'feeding')}
                   className={`
                     aspect-square rounded-md flex items-center justify-center text-[10px] font-medium
-                    ${isFuture ? 'bg-gray-50 dark:bg-gray-900 text-gray-300 dark:text-gray-700' : ''}
+                    ${isFuture ? 'bg-gray-50 dark:bg-gray-900 text-gray-300 dark:text-gray-700 cursor-default' : 'cursor-pointer hover:ring-2 hover:ring-pink-300 hover:ring-offset-1'}
                     ${!isFuture && intensity === 0 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400' : ''}
                     ${!isFuture && intensity === 1 ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' : ''}
                     ${!isFuture && intensity === 2 ? 'bg-pink-200 dark:bg-pink-800/40 text-pink-700 dark:text-pink-300' : ''}
@@ -562,11 +575,12 @@ function MonthlyView({
                     ${isToday ? 'ring-2 ring-primary ring-offset-1' : ''}
                   `}
                   title={`${day.date}: ${day.stat ? `${day.stat.totalMilkAmount ?? 0}ml` : '无数据'}`}
+                  disabled={isFuture}
                 >
                   {!isFuture && day.stat && (day.stat.totalMilkAmount ?? 0) > 0
                     ? `${day.stat.totalMilkAmount}`
                     : ''}
-                </div>
+                </button>
               )
             })}
           </div>
