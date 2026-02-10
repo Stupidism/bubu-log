@@ -24,11 +24,11 @@ export async function login(
   await page.goto('/login')
 
   // 填写登录表单
-  await page.getByRole('textbox', { name: '用户名或邮箱' }).fill(username)
-  await page.getByRole('textbox', { name: '密码' }).fill(password)
+  await page.getByTestId('login-username-input').fill(username)
+  await page.getByTestId('login-password-input').fill(password)
 
   // 点击登录按钮
-  await page.getByRole('button', { name: '登录', exact: true }).click()
+  await page.getByTestId('login-submit-btn').click()
 
   // 等待登录完成并跳转到首页
   await page.waitForURL('/', { timeout: 10000 })

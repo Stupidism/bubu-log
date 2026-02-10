@@ -6,7 +6,7 @@
 
 ```
 ├── apps/
-│   └── web/          # 宝宝日记 Next.js 应用
+│   └── bubu-log/     # 宝宝日记 Next.js 应用
 ├── packages/
 │   ├── ui/           # 共享 UI 组件库 (基于 shadcn/ui)
 │   └── typescript-config/  # 共享 TypeScript 配置
@@ -60,6 +60,22 @@ cp apps/bubu-log/.env.example apps/bubu-log/.env.local
 
 # 初始化数据库
 cd apps/bubu-log && pnpm db:push
+```
+
+### E2E 测试
+
+E2E 测试会自动启动本地 Docker Postgres，并写入专用测试数据：
+
+```bash
+cd apps/bubu-log && pnpm test:e2e
+```
+
+调试模式：
+
+```bash
+cd apps/bubu-log && pnpm test:e2e:ui
+cd apps/bubu-log && pnpm test:e2e:headed
+cd apps/bubu-log && pnpm test:e2e:debug
 ```
 
 ## 🎨 UI 组件库 (packages/ui)

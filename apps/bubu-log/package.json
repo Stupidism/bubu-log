@@ -15,10 +15,11 @@
     "db:migrate:prod": "bash scripts/migrate-production.sh",
     "fix:diaper-dates": "tsx scripts/fix-batch-date-diaper.ts",
     "backfill:diaper-endtime": "tsx scripts/backfill-diaper-endtime.ts",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e:run": "playwright test",
+    "test:e2e": "bash scripts/run-e2e.sh",
+    "test:e2e:ui": "bash scripts/run-e2e.sh --ui",
+    "test:e2e:headed": "bash scripts/run-e2e.sh --headed",
+    "test:e2e:debug": "bash scripts/run-e2e.sh --debug"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

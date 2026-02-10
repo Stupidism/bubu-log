@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      AUTH_SECRET: test-secret
+      AUTH_TRUST_HOST: true
+      NEXTAUTH_URL: http://localhost:3000
+      GOOGLE_CLIENT_ID: test
+      GOOGLE_CLIENT_SECRET: test
+      GITHUB_CLIENT_ID: test
+      GITHUB_CLIENT_SECRET: test
+      WECHAT_APP_ID: test
+      WECHAT_APP_SECRET: test
+      DEEPSEEK_API_KEY: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.2.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: |
+          pnpm -C apps/bubu-log tsc --noEmit
+          pnpm -C packages/ui tsc --noEmit
+
+      - name: Unit tests
+        run: pnpm -r test --if-present
+
+      - name: Install Playwright browsers
+        run: pnpm -C apps/bubu-log exec playwright install --with-deps
+
+      - name: E2E tests
+        run: pnpm -C apps/bubu-log test:e2e
