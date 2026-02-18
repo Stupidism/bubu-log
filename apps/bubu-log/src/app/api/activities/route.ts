@@ -150,10 +150,12 @@ export async function GET(request: NextRequest) {
 
 // 点事件类型（没有时长的活动）
 const POINT_EVENT_TYPES = ['DIAPER', 'SUPPLEMENT', 'SPIT_UP', 'ROLL_OVER', 'PULL_TO_SIT']
-// 喂奶类型（互斥的活动）
-const FEEDING_TYPES = ['BREASTFEED', 'BOTTLE', 'PUMP']
-// 有时长的活动类型（同类型不允许重叠）
-const DURATION_ACTIVITY_TYPES = ['SLEEP', 'HEAD_LIFT', 'PASSIVE_EXERCISE', 'GAS_EXERCISE', 'BATH', 'OUTDOOR', 'EARLY_EDUCATION', 'PUMP']
+// 喂奶冲突组：只有瓶喂和亲喂互相冲突（吸奶不在此组）
+const FEEDING_CONFLICT_TYPES = ['BREASTFEED', 'BOTTLE']
+// 同类型不允许重叠（不可 force）
+const SAME_TYPE_DURATION_TYPES = ['SLEEP', 'HEAD_LIFT', 'PASSIVE_EXERCISE', 'GAS_EXERCISE', 'BATH', 'OUTDOOR', 'EARLY_EDUCATION', 'PUMP']
+// 睡眠冲突组：睡眠与这些具体活动冲突；与户外、换尿布不冲突
+const SLEEP_CONFLICT_TYPES = ['HEAD_LIFT', 'PASSIVE_EXERCISE', 'ROLL_OVER', 'PULL_TO_SIT', 'GAS_EXERCISE', 'BATH', 'EARLY_EDUCATION']
 // 时间容差（毫秒）- 1分钟内视为相同时间
 const TIME_TOLERANCE_MS = 60 * 1000
 
@@ -184,6 +186,50 @@ function isFutureTime(time: Date): boolean {
   return time.getTime() > now.getTime() + tolerance
 }
 
+function getOverlapEndTime(type: string, startTime: Date, endTime: Date | null): Date {
+  if (endTime && endTime > startTime) {
+    return endTime
+  }
+
+  if (FEEDING_CONFLICT_TYPES.includes(type)) {
+    return new Date(startTime.getTime() + 30 * 60 * 1000) // 默认30分钟
+  }
+
+  if (SAME_TYPE_DURATION_TYPES.includes(type) || type === 'SLEEP') {
+    return new Date(startTime.getTime() + 4 * 60 * 60 * 1000) // 默认4小时
+  }
+
+  // 点事件按瞬时处理，但为了重叠查询给一个极短窗口
+  return new Date(startTime.getTime() + 1000)
+}
+
+async function findOverlappingActivity(
+  babyId: string,
+  types: PrismaActivityType[],
+  startTime: Date,
+  endTime: Date,
+  excludeId?: string
+) {
+  if (types.length === 0) return null
+
+  return prisma.activity.findFirst({
+    where: {
+      babyId,
+      type: { in: types },
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+      AND: [
+        { startTime: { lt: endTime } },
+        {
+          OR: [
+            { endTime: { gt: startTime } },
+            { endTime: null }, // 进行中的活动
+          ],
+        },
+      ],
+    },
+  })
+}
+
 // 检查时间重叠
 async function checkTimeOverlap(
   babyId: string,
@@ -193,8 +239,9 @@ async function checkTimeOverlap(
   excludeId?: string
 ): Promise<{ code: string; message: string; conflictingActivity?: unknown } | null> {
   const isPointEvent = POINT_EVENT_TYPES.includes(type)
-  const isFeeding = FEEDING_TYPES.includes(type)
-  const isDurationActivity = DURATION_ACTIVITY_TYPES.includes(type)
+  const isFeedingConflictType = FEEDING_CONFLICT_TYPES.includes(type)
+  const isSameTypeDuration = SAME_TYPE_DURATION_TYPES.includes(type)
+  const isSleepConflictType = type === 'SLEEP' || SLEEP_CONFLICT_TYPES.includes(type)
   
   // 0. 检查是否是未来时间
   if (isFutureTime(startTime)) {
@@ -236,36 +283,17 @@ async function checkTimeOverlap(
     }
   }
   
-  // 2. 喂奶类型：检查与其他喂奶活动的时间重叠
-  if (isFeeding) {
-    const activityEnd = endTime || new Date(startTime.getTime() + 30 * 60 * 1000) // 默认30分钟
-    
-    // 查找重叠的喂奶活动
-    // 重叠条件：新活动的开始时间 < 现有活动的结束时间 AND 新活动的结束时间 > 现有活动的开始时间
-    const overlapping = await prisma.activity.findFirst({
-      where: {
-        babyId,
-        type: { in: FEEDING_TYPES as PrismaActivityType[] },
-        ...(excludeId ? { id: { not: excludeId } } : {}),
-        OR: [
-          {
-            // 现有活动有结束时间
-            AND: [
-              { startTime: { lt: activityEnd } },
-              { endTime: { gt: startTime } },
-            ],
-          },
-          {
-            // 现有活动没有结束时间（进行中）
-            AND: [
-              { endTime: null },
-              { startTime: { lt: activityEnd } },
-            ],
-          },
-        ],
-      },
-    })
-    
+  // 2. 喂奶冲突：只有瓶喂/亲喂互斥（吸奶不参与）
+  if (isFeedingConflictType) {
+    const activityEnd = getOverlapEndTime(type, startTime, endTime)
+    const overlapping = await findOverlappingActivity(
+      babyId,
+      FEEDING_CONFLICT_TYPES as PrismaActivityType[],
+      startTime,
+      activityEnd,
+      excludeId
+    )
+
     if (overlapping) {
       const overlappingType = TYPE_LABELS[overlapping.type] || overlapping.type
       return {
@@ -276,42 +304,46 @@ async function checkTimeOverlap(
     }
   }
   
-  // 3. 有时长的活动：检查同类型时间重叠（如睡眠）
-  if (isDurationActivity) {
-    // 对于进行中的活动（没有结束时间），我们检查是否与同类型的其他活动重叠
-    // 默认假设活动持续时间为合理范围
-    const activityEnd = endTime || new Date(startTime.getTime() + 4 * 60 * 60 * 1000) // 默认4小时
-    
-    // 查找同类型重叠的活动
-    const overlapping = await prisma.activity.findFirst({
-      where: {
-        babyId,
-        type: type as PrismaActivityType,
-        ...(excludeId ? { id: { not: excludeId } } : {}),
-        OR: [
-          {
-            // 现有活动有结束时间：检查时间段重叠
-            AND: [
-              { startTime: { lt: activityEnd } },
-              { endTime: { gt: startTime } },
-            ],
-          },
-          {
-            // 现有活动没有结束时间（进行中）：新活动开始时间在现有活动开始时间之后
-            AND: [
-              { endTime: null },
-              { startTime: { lt: activityEnd } },
-            ],
-          },
-        ],
-      },
-    })
-    
+  // 3. 同类型时长活动：不允许重叠（不可 force）
+  if (isSameTypeDuration) {
+    const activityEnd = getOverlapEndTime(type, startTime, endTime)
+    const overlapping = await findOverlappingActivity(
+      babyId,
+      [type as PrismaActivityType],
+      startTime,
+      activityEnd,
+      excludeId
+    )
+
     if (overlapping) {
       const typeLabel = TYPE_LABELS[type] || type
       return {
         code: 'DUPLICATE_ACTIVITY', // 同类型重叠不允许绕过
         message: `该时间段与已有的${typeLabel}记录重叠，请检查`,
+        conflictingActivity: overlapping,
+      }
+    }
+  }
+
+  // 4. 睡眠与具体活动冲突（可 force）
+  if (isSleepConflictType) {
+    const activityEnd = getOverlapEndTime(type, startTime, endTime)
+    const targetTypes = (type === 'SLEEP'
+      ? SLEEP_CONFLICT_TYPES
+      : ['SLEEP']) as PrismaActivityType[]
+    const overlapping = await findOverlappingActivity(
+      babyId,
+      targetTypes,
+      startTime,
+      activityEnd,
+      excludeId
+    )
+
+    if (overlapping) {
+      const overlappingType = TYPE_LABELS[overlapping.type] || overlapping.type
+      return {
+        code: 'OVERLAP_ACTIVITY',
+        message: `该时间段与已有的${overlappingType}记录重叠`,
         conflictingActivity: overlapping,
       }
     }

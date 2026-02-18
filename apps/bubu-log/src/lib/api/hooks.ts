@@ -64,18 +64,7 @@ export function useCreateActivityWithConflictCheck() {
   const queryClient = useQueryClient();
   const [pendingData, setPendingData] = useState<CreateActivityInput | null>(null);
   const [conflictError, setConflictError] = useState<ActivityConflictError | null>(null);
-  
-  const mutation = $api.useMutation("post", "/activities", {
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["get", "/activities"] });
-      queryClient.invalidateQueries({ queryKey: ["get", "/activities/latest"] });
-      setPendingData(null);
-      setConflictError(null);
-    },
-    onError: () => {
-      // Error handling is done in the mutate wrapper
-    },
-  });
+  const [isLoading, setIsLoading] = useState(false);
   
   const mutate = useCallback(async (
     data: CreateActivityInput,
@@ -84,6 +73,7 @@ export function useCreateActivityWithConflictCheck() {
       onError?: (error: unknown) => void;
     }
   ) => {
+    setIsLoading(true);
     try {
       const response = await fetch('/api/activities', {
         method: 'POST',
@@ -124,6 +114,8 @@ export function useCreateActivityWithConflictCheck() {
       toast.error('创建失败');
       options?.onError?.(error);
       return { error };
+    } finally {
+      setIsLoading(false);
     }
   }, [queryClient]);
   
@@ -150,7 +142,7 @@ export function useCreateActivityWithConflictCheck() {
     mutate,
     forceCreate,
     cancelConflict,
-    isLoading: mutation.isPending,
+    isLoading,
     conflictError,
     hasPendingConflict: !!conflictError,
   };

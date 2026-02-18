@@ -5,9 +5,10 @@ import { useSearchParams } from 'next/navigation'
 import { BottomSheet } from '@/components/BottomSheet'
 import { PumpForm } from '@/components/forms'
 import { useModalParams } from '@/hooks/useModalParams'
-import { useCreateActivity, useUpdateActivity, useActivity } from '@/lib/api/hooks'
+import { useCreateActivityWithConflictCheck, useUpdateActivity, useActivity } from '@/lib/api/hooks'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { Loader2 } from 'lucide-react'
+import { OverlapConfirmModal } from './OverlapConfirmModal'
 
 export function PumpModal() {
   const { modalType, activityId, closeModal, selectedDate } = useModalParams()
@@ -21,7 +22,7 @@ export function PumpModal() {
     enabled: isEditing && isOpen,
   })
   
-  const createActivity = useCreateActivity()
+  const createActivity = useCreateActivityWithConflictCheck()
   const updateActivity = useUpdateActivity()
   
   // 解析 URL 中的初始值
@@ -71,12 +72,10 @@ export function PumpModal() {
     } else {
       createActivity.mutate(
         {
-          body: {
-            type: ActivityType.PUMP,
-            startTime: data.startTime.toISOString(),
-            endTime: data.endTime?.toISOString(),
-            milkAmount: data.milkAmount,
-          },
+          type: ActivityType.PUMP,
+          startTime: data.startTime.toISOString(),
+          endTime: data.endTime?.toISOString(),
+          milkAmount: data.milkAmount,
         },
         {
           onSuccess: () => closeModal(),
@@ -84,6 +83,12 @@ export function PumpModal() {
       )
     }
   }, [isEditing, activityId, createActivity, updateActivity, closeModal])
+
+  const handleForceCreate = useCallback(() => {
+    createActivity.forceCreate({
+      onSuccess: () => closeModal(),
+    })
+  }, [createActivity, closeModal])
   
   if (!isOpen) return null
   
@@ -92,23 +97,33 @@ export function PumpModal() {
     : ActivityTypeLabels[ActivityType.PUMP]
   
   return (
-    <BottomSheet
-      isOpen={isOpen}
-      onClose={closeModal}
-      title={title}
-    >
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-        </div>
-      ) : (
-        <PumpForm
-          onSubmit={handleSubmit}
-          onCancel={closeModal}
-          initialValues={initialValues}
-          isEditing={isEditing}
-        />
-      )}
-    </BottomSheet>
+    <>
+      <BottomSheet
+        isOpen={isOpen}
+        onClose={closeModal}
+        title={title}
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <PumpForm
+            onSubmit={handleSubmit}
+            onCancel={closeModal}
+            initialValues={initialValues}
+            isEditing={isEditing}
+          />
+        )}
+      </BottomSheet>
+
+      <OverlapConfirmModal
+        isOpen={createActivity.hasPendingConflict}
+        conflictError={createActivity.conflictError}
+        onConfirm={handleForceCreate}
+        onCancel={createActivity.cancelConflict}
+        isLoading={createActivity.isLoading}
+      />
+    </>
   )
 }

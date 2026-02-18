@@ -5,9 +5,10 @@ import { useSearchParams } from 'next/navigation'
 import { BottomSheet } from '@/components/BottomSheet'
 import { SimpleActivityForm } from '@/components/forms'
 import { useModalParams } from '@/hooks/useModalParams'
-import { useCreateActivity, useUpdateActivity, useActivity } from '@/lib/api/hooks'
+import { useCreateActivityWithConflictCheck, useUpdateActivity, useActivity } from '@/lib/api/hooks'
 import { ActivityType } from '@/types/activity'
 import { Loader2 } from 'lucide-react'
+import { OverlapConfirmModal } from './OverlapConfirmModal'
 
 export function SleepStartModal() {
   const { modalType, activityId, closeModal, selectedDate } = useModalParams()
@@ -21,7 +22,7 @@ export function SleepStartModal() {
     enabled: isEditing && isOpen,
   })
   
-  const createActivity = useCreateActivity()
+  const createActivity = useCreateActivityWithConflictCheck()
   const updateActivity = useUpdateActivity()
   
   // 解析 URL 中的初始值（来自语音输入）
@@ -66,10 +67,8 @@ export function SleepStartModal() {
       // 入睡记录：只有 startTime，没有 endTime
       createActivity.mutate(
         {
-          body: {
-            type: ActivityType.SLEEP,
-            startTime: (data.startTime as Date).toISOString(),
-          },
+          type: ActivityType.SLEEP,
+          startTime: (data.startTime as Date).toISOString(),
         },
         {
           onSuccess: () => closeModal(),
@@ -77,28 +76,43 @@ export function SleepStartModal() {
       )
     }
   }, [isEditing, activityId, createActivity, updateActivity, closeModal])
+
+  const handleForceCreate = useCallback(() => {
+    createActivity.forceCreate({
+      onSuccess: () => closeModal(),
+    })
+  }, [createActivity, closeModal])
   
   if (!isOpen) return null
   
   return (
-    <BottomSheet
-      isOpen={isOpen}
-      onClose={closeModal}
-      title={isEditing ? '编辑入睡时间' : '入睡'}
-    >
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-        </div>
-      ) : (
-        <SimpleActivityForm
-          type={ActivityType.SLEEP}
-          onSubmit={handleSubmit}
-          onCancel={closeModal}
-          initialValues={initialValues}
-        />
-      )}
-    </BottomSheet>
+    <>
+      <BottomSheet
+        isOpen={isOpen}
+        onClose={closeModal}
+        title={isEditing ? '编辑入睡时间' : '入睡'}
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <SimpleActivityForm
+            type={ActivityType.SLEEP}
+            onSubmit={handleSubmit}
+            onCancel={closeModal}
+            initialValues={initialValues}
+          />
+        )}
+      </BottomSheet>
+
+      <OverlapConfirmModal
+        isOpen={createActivity.hasPendingConflict}
+        conflictError={createActivity.conflictError}
+        onConfirm={handleForceCreate}
+        onCancel={createActivity.cancelConflict}
+        isLoading={createActivity.isLoading}
+      />
+    </>
   )
 }
-

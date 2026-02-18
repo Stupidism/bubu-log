@@ -24,9 +24,9 @@ test.describe('Homepage Features', () => {
       const bottomSheet = page.getByTestId('bottom-sheet')
       await expect(bottomSheet).toBeVisible({ timeout: 5000 })
 
-      await expect(page.getByText('睡醒')).toBeVisible()
-      await expect(page.getByText('入睡时间')).toBeVisible()
-      await expect(page.getByText('睡醒时间')).toBeVisible()
+      await expect(bottomSheet.getByRole('heading', { level: 2, name: '睡醒' })).toBeVisible()
+      await expect(bottomSheet.getByText('入睡时间')).toBeVisible()
+      await expect(bottomSheet.getByText('睡醒时间')).toBeVisible()
 
       const submitButton = page.getByRole('button', { name: '确认记录' })
       await expect(submitButton).toBeEnabled()
