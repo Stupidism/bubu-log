@@ -1,13 +1,13 @@
-import { redirect } from 'next/navigation'
 import { getCurrentAdminUser } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/prisma'
 import { AdminDashboard, type AdminBaby, type AdminManagedUser } from '@/components/admin/AdminDashboard'
+import { AdminForbidden } from '@/components/admin/AdminForbidden'
 
 export default async function AdminPage() {
   const adminUser = await getCurrentAdminUser()
 
   if (!adminUser) {
-    redirect('/')
+    return <AdminForbidden />
   }
 
   const [babies, users] = await Promise.all([

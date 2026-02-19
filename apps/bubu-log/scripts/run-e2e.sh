@@ -11,9 +11,22 @@ DB_NAME="bubu_log_e2e"
 
 DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}?schema=public"
 DATABASE_URL_UNPOOLED="${DATABASE_URL}"
+NEXT_DEV_PATTERN="${APP_DIR}/node_modules/.bin/../next/dist/bin/next dev"
 
 cleanup() {
   docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+}
+
+stop_existing_bubu_dev() {
+  # Playwright will start its own isolated web server.
+  # Stop existing bubu-log dev processes to avoid Next.js lock conflicts.
+  if pgrep -f "${NEXT_DEV_PATTERN}" >/dev/null 2>&1; then
+    echo "🔄 Stopping existing bubu-log dev server..."
+    pkill -f "${NEXT_DEV_PATTERN}" >/dev/null 2>&1 || true
+    sleep 1
+  fi
+
+  rm -f "${APP_DIR}/.next/dev/lock" >/dev/null 2>&1 || true
 }
 
 if ! command -v docker >/dev/null 2>&1; then
@@ -51,4 +64,5 @@ cd "${APP_DIR}"
 
 DATABASE_URL="${DATABASE_URL}" DATABASE_URL_UNPOOLED="${DATABASE_URL_UNPOOLED}" pnpm db:push -- --force-reset
 DATABASE_URL="${DATABASE_URL}" DATABASE_URL_UNPOOLED="${DATABASE_URL_UNPOOLED}" pnpm db:seed:test
+stop_existing_bubu_dev
 DATABASE_URL="${DATABASE_URL}" DATABASE_URL_UNPOOLED="${DATABASE_URL_UNPOOLED}" pnpm exec playwright test "$@"

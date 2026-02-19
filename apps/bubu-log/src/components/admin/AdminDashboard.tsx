@@ -71,6 +71,12 @@ function formatDateLabel(dateValue: string | null): string {
 export function AdminDashboard({ adminName, initialBabies, initialUsers }: AdminDashboardProps) {
   const [babies, setBabies] = useState(initialBabies)
   const [users, setUsers] = useState(initialUsers)
+  const [roleDrafts, setRoleDrafts] = useState<Record<string, UserRole>>(() =>
+    Object.fromEntries(initialUsers.map((user) => [user.id, user.role]))
+  )
+  const [passwordDrafts, setPasswordDrafts] = useState<Record<string, string>>({})
+  const [savingRoleUserIds, setSavingRoleUserIds] = useState<Record<string, boolean>>({})
+  const [savingPasswordUserIds, setSavingPasswordUserIds] = useState<Record<string, boolean>>({})
 
   const [babyName, setBabyName] = useState('')
   const [babyBirthDate, setBabyBirthDate] = useState('')
@@ -88,6 +94,13 @@ export function AdminDashboard({ adminName, initialBabies, initialUsers }: Admin
     () => [...babies].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN')),
     [babies]
   )
+
+  function updateUserInState(updatedUser: AdminManagedUser) {
+    setUsers((current) =>
+      current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
+    )
+    setRoleDrafts((current) => ({ ...current, [updatedUser.id]: updatedUser.role }))
+  }
 
   async function handleCreateBaby(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -159,7 +172,9 @@ export function AdminDashboard({ adminName, initialBabies, initialUsers }: Admin
         throw new Error(payload?.error || '创建账号失败')
       }
 
-      setUsers((current) => [payload as AdminManagedUser, ...current])
+      const createdUser = payload as AdminManagedUser
+      setUsers((current) => [createdUser, ...current])
+      setRoleDrafts((current) => ({ ...current, [createdUser.id]: createdUser.role }))
       setUsername('')
       setPassword('')
       setName('')
@@ -171,6 +186,74 @@ export function AdminDashboard({ adminName, initialBabies, initialUsers }: Admin
       toast.error(error instanceof Error ? error.message : '创建账号失败')
     } finally {
       setCreatingUser(false)
+    }
+  }
+
+  async function handleUpdateUserRole(userId: string) {
+    const targetUser = users.find((user) => user.id === userId)
+    const nextRole = roleDrafts[userId]
+
+    if (!targetUser || !nextRole) {
+      return
+    }
+
+    if (targetUser.role === nextRole) {
+      toast.message('角色未变化')
+      return
+    }
+
+    setSavingRoleUserIds((current) => ({ ...current, [userId]: true }))
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: nextRole }),
+      })
+
+      const payload = await response.json()
+      if (!response.ok) {
+        throw new Error(payload?.error || '更新角色失败')
+      }
+
+      updateUserInState(payload as AdminManagedUser)
+      toast.success('角色更新成功')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '更新角色失败')
+    } finally {
+      setSavingRoleUserIds((current) => ({ ...current, [userId]: false }))
+    }
+  }
+
+  async function handleUpdateUserPassword(userId: string) {
+    const nextPassword = (passwordDrafts[userId] ?? '').trim()
+
+    if (nextPassword.length < 8) {
+      toast.error('密码至少 8 位')
+      return
+    }
+
+    setSavingPasswordUserIds((current) => ({ ...current, [userId]: true }))
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: nextPassword }),
+      })
+
+      const payload = await response.json()
+      if (!response.ok) {
+        throw new Error(payload?.error || '修改密码失败')
+      }
+
+      updateUserInState(payload as AdminManagedUser)
+      setPasswordDrafts((current) => ({ ...current, [userId]: '' }))
+      toast.success('密码修改成功')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '修改密码失败')
+    } finally {
+      setSavingPasswordUserIds((current) => ({ ...current, [userId]: false }))
     }
   }
 
@@ -310,22 +393,79 @@ export function AdminDashboard({ adminName, initialBabies, initialUsers }: Admin
           {users.length === 0 ? (
             <p className="py-3 text-sm text-gray-500">暂无账号</p>
           ) : (
-            users.map((user) => (
-              <div key={user.id} className="space-y-1 py-3 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium text-gray-900">{user.username || '未设置用户名'}</p>
-                  <p className="text-gray-500">{ROLE_LABELS[user.role]}</p>
+            users.map((user) => {
+              const roleDraft = roleDrafts[user.id] ?? user.role
+              const passwordDraft = passwordDrafts[user.id] ?? ''
+              const roleUpdating = Boolean(savingRoleUserIds[user.id])
+              const passwordUpdating = Boolean(savingPasswordUserIds[user.id])
+
+              return (
+                <div key={user.id} className="space-y-2 py-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium text-gray-900">{user.username || '未设置用户名'}</p>
+                    <p className="text-gray-500">{ROLE_LABELS[user.role]}</p>
+                  </div>
+                  <p className="text-gray-500">姓名：{user.name || '-'}</p>
+                  <p className="text-gray-500">邮箱：{user.email || '-'}</p>
+                  <p className="text-gray-500">默认宝宝：{user.defaultBabyName || '-'}</p>
+                  <p className="text-gray-500">
+                    已关联宝宝：{user.babyNames.length > 0 ? user.babyNames.join('、') : '-'}
+                  </p>
+
+                  <div className="pt-1 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={roleDraft}
+                        onChange={(event) =>
+                          setRoleDrafts((current) => ({
+                            ...current,
+                            [user.id]: event.target.value as UserRole,
+                          }))
+                        }
+                        className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                      >
+                        {ROLE_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => void handleUpdateUserRole(user.id)}
+                        disabled={roleUpdating}
+                        className="rounded-xl bg-gray-900 px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {roleUpdating ? '保存中...' : '保存角色'}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="password"
+                        value={passwordDraft}
+                        onChange={(event) =>
+                          setPasswordDrafts((current) => ({
+                            ...current,
+                            [user.id]: event.target.value,
+                          }))
+                        }
+                        placeholder="新密码（至少 8 位）"
+                        className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleUpdateUserPassword(user.id)}
+                        disabled={passwordUpdating}
+                        className="rounded-xl bg-primary px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {passwordUpdating ? '修改中...' : '改密码'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-gray-500">姓名：{user.name || '-'}</p>
-                <p className="text-gray-500">邮箱：{user.email || '-'}</p>
-                <p className="text-gray-500">
-                  默认宝宝：{user.defaultBabyName || '-'}
-                </p>
-                <p className="text-gray-500">
-                  已关联宝宝：{user.babyNames.length > 0 ? user.babyNames.join('、') : '-'}
-                </p>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       </section>
