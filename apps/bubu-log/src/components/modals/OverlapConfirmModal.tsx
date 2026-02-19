@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import type { ActivityConflictError } from '@/lib/api/hooks'
@@ -22,13 +21,7 @@ export function OverlapConfirmModal({
   onCancel,
   isLoading,
 }: OverlapConfirmModalProps) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted || !isOpen || !conflictError) return null
+  if (typeof document === 'undefined' || !isOpen || !conflictError) return null
 
   const conflictingActivity = conflictError.conflictingActivity
   const activityType = conflictingActivity?.type as ActivityType

@@ -11,6 +11,7 @@
     "generate:api": "openapi-typescript openapi.yaml -o src/lib/api/openapi-types.d.ts",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:setup-admin": "tsx prisma/setup-admin.ts",
     "db:seed:test": "tsx prisma/seed-test-data.ts",
     "db:migrate:prod": "bash scripts/migrate-production.sh",
     "fix:diaper-dates": "tsx scripts/fix-batch-date-diaper.ts",

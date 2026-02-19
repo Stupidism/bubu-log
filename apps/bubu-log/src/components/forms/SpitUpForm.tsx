@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { Droplets, Check } from 'lucide-react'
 import type { SpitUpType } from '@/types/activity'
@@ -17,6 +17,53 @@ const DEFAULT_PREFERENCES: SpitUpFormPreferences = {
   defaultSpitUpType: 'PROJECTILE', // 默认喷射性吐奶，因为普通吐奶一般不需要记录
 }
 
+function loadSpitUpPreferences(): SpitUpFormPreferences {
+  if (typeof window === 'undefined') {
+    return DEFAULT_PREFERENCES
+  }
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      return JSON.parse(saved) as SpitUpFormPreferences
+    }
+  } catch (error) {
+    console.error('Failed to load preferences:', error)
+  }
+
+  return DEFAULT_PREFERENCES
+}
+
+function getSpitUpInitialState(
+  initialValues: SpitUpFormProps['initialValues'],
+  isEditing?: boolean
+) {
+  const preferences = isEditing ? DEFAULT_PREFERENCES : loadSpitUpPreferences()
+  const startTime = initialValues?.startTime || new Date()
+
+  if (initialValues?.spitUpType) {
+    return {
+      preferences,
+      startTime,
+      spitUpType: initialValues.spitUpType,
+    }
+  }
+
+  if (!isEditing && !initialValues && preferences.rememberSelection) {
+    return {
+      preferences,
+      startTime,
+      spitUpType: preferences.defaultSpitUpType,
+    }
+  }
+
+  return {
+    preferences,
+    startTime,
+    spitUpType: 'PROJECTILE' as SpitUpType,
+  }
+}
+
 interface SpitUpFormProps {
   onSubmit: (data: {
     startTime: Date
@@ -31,26 +78,10 @@ interface SpitUpFormProps {
 }
 
 export function SpitUpForm({ onSubmit, onCancel, initialValues, isEditing }: SpitUpFormProps) {
-  const [preferences, setPreferences] = useState<SpitUpFormPreferences>(DEFAULT_PREFERENCES)
-  const [startTime, setStartTime] = useState(initialValues?.startTime || new Date())
-  const [spitUpType, setSpitUpType] = useState<SpitUpType>(initialValues?.spitUpType || 'PROJECTILE')
-
-  // 加载保存的偏好设置（仅在新建时）
-  useEffect(() => {
-    if (isEditing) return // 编辑模式不加载偏好
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const savedPrefs = JSON.parse(saved) as SpitUpFormPreferences
-        setPreferences(savedPrefs)
-        if (savedPrefs.rememberSelection && !initialValues) {
-          setSpitUpType(savedPrefs.defaultSpitUpType)
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load preferences:', e)
-    }
-  }, [isEditing, initialValues])
+  const [initialState] = useState(() => getSpitUpInitialState(initialValues, isEditing))
+  const [preferences, setPreferences] = useState<SpitUpFormPreferences>(initialState.preferences)
+  const [startTime, setStartTime] = useState(initialState.startTime)
+  const [spitUpType, setSpitUpType] = useState<SpitUpType>(initialState.spitUpType)
 
   // 保存偏好设置
   const savePreferences = () => {

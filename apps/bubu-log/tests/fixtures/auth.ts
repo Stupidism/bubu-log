@@ -61,9 +61,9 @@ export async function ensureLoggedIn(page: Page) {
  * 扩展的测试 fixture，自动处理登录
  */
 export const test = base.extend<{ authenticatedPage: Page }>({
-  authenticatedPage: async ({ page }, use) => {
+  authenticatedPage: async ({ page }, fixtureRunner) => {
     await login(page)
-    await use(page)
+    await fixtureRunner(page)
   },
 })
 

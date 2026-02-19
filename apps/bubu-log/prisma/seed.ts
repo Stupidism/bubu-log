@@ -1,4 +1,5 @@
 import { PrismaClient, UserRole } from '@prisma/client'
+import { ensureInitialAdmin } from './ensure-initial-admin'
 
 const prisma = new PrismaClient()
 
@@ -51,6 +52,9 @@ async function main() {
     },
   })
   console.log('✅ 关联宝宝和用户')
+
+  // 4. 创建/更新初始管理员账号
+  await ensureInitialAdmin(prisma, { verbose: true })
 
   console.log('🎉 数据初始化完成!')
 }

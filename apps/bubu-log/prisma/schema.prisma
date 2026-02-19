@@ -55,6 +55,7 @@ model VerificationToken {
 
 // 用户角色枚举
 enum UserRole {
+  ADMIN         // 管理员
   DAD           // 爸爸
   MOM           // 妈妈
   NANNY         // 月嫂

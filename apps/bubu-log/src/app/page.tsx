@@ -12,7 +12,7 @@ import { useVersionCheck } from '@/hooks/useVersionCheck'
 import { useModalParams, activityTypeToModalType } from '@/hooks/useModalParams'
 import Link from 'next/link'
 import { calculateDurationMinutes, calculateDurationInDay, formatDateChinese, formatWeekday, formatTime, dayjs } from '@/lib/dayjs'
-import { BarChart3, Loader2 } from 'lucide-react'
+import { BarChart3, Loader2, ShieldCheck } from 'lucide-react'
 import { useActivities, type Activity } from '@/lib/api/hooks'
 import { PreviousEveningSummary } from '@/components/PreviousEveningSummary'
 import { StatsCardList, type DaySummary, type StatFilter } from '@/components/StatsCardList'
@@ -39,6 +39,18 @@ const legacyFilterMapping: Partial<Record<string, StatFilter[]>> = {
   feeding: ['bottle', 'breastfeed'],
   diaper: ['diaper'],
   activities: ['outdoor', 'headLift', 'rollOver'],
+}
+
+const DEFAULT_DURATIONS: Partial<Record<ActivityType | 'wake', number>> = {
+  [ActivityType.HEAD_LIFT]: 5,
+  [ActivityType.PASSIVE_EXERCISE]: 10,
+  [ActivityType.GAS_EXERCISE]: 10,
+  [ActivityType.BATH]: 15,
+  [ActivityType.OUTDOOR]: 30,
+  [ActivityType.EARLY_EDUCATION]: 20,
+  [ActivityType.BOTTLE]: 15,
+  [ActivityType.BREASTFEED]: 15,
+  wake: 60, // 睡醒默认 1 小时
 }
 
 function isStatFilter(value: string): value is StatFilter {
@@ -298,19 +310,6 @@ function HomeContent() {
     setPickerOpen(true)
   }, [])
 
-  // 各活动类型的默认时长（分钟）
-  const DEFAULT_DURATIONS: Partial<Record<ActivityType | 'wake', number>> = {
-    [ActivityType.HEAD_LIFT]: 5,
-    [ActivityType.PASSIVE_EXERCISE]: 10,
-    [ActivityType.GAS_EXERCISE]: 10,
-    [ActivityType.BATH]: 15,
-    [ActivityType.OUTDOOR]: 30,
-    [ActivityType.EARLY_EDUCATION]: 20,
-    [ActivityType.BOTTLE]: 15,
-    [ActivityType.BREASTFEED]: 15,
-    'wake': 60, // 睡醒默认 1 小时
-  }
-
   // 活动选择器选择活动
   const handlePickerSelect = useCallback((type: ActivityType | 'wake') => {
     const modalType = activityTypeToModalType[type]
@@ -379,15 +378,24 @@ function HomeContent() {
             nextTestId="date-next-btn"
           />
           
-          {/* 右侧：数据入口 */}
-          <Link 
-            href={isToday ? '/stats' : `/stats?date=${selectedDateStr}`}
-            className="px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium text-sm hover:bg-primary/20 transition-colors flex items-center gap-1"
-            data-testid="stats-link"
-          >
-            <BarChart3 size={14} />
-            数据
-          </Link>
+          {/* 右侧：数据/管理入口 */}
+          <div className="flex items-center gap-2">
+            <Link
+              href={isToday ? '/stats' : `/stats?date=${selectedDateStr}`}
+              className="px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium text-sm hover:bg-primary/20 transition-colors flex items-center gap-1"
+              data-testid="stats-link"
+            >
+              <BarChart3 size={14} />
+              数据
+            </Link>
+            <Link
+              href="/admin"
+              className="px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 font-medium text-sm hover:bg-gray-200 transition-colors flex items-center gap-1"
+            >
+              <ShieldCheck size={14} />
+              管理
+            </Link>
+          </div>
         </header>
 
         {/* 今日统计卡片 - 点击过滤主页活动 */}

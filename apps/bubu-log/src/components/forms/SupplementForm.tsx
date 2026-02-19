@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { Pill, Check } from 'lucide-react'
 import type { SupplementType } from '@/types/activity'
@@ -17,6 +17,53 @@ const DEFAULT_PREFERENCES: SupplementFormPreferences = {
   defaultSupplementType: 'AD',
 }
 
+function loadSupplementPreferences(): SupplementFormPreferences {
+  if (typeof window === 'undefined') {
+    return DEFAULT_PREFERENCES
+  }
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      return JSON.parse(saved) as SupplementFormPreferences
+    }
+  } catch (error) {
+    console.error('Failed to load preferences:', error)
+  }
+
+  return DEFAULT_PREFERENCES
+}
+
+function getSupplementInitialState(
+  initialValues: SupplementFormProps['initialValues'],
+  isEditing?: boolean
+) {
+  const preferences = isEditing ? DEFAULT_PREFERENCES : loadSupplementPreferences()
+  const startTime = initialValues?.startTime || new Date()
+
+  if (initialValues?.supplementType) {
+    return {
+      preferences,
+      startTime,
+      supplementType: initialValues.supplementType,
+    }
+  }
+
+  if (!isEditing && !initialValues && preferences.rememberSelection) {
+    return {
+      preferences,
+      startTime,
+      supplementType: preferences.defaultSupplementType,
+    }
+  }
+
+  return {
+    preferences,
+    startTime,
+    supplementType: 'AD' as SupplementType,
+  }
+}
+
 interface SupplementFormProps {
   onSubmit: (data: {
     startTime: Date
@@ -31,26 +78,10 @@ interface SupplementFormProps {
 }
 
 export function SupplementForm({ onSubmit, onCancel, initialValues, isEditing }: SupplementFormProps) {
-  const [preferences, setPreferences] = useState<SupplementFormPreferences>(DEFAULT_PREFERENCES)
-  const [startTime, setStartTime] = useState(initialValues?.startTime || new Date())
-  const [supplementType, setSupplementType] = useState<SupplementType>(initialValues?.supplementType || 'AD')
-
-  // 加载保存的偏好设置（仅在新建时）
-  useEffect(() => {
-    if (isEditing) return // 编辑模式不加载偏好
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const savedPrefs = JSON.parse(saved) as SupplementFormPreferences
-        setPreferences(savedPrefs)
-        if (savedPrefs.rememberSelection && !initialValues) {
-          setSupplementType(savedPrefs.defaultSupplementType)
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load preferences:', e)
-    }
-  }, [isEditing, initialValues])
+  const [initialState] = useState(() => getSupplementInitialState(initialValues, isEditing))
+  const [preferences, setPreferences] = useState<SupplementFormPreferences>(initialState.preferences)
+  const [startTime, setStartTime] = useState(initialState.startTime)
+  const [supplementType, setSupplementType] = useState<SupplementType>(initialState.supplementType)
 
   // 保存偏好设置
   const savePreferences = () => {
