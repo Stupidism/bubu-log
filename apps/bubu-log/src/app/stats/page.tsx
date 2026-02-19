@@ -9,7 +9,6 @@ import {
   ActivityTypeLabels,
   PeeAmountLabels,
   PoopColorStyles,
-  ActivityCategories,
 } from '@/types/activity'
 import { ActivityIcon } from '@/components/ActivityIcon'
 import { BottomSheet } from '@/components/BottomSheet'
@@ -35,9 +34,6 @@ import {
 } from 'lucide-react'
 import { StatsCardList, type StatFilter, type DaySummary } from '@/components/StatsCardList'
 
-// FilterType 与 StatsCardList 的 StatFilter 保持一致
-type FilterType = StatFilter
-
 // 排序字段类型
 const sortFields = ['endTime', 'createdAt', 'updatedAt'] as const
 type SortField = typeof sortFields[number]
@@ -48,15 +44,58 @@ const sortFieldLabels: Record<SortField, string> = {
   updatedAt: '修改时间',
 }
 
+const STAT_FILTERS: StatFilter[] = ['sleep', 'bottle', 'breastfeed', 'pump', 'diaper', 'outdoor', 'headLift', 'rollOver']
+
+const statFilterActivityTypes: Record<StatFilter, ActivityType[]> = {
+  sleep: [ActivityType.SLEEP],
+  bottle: [ActivityType.BOTTLE],
+  breastfeed: [ActivityType.BREASTFEED],
+  pump: [ActivityType.PUMP],
+  diaper: [ActivityType.DIAPER],
+  outdoor: [ActivityType.OUTDOOR],
+  headLift: [ActivityType.HEAD_LIFT],
+  rollOver: [ActivityType.ROLL_OVER],
+}
+
+const legacyFilterMapping: Partial<Record<string, StatFilter[]>> = {
+  sleep: ['sleep'],
+  feeding: ['bottle', 'breastfeed', 'pump'],
+  diaper: ['diaper'],
+  activities: ['outdoor', 'headLift', 'rollOver'],
+}
+
+const filterLabelMap: Record<StatFilter, string> = {
+  sleep: '睡眠',
+  bottle: '瓶喂',
+  breastfeed: '亲喂',
+  pump: '吸奶',
+  diaper: '尿布',
+  outdoor: '户外',
+  headLift: '趴趴',
+  rollOver: '翻身',
+}
+
+function isStatFilter(value: string): value is StatFilter {
+  return STAT_FILTERS.includes(value as StatFilter)
+}
+
 function StatsPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  // 从 URL 读取 filter
-  const filterFromUrl = searchParams.get('filter') as FilterType | null
-  const filter: FilterType = filterFromUrl && ['sleep', 'feeding', 'diaper', 'activities'].includes(filterFromUrl)
-    ? filterFromUrl
-    : 'all'
+  const activeFilters = useMemo<StatFilter[]>(() => {
+    const filtersParam = searchParams.get('filters')
+    if (filtersParam) {
+      return Array.from(new Set(filtersParam.split(',').map(filter => filter.trim()).filter(isStatFilter)))
+    }
+
+    const legacyFilter = searchParams.get('filter')
+    if (legacyFilter && legacyFilterMapping[legacyFilter]) {
+      return legacyFilterMapping[legacyFilter] || []
+    }
+
+    return []
+  }, [searchParams])
 
   // 多选状态
   const [isSelectMode, setIsSelectMode] = useState(false)
@@ -88,9 +127,9 @@ function StatsPageContent() {
     let result = activities
 
     // 先过滤
-    if (filter !== 'all') {
-      const filterTypes = ActivityCategories[filter as keyof typeof ActivityCategories] || []
-      result = result.filter(a => filterTypes.includes(a.type as ActivityType))
+    if (activeFilters.length > 0) {
+      const filterTypes = new Set(activeFilters.flatMap(filter => statFilterActivityTypes[filter]))
+      result = result.filter(a => filterTypes.has(a.type as ActivityType))
     }
 
     // 再排序（倒序）
@@ -110,7 +149,7 @@ function StatsPageContent() {
       // 倒序排列
       return new Date(bValue || 0).getTime() - new Date(aValue || 0).getTime()
     })
-  }, [activities, filter, sortField])
+  }, [activities, activeFilters, sortField])
 
   // 切换排序字段
   const cycleSortField = useCallback(() => {
@@ -133,6 +172,7 @@ function StatsPageContent() {
         diaperCount: 0,
         largePeeDiaperCount: 0,
         smallMediumPeeDiaperCount: 0,
+        totalOutdoorMinutes: 0,
         totalHeadLiftMinutes: 0,
         totalRollOverCount: 0,
         totalPullToSitCount: 0,
@@ -148,6 +188,7 @@ function StatsPageContent() {
       diaperCount: 0,
       largePeeDiaperCount: 0,
       smallMediumPeeDiaperCount: 0,
+      totalOutdoorMinutes: 0,
       totalHeadLiftMinutes: 0,
       totalRollOverCount: 0,
       totalPullToSitCount: 0,
@@ -189,6 +230,11 @@ function StatsPageContent() {
     summary.totalHeadLiftMinutes = headLifts.reduce((acc, a) =>
       acc + calculateDurationMinutes(a.startTime, a.endTime!), 0)
 
+    // 户外时间统计
+    const outdoors = activities.filter((a) => a.type === 'OUTDOOR' && a.endTime)
+    summary.totalOutdoorMinutes = outdoors.reduce((acc, a) =>
+      acc + calculateDurationMinutes(a.startTime, a.endTime!), 0)
+
     // 翻身 / 拉坐
     const rollOvers = activities.filter((a) => a.type === 'ROLL_OVER')
     summary.totalRollOverCount = rollOvers.reduce((acc, a) => acc + (a.count ?? 1), 0)
@@ -221,16 +267,25 @@ function StatsPageContent() {
   }
 
   // 处理卡片点击过滤 - 更新 URL params
-  const handleCardClick = useCallback((filterType: FilterType) => {
+  const handleCardClick = useCallback((filterType: StatFilter) => {
     const params = new URLSearchParams(searchParams.toString())
-    if (filter === filterType) {
-      // 取消过滤
+    const nextFilters = new Set(activeFilters)
+    if (nextFilters.has(filterType)) {
+      nextFilters.delete(filterType)
+    } else {
+      nextFilters.add(filterType)
+    }
+
+    if (nextFilters.size === 0) {
+      params.delete('filters')
       params.delete('filter')
     } else {
-      params.set('filter', filterType)
+      params.set('filters', Array.from(nextFilters).join(','))
+      params.delete('filter')
     }
+
     router.replace(`/stats?${params.toString()}`, { scroll: false })
-  }, [filter, searchParams, router])
+  }, [activeFilters, searchParams, router])
 
   // 长按开始多选（支持滑动取消）
   const handleLongPressStart = useCallback((activityId: string, e: React.TouchEvent | React.MouseEvent) => {
@@ -486,13 +541,9 @@ function StatsPageContent() {
 
   // 获取过滤器标签
   const getFilterLabel = () => {
-    switch (filter) {
-      case 'sleep': return '睡眠记录'
-      case 'feeding': return '喂奶记录'
-      case 'diaper': return '换尿布记录'
-      case 'activities': return '活动记录'
-      default: return '当日记录'
-    }
+    if (activeFilters.length === 0) return '当日记录'
+    if (activeFilters.length === 1) return `${filterLabelMap[activeFilters[0]]}记录`
+    return `${activeFilters.length}类筛选记录`
   }
 
   return (
@@ -600,7 +651,7 @@ function StatsPageContent() {
         <section className="p-4">
           <StatsCardList
             summary={summary}
-            activeFilter={filter}
+            activeFilters={activeFilters}
             onStatCardClick={handleCardClick}
           />
         </section>
@@ -624,10 +675,11 @@ function StatsPageContent() {
                 {sortFieldLabels[sortField]}
               </button>
             )}
-            {filter !== 'all' && !isSelectMode && (
+            {activeFilters.length > 0 && !isSelectMode && (
               <button
                 onClick={() => {
                   const params = new URLSearchParams(searchParams.toString())
+                  params.delete('filters')
                   params.delete('filter')
                   router.replace(`/stats?${params.toString()}`, { scroll: false })
                 }}

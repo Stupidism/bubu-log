@@ -15,37 +15,34 @@ import { calculateDurationMinutes, calculateDurationInDay, formatDateChinese, fo
 import { BarChart3, Loader2 } from 'lucide-react'
 import { useActivities, type Activity } from '@/lib/api/hooks'
 import { PreviousEveningSummary } from '@/components/PreviousEveningSummary'
-import { StatsCardList, type StatFilter } from '@/components/StatsCardList'
+import { StatsCardList, type DaySummary, type StatFilter } from '@/components/StatsCardList'
 import { ActivityPicker } from '@/components/ActivityPicker'
 import { ActivityType } from '@/types/activity'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DateNavigator } from '@bubu-log/log-ui'
 
-// 活动类型过滤器映射
-const filterActivityTypes: Record<StatFilter, ActivityType[]> = {
-  all: [],
+const STAT_FILTERS: StatFilter[] = ['sleep', 'bottle', 'breastfeed', 'pump', 'diaper', 'outdoor', 'headLift', 'rollOver']
+
+const statFilterActivityTypes: Record<StatFilter, ActivityType[]> = {
   sleep: [ActivityType.SLEEP],
-  feeding: [ActivityType.BREASTFEED, ActivityType.BOTTLE], // 只显示瓶喂和亲喂，不含吸奶
+  bottle: [ActivityType.BOTTLE],
+  breastfeed: [ActivityType.BREASTFEED],
+  pump: [ActivityType.PUMP],
   diaper: [ActivityType.DIAPER],
-  activities: [ActivityType.HEAD_LIFT, ActivityType.PASSIVE_EXERCISE, ActivityType.ROLL_OVER, ActivityType.PULL_TO_SIT, ActivityType.GAS_EXERCISE, ActivityType.BATH, ActivityType.OUTDOOR, ActivityType.EARLY_EDUCATION],
+  outdoor: [ActivityType.OUTDOOR],
+  headLift: [ActivityType.HEAD_LIFT],
+  rollOver: [ActivityType.ROLL_OVER],
 }
 
-// 每日统计
-interface DaySummary {
-  sleepCount: number
-  totalSleepMinutes: number
-  // 喂养统计
-  totalBottleMilkAmount: number    // 瓶喂毫升数
-  totalBreastfeedMinutes: number   // 亲喂时间
-  totalPumpMilkAmount: number      // 吸奶毫升数
-  // 尿布统计
-  diaperCount: number              // 总尿布数
-  largePeeDiaperCount: number      // 多量尿布数
-  smallMediumPeeDiaperCount: number // 中+少量尿布数（算一个）
-  // 运动统计
-  totalHeadLiftMinutes: number     // 抬头分钟数
-  totalRollOverCount: number       // 翻身次数
-  totalPullToSitCount: number      // 拉坐次数
+const legacyFilterMapping: Partial<Record<string, StatFilter[]>> = {
+  sleep: ['sleep'],
+  feeding: ['bottle', 'breastfeed'],
+  diaper: ['diaper'],
+  activities: ['outdoor', 'headLift', 'rollOver'],
+}
+
+function isStatFilter(value: string): value is StatFilter {
+  return STAT_FILTERS.includes(value as StatFilter)
 }
 
 function HomeContent() {
@@ -54,8 +51,19 @@ function HomeContent() {
   const searchParams = useSearchParams()
   const timelineRef = useRef<DayTimelineRef>(null)
   
-  // 从 URL 获取 filter 参数
-  const activeFilter = (searchParams.get('filter') as StatFilter) || 'all'
+  const activeFilters = useMemo<StatFilter[]>(() => {
+    const filtersParam = searchParams.get('filters')
+    if (filtersParam) {
+      return Array.from(new Set(filtersParam.split(',').map(filter => filter.trim()).filter(isStatFilter)))
+    }
+
+    const legacyFilter = searchParams.get('filter')
+    if (legacyFilter && legacyFilterMapping[legacyFilter]) {
+      return legacyFilterMapping[legacyFilter] || []
+    }
+
+    return []
+  }, [searchParams])
   
   // 活动选择器状态
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -102,6 +110,7 @@ function HomeContent() {
       diaperCount: 0,
       largePeeDiaperCount: 0,
       smallMediumPeeDiaperCount: 0,
+      totalOutdoorMinutes: 0,
       totalHeadLiftMinutes: 0,
       totalRollOverCount: 0,
       totalPullToSitCount: 0,
@@ -166,7 +175,17 @@ function HomeContent() {
         case 'HEAD_LIFT':
           // 抬头：只统计当天发生的（startTime在当天）
           if (isActivityInToday && activity.endTime) {
-            result.totalHeadLiftMinutes += calculateDurationMinutes(activity.startTime, activity.endTime)
+            const endTime = dayjs(activity.endTime)
+            const actualEndTime = endTime.isAfter(currentDayEnd) ? currentDayEnd.toDate() : activity.endTime
+            result.totalHeadLiftMinutes += calculateDurationMinutes(activity.startTime, actualEndTime)
+          }
+          break
+        case 'OUTDOOR':
+          // 户外：只统计当天发生的（startTime在当天）
+          if (isActivityInToday && activity.endTime) {
+            const endTime = dayjs(activity.endTime)
+            const actualEndTime = endTime.isAfter(currentDayEnd) ? currentDayEnd.toDate() : activity.endTime
+            result.totalOutdoorMinutes += calculateDurationMinutes(activity.startTime, actualEndTime)
           }
           break
         case 'ROLL_OVER':
@@ -241,27 +260,37 @@ function HomeContent() {
     openActivityDetail(activity.id)
   }, [openActivityDetail])
 
-  // 点击统计卡片 - 更新 URL filter 参数来过滤主页活动
+  // 点击统计卡片 - 多选过滤主页活动
   const handleStatCardClick = useCallback((filter: StatFilter) => {
     const params = new URLSearchParams(searchParams.toString())
-    const newFilter = activeFilter === filter ? 'all' : filter
-    
-    if (newFilter === 'all') {
+    const nextFilters = new Set(activeFilters)
+    if (nextFilters.has(filter)) {
+      nextFilters.delete(filter)
+    } else {
+      nextFilters.add(filter)
+    }
+
+    if (nextFilters.size === 0) {
+      params.delete('filters')
       params.delete('filter')
     } else {
-      params.set('filter', newFilter)
+      params.set('filters', Array.from(nextFilters).join(','))
+      params.delete('filter')
     }
     
     const queryString = params.toString()
     router.push(queryString ? `?${queryString}` : '/', { scroll: false })
-  }, [activeFilter, router, searchParams])
+  }, [activeFilters, router, searchParams])
 
   // 过滤后的活动列表
   const filteredActivities = useMemo(() => {
-    if (activeFilter === 'all') return todayActivities
-    const allowedTypes = filterActivityTypes[activeFilter]
-    return todayActivities.filter(activity => allowedTypes.includes(activity.type as ActivityType))
-  }, [todayActivities, activeFilter])
+    if (activeFilters.length === 0) return todayActivities
+
+    const allowedTypes = new Set(
+      activeFilters.flatMap(filter => statFilterActivityTypes[filter])
+    )
+    return todayActivities.filter(activity => allowedTypes.has(activity.type as ActivityType))
+  }, [todayActivities, activeFilters])
 
   // 长按时间轴空白处 - 打开活动选择器
   const handleTimelineLongPress = useCallback((time: Date) => {
@@ -365,7 +394,7 @@ function HomeContent() {
         <div className="px-4 py-3">
           <StatsCardList 
             summary={summary} 
-            activeFilter={activeFilter}
+            activeFilters={activeFilters}
             onStatCardClick={handleStatCardClick}
           />
         </div>
