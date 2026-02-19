@@ -13,9 +13,9 @@ import { OverlapConfirmModal } from './OverlapConfirmModal'
 export function SleepEndModal() {
   const { modalType, activityId, closeModal, selectedDate } = useModalParams()
   const searchParams = useSearchParams()
-  const { getCurrentSleepActivity } = useSleepState()
-  
   const isOpen = modalType === 'sleep_end'
+  const { getCurrentSleepActivity } = useSleepState({ enabled: isOpen })
+  
   const isEditing = !!activityId
   
   // 获取当前睡眠活动（如果有）

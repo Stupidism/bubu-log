@@ -57,6 +57,24 @@ function isStatFilter(value: string): value is StatFilter {
   return STAT_FILTERS.includes(value as StatFilter)
 }
 
+type AuthContextPayload = {
+  authenticated: boolean
+  hasBaby: boolean
+}
+
+function NoBabyPrompt() {
+  return (
+    <main className="min-h-screen px-4 py-8 flex items-center">
+      <section className="w-full rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm space-y-3">
+        <h1 className="text-xl font-semibold text-amber-900">当前账号还没有绑定宝宝</h1>
+        <p className="text-sm text-amber-800">
+          该账号暂时无法使用记录功能。请先让管理员在后台创建并绑定宝宝信息（姓名、照片、出生日期、性别）。
+        </p>
+      </section>
+    </main>
+  )
+}
+
 function HomeContent() {
   const queryClient = useQueryClient()
   const router = useRouter()
@@ -458,6 +476,62 @@ function HomeContent() {
   )
 }
 
+function HomeGate() {
+  const [state, setState] = useState<'loading' | 'ready' | 'no_baby'>('loading')
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadAuthContext() {
+      try {
+        const response = await fetch('/api/auth/context', { cache: 'no-store' })
+
+        if (response.status === 401) {
+          window.location.href = '/login'
+          return
+        }
+
+        if (!response.ok) {
+          if (!cancelled) {
+            setState('ready')
+          }
+          return
+        }
+
+        const payload = (await response.json()) as AuthContextPayload
+        if (!cancelled) {
+          setState(payload.hasBaby ? 'ready' : 'no_baby')
+        }
+      } catch (error) {
+        console.error('Failed to load auth context:', error)
+        if (!cancelled) {
+          setState('ready')
+        }
+      }
+    }
+
+    loadAuthContext()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (state === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 size={32} className="animate-spin text-gray-400" />
+      </div>
+    )
+  }
+
+  if (state === 'no_baby') {
+    return <NoBabyPrompt />
+  }
+
+  return <HomeContent />
+}
+
 export default function Home() {
   return (
     <Suspense fallback={
@@ -465,7 +539,7 @@ export default function Home() {
         <Loader2 size={32} className="animate-spin text-gray-400" />
       </div>
     }>
-      <HomeContent />
+      <HomeGate />
     </Suspense>
   )
 }

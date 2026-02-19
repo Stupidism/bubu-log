@@ -24,7 +24,7 @@ export function ActivityPicker({
   onSupplementSelect,
   selectedTime,
 }: ActivityPickerProps) {
-  const { isSleeping, isFetching: sleepLoading } = useSleepState()
+  const { isSleeping, isFetching: sleepLoading } = useSleepState({ enabled: isOpen })
 
   if (!isOpen) return null
 

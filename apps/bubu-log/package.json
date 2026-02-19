@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 1030",
     "build": "prisma generate && next build",
-    "start": "next start",
+    "start": "next start -p 1030",
     "lint": "eslint .",
     "postinstall": "prisma generate",
     "generate:api": "openapi-typescript openapi.yaml -o src/lib/api/openapi-types.d.ts",
@@ -46,9 +46,6 @@
     "recharts": "2.15.4",
     "sonner": "^2.0.7",
     "zod": "^4.3.6"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
     "@bubu-log/typescript-config": "workspace:*",

@@ -1,9 +1,22 @@
-import { Prisma, UserRole } from '@prisma/client'
+import { BabyGender, Prisma, UserRole } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { requireAdminUser } from '@/lib/auth/require-admin'
 import { prisma } from '@/lib/prisma'
+
+function parseBirthDate(value: string): Date {
+  const input = value.trim()
+  const parsedDate = input.includes('T')
+    ? new Date(input)
+    : new Date(`${input}T00:00:00`)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw new Error('宝宝出生日期格式不正确')
+  }
+
+  return parsedDate
+}
 
 const createUserSchema = z.object({
   username: z
@@ -16,7 +29,12 @@ const createUserSchema = z.object({
   name: z.string().trim().max(40, '姓名最多 40 位').optional().nullable(),
   email: z.string().trim().email('邮箱格式不正确').optional().nullable(),
   role: z.nativeEnum(UserRole).optional(),
-  defaultBabyId: z.string().trim().min(1).optional().nullable(),
+  baby: z.object({
+    name: z.string().trim().min(1, '宝宝姓名不能为空').max(40, '宝宝姓名最多 40 位'),
+    avatarUrl: z.string().trim().url('宝宝照片地址格式不正确').optional().nullable(),
+    birthDate: z.string().trim().min(1, '宝宝出生日期不能为空'),
+    gender: z.nativeEnum(BabyGender),
+  }),
 })
 
 export async function GET() {
@@ -82,21 +100,22 @@ export async function POST(request: NextRequest) {
 
     const trimmedName = parsed.name?.trim() || null
     const trimmedEmail = parsed.email?.trim() || null
-
-    if (parsed.defaultBabyId) {
-      const baby = await prisma.baby.findUnique({
-        where: { id: parsed.defaultBabyId },
-        select: { id: true },
-      })
-
-      if (!baby) {
-        return NextResponse.json({ error: '默认宝宝不存在' }, { status: 400 })
-      }
-    }
+    const trimmedBabyAvatarUrl = parsed.baby.avatarUrl?.trim() || null
+    const babyBirthDate = parseBirthDate(parsed.baby.birthDate)
 
     const hashedPassword = await bcrypt.hash(parsed.password, 12)
 
     const created = await prisma.$transaction(async (tx) => {
+      const baby = await tx.baby.create({
+        data: {
+          name: parsed.baby.name,
+          avatarUrl: trimmedBabyAvatarUrl,
+          birthDate: babyBirthDate,
+          gender: parsed.baby.gender,
+        },
+        select: { id: true },
+      })
+
       const user = await tx.user.create({
         data: {
           username: parsed.username,
@@ -115,15 +134,13 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      if (parsed.defaultBabyId) {
-        await tx.babyUser.create({
-          data: {
-            userId: user.id,
-            babyId: parsed.defaultBabyId,
-            isDefault: true,
-          },
-        })
-      }
+      await tx.babyUser.create({
+        data: {
+          userId: user.id,
+          babyId: baby.id,
+          isDefault: true,
+        },
+      })
 
       const userWithBabies = await tx.user.findUnique({
         where: { id: user.id },
@@ -179,6 +196,10 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message ?? '参数错误' }, { status: 400 })
+    }
+
+    if (error instanceof Error && error.message === '宝宝出生日期格式不正确') {
+      return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {

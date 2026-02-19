@@ -31,9 +31,10 @@ export function useActivities(params?: {
   });
 }
 
-export function useLatestActivity(types: string) {
+export function useLatestActivity(types: string, options?: { enabled?: boolean }) {
   return $api.useQuery("get", "/activities/latest", {
     params: { query: { types } },
+    ...options,
   });
 }
 
@@ -215,8 +216,8 @@ export function useUploadActivityPhoto() {
 }
 
 // Sleep state hook - tracks if baby is currently sleeping
-export function useSleepState() {
-  const sleepQuery = useLatestActivity("SLEEP");
+export function useSleepState(options?: { enabled?: boolean }) {
+  const sleepQuery = useLatestActivity("SLEEP", options);
   
   // 宝宝正在睡觉：SLEEP 记录没有 endTime（只有入睡时间）
   const isSleeping = sleepQuery.data?.type === "SLEEP" && !sleepQuery.data?.endTime;

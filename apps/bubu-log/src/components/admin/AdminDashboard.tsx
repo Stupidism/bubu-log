@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -14,6 +14,9 @@ export const USER_ROLE_VALUES = [
 ] as const
 
 export type UserRole = (typeof USER_ROLE_VALUES)[number]
+
+const BABY_GENDER_VALUES = ['BOY', 'GIRL', 'OTHER'] as const
+type BabyGender = (typeof BABY_GENDER_VALUES)[number]
 
 export type AdminBaby = {
   id: string
@@ -60,6 +63,12 @@ const ROLE_LABELS: Record<UserRole, string> = {
   OTHER: '其他',
 }
 
+const BABY_GENDER_LABELS: Record<BabyGender, string> = {
+  BOY: '男孩',
+  GIRL: '女孩',
+  OTHER: '其他',
+}
+
 function formatDateLabel(dateValue: string | null): string {
   if (!dateValue) {
     return '-'
@@ -87,13 +96,11 @@ export function AdminDashboard({ adminName, initialBabies, initialUsers }: Admin
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<UserRole>('OTHER')
-  const [defaultBabyId, setDefaultBabyId] = useState('')
+  const [newUserBabyName, setNewUserBabyName] = useState('')
+  const [newUserBabyAvatarUrl, setNewUserBabyAvatarUrl] = useState('')
+  const [newUserBabyBirthDate, setNewUserBabyBirthDate] = useState('')
+  const [newUserBabyGender, setNewUserBabyGender] = useState<BabyGender>('OTHER')
   const [creatingUser, setCreatingUser] = useState(false)
-
-  const sortedBabiesForSelect = useMemo(
-    () => [...babies].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN')),
-    [babies]
-  )
 
   function updateUserInState(updatedUser: AdminManagedUser) {
     setUsers((current) =>
@@ -151,6 +158,21 @@ export function AdminDashboard({ adminName, initialBabies, initialUsers }: Admin
       return
     }
 
+    if (!newUserBabyName.trim()) {
+      toast.error('请输入宝宝姓名')
+      return
+    }
+
+    if (!newUserBabyAvatarUrl.trim()) {
+      toast.error('请输入宝宝照片地址')
+      return
+    }
+
+    if (!newUserBabyBirthDate) {
+      toast.error('请选择宝宝出生日期')
+      return
+    }
+
     setCreatingUser(true)
 
     try {
@@ -163,7 +185,12 @@ export function AdminDashboard({ adminName, initialBabies, initialUsers }: Admin
           name: name.trim() || null,
           email: email.trim() || null,
           role,
-          defaultBabyId: defaultBabyId || null,
+          baby: {
+            name: newUserBabyName.trim(),
+            avatarUrl: newUserBabyAvatarUrl.trim(),
+            birthDate: newUserBabyBirthDate,
+            gender: newUserBabyGender,
+          },
         }),
       })
 
@@ -180,7 +207,10 @@ export function AdminDashboard({ adminName, initialBabies, initialUsers }: Admin
       setName('')
       setEmail('')
       setRole('OTHER')
-      setDefaultBabyId('')
+      setNewUserBabyName('')
+      setNewUserBabyAvatarUrl('')
+      setNewUserBabyBirthDate('')
+      setNewUserBabyGender('OTHER')
       toast.success('账号创建成功')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '创建账号失败')
@@ -303,6 +333,7 @@ export function AdminDashboard({ adminName, initialBabies, initialUsers }: Admin
 
       <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <h2 className="text-base font-semibold text-gray-900">新增可登录账户</h2>
+        <p className="mt-1 text-xs text-gray-500">创建账号时会同时创建并绑定一个默认宝宝</p>
         <form className="mt-3 grid grid-cols-1 gap-3" onSubmit={handleCreateUser}>
           <input
             type="text"
@@ -346,15 +377,38 @@ export function AdminDashboard({ adminName, initialBabies, initialUsers }: Admin
               </option>
             ))}
           </select>
+
+          <input
+            type="text"
+            value={newUserBabyName}
+            onChange={(event) => setNewUserBabyName(event.target.value)}
+            placeholder="宝宝姓名（必填）"
+            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            required
+          />
+          <input
+            type="url"
+            value={newUserBabyAvatarUrl}
+            onChange={(event) => setNewUserBabyAvatarUrl(event.target.value)}
+            placeholder="宝宝照片 URL（必填）"
+            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            required
+          />
+          <input
+            type="date"
+            value={newUserBabyBirthDate}
+            onChange={(event) => setNewUserBabyBirthDate(event.target.value)}
+            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            required
+          />
           <select
-            value={defaultBabyId}
-            onChange={(event) => setDefaultBabyId(event.target.value)}
+            value={newUserBabyGender}
+            onChange={(event) => setNewUserBabyGender(event.target.value as BabyGender)}
             className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:outline-none"
           >
-            <option value="">默认宝宝（可选）</option>
-            {sortedBabiesForSelect.map((baby) => (
-              <option key={baby.id} value={baby.id}>
-                {baby.name}
+            {BABY_GENDER_VALUES.map((genderValue) => (
+              <option key={genderValue} value={genderValue}>
+                {BABY_GENDER_LABELS[genderValue]}
               </option>
             ))}
           </select>

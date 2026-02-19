@@ -63,6 +63,13 @@ enum UserRole {
   OTHER         // 其他
 }
 
+// 宝宝性别枚举
+enum BabyGender {
+  BOY
+  GIRL
+  OTHER
+}
+
 // 用户模型（爸爸、妈妈、月嫂等）
 model User {
   id            String    @id @default(cuid())
@@ -98,6 +105,7 @@ model Baby {
   name      String   // 宝宝名字
   avatarUrl String?  // 头像URL（存储在Vercel Blob）
   birthDate DateTime? // 出生日期
+  gender    BabyGender @default(OTHER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
