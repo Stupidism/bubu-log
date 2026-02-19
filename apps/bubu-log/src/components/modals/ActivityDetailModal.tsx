@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import { Edit2, Trash2, Loader2 } from 'lucide-react'
 import { BottomSheet } from '@/components/BottomSheet'
 import { ActivityIcon } from '@/components/ActivityIcon'
 import { useModalParams } from '@/hooks/useModalParams'
-import { useActivity, useUpdateActivity, useDeleteActivity } from '@/lib/api/hooks'
+import { useActivity, useUpdateActivity } from '@/lib/api/hooks'
 import { ActivityType, ActivityTypeLabels, PoopColorStyles, PoopColorLabels, PeeAmountLabels, PoopColor, PeeAmount, BreastFirmness, BreastFirmnessLabels, SupplementType, SupplementTypeLabels, SpitUpType, SpitUpTypeLabels, MilkSource, MilkSourceLabels } from '@/types/activity'
 import {
   DiaperForm,
@@ -23,7 +23,6 @@ import { dayjs, calculateDurationMinutes, formatDuration, formatDateTimeChinese 
 
 export function ActivityDetailModal() {
   const { modalType, activityId, isEditing, closeModal, setEditing, openModal } = useModalParams()
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   
   // 只有当 modal=activity 且有 id 时才获取数据
   const shouldFetch = modalType === 'activity' && !!activityId
@@ -32,13 +31,11 @@ export function ActivityDetailModal() {
   })
   
   const updateActivity = useUpdateActivity()
-  const deleteActivityMutation = useDeleteActivity()
   
   const isOpen = modalType === 'activity' && !!activityId
   
   // 关闭弹窗
   const handleClose = useCallback(() => {
-    setShowDeleteConfirm(false)
     closeModal()
   }, [closeModal])
   
@@ -106,7 +103,7 @@ export function ActivityDetailModal() {
             {formatTimeRange(activity.startTime, activity.endTime)} · {formatDuration(duration!)}
           </p>
         ) : (
-          <p className="text-lg text-amber-600 dark:text-amber-400">正在睡觉...</p>
+          <p className="text-lg text-sky-600 dark:text-sky-400">正在睡觉...</p>
         )
       
       case 'BREASTFEED':
@@ -413,4 +410,3 @@ export function ActivityDetailModal() {
     </BottomSheet>
   )
 }
-

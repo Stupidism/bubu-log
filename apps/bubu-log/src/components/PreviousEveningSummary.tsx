@@ -2,9 +2,9 @@
 
 import { Activity } from '@/lib/api/hooks'
 import { ActivityIcon } from './ActivityIcon'
-import { ActivityType, ActivityTypeLabels } from '@/types/activity'
+import { ActivityType } from '@/types/activity'
 import { dayjs, calculateDurationMinutes, formatTime, formatDuration } from '@/lib/dayjs'
-import { Moon, Milk } from 'lucide-react'
+import { Moon } from 'lucide-react'
 
 interface PreviousEveningSummaryProps {
   activities: Activity[]
@@ -96,10 +96,10 @@ export function PreviousEveningSummary({
   }
 
   return (
-    <div className="mb-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl p-3 border border-indigo-100 dark:border-indigo-800/50">
+    <div className="mb-3 bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30 rounded-xl p-3 border border-sky-100 dark:border-sky-800/50">
       <div className="flex items-center gap-1.5 mb-2">
-        <Moon className="w-4 h-4 text-indigo-500" />
-        <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">昨晚</span>
+        <Moon className="w-4 h-4 text-sky-500" />
+        <span className="text-xs font-medium text-sky-600 dark:text-sky-400">昨晚</span>
       </div>
       
       <div className="space-y-2">
@@ -109,11 +109,11 @@ export function PreviousEveningSummary({
             onClick={() => onActivityClick?.(lastFeeding)}
             className="w-full flex items-center gap-2 p-2 bg-white/80 dark:bg-gray-800/80 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
           >
-            <div className={`p-1.5 rounded-full ${lastFeeding.type === 'BOTTLE' ? 'bg-blue-100 dark:bg-blue-900/40' : 'bg-pink-100 dark:bg-pink-900/40'}`}>
+            <div className={`p-1.5 rounded-full ${lastFeeding.type === 'BOTTLE' ? 'bg-pink-100 dark:bg-pink-900/40' : 'bg-rose-100 dark:bg-rose-900/40'}`}>
               <ActivityIcon 
                 type={lastFeeding.type as ActivityType} 
                 size={16} 
-                className={lastFeeding.type === 'BOTTLE' ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400'}
+                className={lastFeeding.type === 'BOTTLE' ? 'text-pink-600 dark:text-pink-400' : 'text-rose-600 dark:text-rose-400'}
               />
             </div>
             <div className="flex-1 text-left">
@@ -134,11 +134,11 @@ export function PreviousEveningSummary({
             onClick={() => onActivityClick?.(lastSleep)}
             className="w-full flex items-center gap-2 p-2 bg-white/80 dark:bg-gray-800/80 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
           >
-            <div className="p-1.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40">
+            <div className="p-1.5 rounded-full bg-sky-100 dark:bg-sky-900/40">
               <ActivityIcon 
                 type="SLEEP" 
                 size={16} 
-                className="text-indigo-600 dark:text-indigo-400"
+                className="text-sky-600 dark:text-sky-400"
               />
             </div>
             <div className="flex-1 text-left">
@@ -156,4 +156,3 @@ export function PreviousEveningSummary({
     </div>
   )
 }
-

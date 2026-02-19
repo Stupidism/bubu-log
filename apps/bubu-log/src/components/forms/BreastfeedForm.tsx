@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels, BreastFirmness, BreastFirmnessLabels } from '@/types/activity'
@@ -40,20 +40,60 @@ const DEFAULT_PREFERENCES: Preferences = {
   defaultBreastFirmness: 'SOFT',
 }
 
+interface BreastfeedFormInitialState {
+  preferences: Preferences
+  startTime: Date
+  endTime: Date
+  burpSuccess: boolean | undefined
+  breastFirmness: BreastFirmness
+}
+
+function loadBreastfeedPreferences(): Preferences {
+  if (typeof window === 'undefined') return DEFAULT_PREFERENCES
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (!saved) return DEFAULT_PREFERENCES
+    return { ...DEFAULT_PREFERENCES, ...(JSON.parse(saved) as Partial<Preferences>) }
+  } catch (e) {
+    console.error('Failed to load preferences:', e)
+    return DEFAULT_PREFERENCES
+  }
+}
+
+function getBreastfeedInitialState(initialValues?: BreastfeedFormProps['initialValues'], isEditing?: boolean): BreastfeedFormInitialState {
+  const preferences = loadBreastfeedPreferences()
+
+  const defaultEndTime = initialValues?.endTime || new Date()
+  const defaultStartTime = initialValues?.startTime || dayjs(defaultEndTime).subtract(20, 'minute').toDate()
+
+  if (!isEditing && !initialValues && preferences.rememberSelection) {
+    const now = dayjs()
+    return {
+      preferences,
+      startTime: now.subtract(preferences.defaultDuration, 'minute').toDate(),
+      endTime: now.toDate(),
+      burpSuccess: preferences.defaultBurpSuccess,
+      breastFirmness: preferences.defaultBreastFirmness || 'SOFT',
+    }
+  }
+
+  return {
+    preferences,
+    startTime: defaultStartTime,
+    endTime: defaultEndTime,
+    burpSuccess: initialValues?.burpSuccess,
+    breastFirmness: initialValues?.breastFirmness || 'SOFT',
+  }
+}
+
 export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }: BreastfeedFormProps) {
-  const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES)
-  
-  // 计算初始的开始时间和结束时间
-  const initialEndTime = useMemo(() => initialValues?.endTime || new Date(), [initialValues?.endTime])
-  const initialStartTime = useMemo(() => {
-    if (initialValues?.startTime) return initialValues.startTime
-    return dayjs(initialEndTime).subtract(20, 'minute').toDate()
-  }, [initialEndTime, initialValues?.startTime])
-  
-  const [startTime, setStartTime] = useState(initialStartTime)
-  const [endTime, setEndTime] = useState(initialEndTime)
-  const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialValues?.burpSuccess)
-  const [breastFirmness, setBreastFirmness] = useState<BreastFirmness>(initialValues?.breastFirmness || 'SOFT')
+  const [initialState] = useState<BreastfeedFormInitialState>(() => getBreastfeedInitialState(initialValues, isEditing))
+  const [preferences, setPreferences] = useState<Preferences>(initialState.preferences)
+  const [startTime, setStartTime] = useState(initialState.startTime)
+  const [endTime, setEndTime] = useState(initialState.endTime)
+  const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialState.burpSuccess)
+  const [breastFirmness, setBreastFirmness] = useState<BreastFirmness>(initialState.breastFirmness)
 
   // 计算时长
   const duration = calculateDurationMinutes(startTime, endTime)
@@ -71,28 +111,6 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
       return `${minutes}分钟`
     }
   }
-
-  // 加载偏好设置（仅在新建时）
-  useEffect(() => {
-    if (isEditing) return
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const savedPrefs = JSON.parse(saved) as Preferences
-        setPreferences(savedPrefs)
-        if (savedPrefs.rememberSelection && !initialValues) {
-          // 设置默认时长对应的开始时间
-          const now = dayjs()
-          setEndTime(now.toDate())
-          setStartTime(now.subtract(savedPrefs.defaultDuration, 'minute').toDate())
-          setBurpSuccess(savedPrefs.defaultBurpSuccess)
-          setBreastFirmness(savedPrefs.defaultBreastFirmness || 'SOFT')
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load preferences:', e)
-    }
-  }, [isEditing, initialValues])
 
   const savePreferences = () => {
     const newPrefs: Preferences = {
@@ -139,7 +157,7 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
     <div className="space-y-6 animate-fade-in">
       {/* 活动图标和名称 */}
       <div className="text-center flex flex-col items-center">
-        <ActivityIcon type={ActivityType.BREASTFEED} size={48} className="text-pink-500" />
+        <ActivityIcon type={ActivityType.BREASTFEED} size={48} className="text-rose-500" />
         <h3 className="text-xl font-bold mt-2 text-gray-800 dark:text-gray-100">
           {ActivityTypeLabels[ActivityType.BREASTFEED]}
         </h3>
@@ -162,9 +180,9 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
       />
 
       {/* 时长显示 */}
-      <div className="bg-pink-50 dark:bg-pink-900/20 rounded-2xl p-4 text-center">
-        <p className="text-base text-pink-600 dark:text-pink-400 mb-1">喂奶时长</p>
-        <p className="text-3xl font-bold text-pink-700 dark:text-pink-300">
+      <div className="bg-rose-50 dark:bg-rose-900/20 rounded-2xl p-4 text-center">
+        <p className="text-base text-rose-600 dark:text-rose-400 mb-1">喂奶时长</p>
+        <p className="text-3xl font-bold text-rose-700 dark:text-rose-300">
           {formatDuration(duration)}
         </p>
       </div>
@@ -211,7 +229,7 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
               onClick={() => setBreastFirmness(firmness)}
               className={`p-4 rounded-xl text-base font-semibold transition-all ${
                 breastFirmness === firmness
-                  ? 'bg-pink-500 text-white shadow-lg scale-105'
+                  ? 'bg-rose-500 text-white shadow-lg scale-105'
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
               }`}
             >
@@ -249,7 +267,7 @@ export function BreastfeedForm({ onSubmit, onCancel, initialValues, isEditing }:
           disabled={duration <= 0}
           className={`p-4 rounded-2xl font-semibold text-lg transition-all ${
             duration > 0
-              ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg'
+              ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg'
               : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
           }`}
         >

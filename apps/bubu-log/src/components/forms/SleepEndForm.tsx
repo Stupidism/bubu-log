@@ -87,7 +87,7 @@ export function SleepEndForm({ sleepStartTime: propStartTime, onSubmit, onCancel
     <div className="space-y-6 animate-fade-in">
       {/* 活动图标和名称 */}
       <div className="text-center flex flex-col items-center">
-        <ActivityIcon type={ActivityType.SLEEP} size={48} className="text-indigo-500" />
+        <ActivityIcon type={ActivityType.SLEEP} size={48} className="text-sky-500" />
         <h3 className="text-xl font-bold mt-2 text-gray-800 dark:text-gray-100">
           睡醒
         </h3>
@@ -95,12 +95,12 @@ export function SleepEndForm({ sleepStartTime: propStartTime, onSubmit, onCancel
 
       {/* 开始时间（入睡时间） */}
       {hasFixedStartTime ? (
-        <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 text-center">
-          <p className="text-base text-indigo-600 dark:text-indigo-400 mb-1">入睡时间</p>
-          <p className="text-3xl font-bold text-indigo-700 dark:text-indigo-300">
+        <div className="bg-sky-50 dark:bg-sky-900/20 rounded-2xl p-4 text-center">
+          <p className="text-base text-sky-600 dark:text-sky-400 mb-1">入睡时间</p>
+          <p className="text-3xl font-bold text-sky-700 dark:text-sky-300">
             {sleepStartTime.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
           </p>
-          <p className="text-sm text-indigo-500 dark:text-indigo-400 mt-1">
+          <p className="text-sm text-sky-500 dark:text-sky-400 mt-1">
             （已记录，不可修改）
           </p>
         </div>
@@ -122,9 +122,9 @@ export function SleepEndForm({ sleepStartTime: propStartTime, onSubmit, onCancel
       />
 
       {/* 睡眠时长显示 */}
-      <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-6 text-center">
-        <p className="text-lg text-indigo-600 dark:text-indigo-400 mb-2">睡眠时长</p>
-        <p className="text-5xl font-bold text-indigo-700 dark:text-indigo-300">
+      <div className="bg-sky-50 dark:bg-sky-900/20 rounded-2xl p-6 text-center">
+        <p className="text-lg text-sky-600 dark:text-sky-400 mb-2">睡眠时长</p>
+        <p className="text-5xl font-bold text-sky-700 dark:text-sky-300">
           {formatDuration(duration)}
         </p>
       </div>
@@ -142,7 +142,7 @@ export function SleepEndForm({ sleepStartTime: propStartTime, onSubmit, onCancel
           disabled={duration <= 0}
           className={`p-4 rounded-2xl font-semibold text-lg transition-all ${
             duration > 0
-              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+              ? 'bg-gradient-to-r from-sky-500 to-blue-500 text-white shadow-lg'
               : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
           }`}
         >

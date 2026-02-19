@@ -433,7 +433,7 @@ function StatsPageContent() {
             )}
             {activity.hasPee && (
               <span className="flex items-center gap-1">
-                <Droplet size={16} className="text-blue-400" />
+                <Droplet size={16} className="text-yellow-500" />
                 {activity.peeAmount && PeeAmountLabels[activity.peeAmount as keyof typeof PeeAmountLabels]}
               </span>
             )}
@@ -447,7 +447,7 @@ function StatsPageContent() {
           <div className="text-base text-gray-600 dark:text-gray-400 flex items-center gap-2">
             {activity.endTime && (
               <>
-                <span className="text-pink-600 dark:text-pink-400 font-medium">
+                <span className="text-rose-600 dark:text-rose-400 font-medium">
                   {formatTimeRange(activity.startTime, activity.endTime)}
                 </span>
                 <span>({duration}分钟)</span>
@@ -469,7 +469,7 @@ function StatsPageContent() {
         return (
           <div className="text-base text-gray-600 dark:text-gray-400 flex flex-wrap items-center gap-2">
             {activity.milkAmount && (
-              <span className="text-blue-600 dark:text-blue-400 font-medium text-lg">
+              <span className="text-pink-600 dark:text-pink-400 font-medium text-lg">
                 {activity.milkAmount}ml
               </span>
             )}
@@ -497,7 +497,7 @@ function StatsPageContent() {
         return (
           <div className="text-base text-gray-600 dark:text-gray-400 flex flex-wrap items-center gap-2">
             {activity.milkAmount && (
-              <span className="text-purple-600 dark:text-purple-400 font-medium text-lg">
+              <span className="text-fuchsia-600 dark:text-fuchsia-400 font-medium text-lg">
                 {activity.milkAmount}ml
               </span>
             )}
@@ -517,11 +517,11 @@ function StatsPageContent() {
           ? calculateDurationMinutes(activity.startTime, activity.endTime)
           : null
         return activity.endTime ? (
-          <span className="text-base text-amber-600 dark:text-amber-400 font-medium">
+          <span className="text-base text-sky-600 dark:text-sky-400 font-medium">
             {formatTimeRange(activity.startTime, activity.endTime)} ({formatDurationUtil(duration!)})
           </span>
         ) : (
-          <span className="text-base text-amber-500 dark:text-amber-400 animate-pulse">
+          <span className="text-base text-sky-500 dark:text-sky-400 animate-pulse">
             正在睡觉...
           </span>
         )

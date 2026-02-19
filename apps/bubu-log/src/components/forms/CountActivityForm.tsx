@@ -33,13 +33,13 @@ const ACTIVITY_CONFIGS: Partial<Record<ActivityType, ActivityConfig>> = {
     defaultCount: 3,
     minCount: 1,
     maxCount: 20,
-    color: 'blue',
+    color: 'amber',
   },
   [ActivityType.PULL_TO_SIT]: {
     defaultCount: 3,
     minCount: 1,
     maxCount: 20,
-    color: 'violet',
+    color: 'orange',
   },
 }
 
@@ -80,23 +80,17 @@ export function CountActivityForm({
   // 获取颜色样式
   const getColorStyles = () => {
     const colorMap: Record<string, { bg: string; text: string; textDark: string; gradient: string }> = {
-      blue: { 
-        bg: 'bg-blue-50 dark:bg-blue-900/20', 
-        text: 'text-blue-600 dark:text-blue-400', 
-        textDark: 'text-blue-700 dark:text-blue-300',
-        gradient: 'from-blue-500 to-indigo-500'
-      },
-      violet: { 
-        bg: 'bg-violet-50 dark:bg-violet-900/20', 
-        text: 'text-violet-600 dark:text-violet-400', 
-        textDark: 'text-violet-700 dark:text-violet-300',
-        gradient: 'from-violet-500 to-purple-500'
-      },
       amber: { 
         bg: 'bg-amber-50 dark:bg-amber-900/20', 
         text: 'text-amber-600 dark:text-amber-400', 
         textDark: 'text-amber-700 dark:text-amber-300',
         gradient: 'from-amber-500 to-orange-500'
+      },
+      orange: {
+        bg: 'bg-orange-50 dark:bg-orange-900/20',
+        text: 'text-orange-600 dark:text-orange-400',
+        textDark: 'text-orange-700 dark:text-orange-300',
+        gradient: 'from-orange-500 to-amber-500'
       },
     }
     return colorMap[config.color] || colorMap.amber

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Image from 'next/image'
 import { PoopColor, PeeAmount, PoopColorLabels, PeeAmountLabels, PoopColorStyles } from '@/types/activity'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { Droplet, Circle, Camera, X, Loader2, Check } from 'lucide-react'
@@ -232,9 +233,12 @@ export function DiaperForm({ onSubmit, onCancel, initialValues, isEditing, hideT
               />
               {poopPhotoUrl ? (
                 <div className="relative inline-block">
-                  <img
+                  <Image
                     src={poopPhotoUrl}
                     alt="大便照片"
+                    width={96}
+                    height={96}
+                    unoptimized
                     className="w-24 h-24 object-cover rounded-xl"
                   />
                   <button
@@ -320,7 +324,7 @@ export function DiaperForm({ onSubmit, onCancel, initialValues, isEditing, hideT
           disabled={!canSubmit}
           className={`p-4 rounded-2xl font-semibold text-lg transition-all ${
             canSubmit
-              ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-white shadow-lg'
+              ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white shadow-lg'
               : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
           }`}
         >

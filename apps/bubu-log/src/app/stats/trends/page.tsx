@@ -88,16 +88,17 @@ function getIntensity(value: number, max: number): number {
 
 // 活动类型颜色映射
 const activityColors: Record<string, string> = {
-  SLEEP: 'bg-indigo-400',
-  BREASTFEED: 'bg-pink-300',
+  SLEEP: 'bg-sky-400',
+  BREASTFEED: 'bg-rose-300',
   BOTTLE: 'bg-pink-400',
-  DIAPER: 'bg-teal-400',
+  PUMP: 'bg-fuchsia-400',
+  DIAPER: 'bg-yellow-400',
   HEAD_LIFT: 'bg-amber-400',
   PASSIVE_EXERCISE: 'bg-orange-400',
-  GAS_EXERCISE: 'bg-orange-300',
-  BATH: 'bg-cyan-400',
-  OUTDOOR: 'bg-green-400',
-  EARLY_EDUCATION: 'bg-purple-400',
+  GAS_EXERCISE: 'bg-amber-300',
+  BATH: 'bg-yellow-300',
+  OUTDOOR: 'bg-amber-500',
+  EARLY_EDUCATION: 'bg-orange-300',
   SUPPLEMENT: 'bg-yellow-400',
   SPIT_UP: 'bg-red-400',
 }
@@ -136,7 +137,7 @@ function ChartView({
       {/* 睡眠趋势 */}
       <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
-          <Moon size={20} className="text-indigo-500" />
+          <Moon size={20} className="text-sky-500" />
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">睡眠趋势</h2>
         </div>
         <ChartContainer config={sleepChartConfig} className="h-[200px] w-full">
@@ -145,7 +146,7 @@ function ChartView({
             <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} stroke="#9ca3af" />
             <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => formatMinutesToHours(value)} stroke="#9ca3af" />
             <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatMinutesToHours(value as number)} />} />
-            <Line type="linear" dataKey="totalSleepMinutes" stroke="#6366f1" strokeWidth={2} dot={{ fill: '#6366f1', r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            <Line type="linear" dataKey="totalSleepMinutes" stroke="#0ea5e9" strokeWidth={2} dot={{ fill: '#0ea5e9', r: 3 }} activeDot={{ r: 5 }} connectNulls />
           </LineChart>
         </ChartContainer>
       </section>
@@ -164,8 +165,8 @@ function ChartView({
             <ChartTooltip content={<ChartTooltipContent />} />
             {/* 宝宝摄入奶量 - 粉色 */}
             <Line type="linear" dataKey="totalMilkAmount" stroke="#ec4899" strokeWidth={2} dot={{ fill: '#ec4899', r: 3 }} activeDot={{ r: 5 }} connectNulls />
-            {/* 妈妈吸奶量 - 紫色 */}
-            <Line type="linear" dataKey="totalPumpMilkAmount" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: '#8b5cf6', r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            {/* 妈妈吸奶量 - 洋红 */}
+            <Line type="linear" dataKey="totalPumpMilkAmount" stroke="#d946ef" strokeWidth={2} dot={{ fill: '#d946ef', r: 3 }} activeDot={{ r: 5 }} connectNulls />
           </LineChart>
         </ChartContainer>
       </section>
@@ -173,7 +174,7 @@ function ChartView({
       {/* 换尿布趋势 */}
       <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
-          <Baby size={20} className="text-teal-500" />
+          <Baby size={20} className="text-yellow-500" />
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">换尿布趋势</h2>
         </div>
         <ChartContainer config={diaperChartConfig} className="h-[200px] w-full">
@@ -182,7 +183,7 @@ function ChartView({
             <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} stroke="#9ca3af" />
             <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}次`} stroke="#9ca3af" />
             <ChartTooltip content={<ChartTooltipContent formatter={(value) => `${value}次`} />} />
-            <Line type="linear" dataKey="diaperCount" stroke="#14b8a6" strokeWidth={2} dot={{ fill: '#14b8a6', r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            <Line type="linear" dataKey="diaperCount" stroke="#eab308" strokeWidth={2} dot={{ fill: '#eab308', r: 3 }} activeDot={{ r: 5 }} connectNulls />
           </LineChart>
         </ChartContainer>
       </section>
@@ -392,7 +393,7 @@ function WeeklyView({
         {/* 图例 */}
         <div className="flex flex-wrap gap-2 mt-4 justify-center">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-indigo-400"></div>
+            <div className="w-3 h-3 rounded bg-sky-400"></div>
             <span className="text-xs text-gray-500">睡眠</span>
           </div>
           <div className="flex items-center gap-1">
@@ -400,11 +401,11 @@ function WeeklyView({
             <span className="text-xs text-gray-500">喂奶</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-teal-400"></div>
+            <div className="w-3 h-3 rounded bg-yellow-400"></div>
             <span className="text-xs text-gray-500">换尿布</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-orange-400"></div>
+            <div className="w-3 h-3 rounded bg-amber-400"></div>
             <span className="text-xs text-gray-500">运动</span>
           </div>
         </div>
@@ -419,7 +420,6 @@ function MonthlyView({
   maxValues,
   onNavigate,
   canGoForward,
-  currentWeekStart,
   weeksToShow,
 }: {
   weeksData: Array<{
@@ -430,7 +430,6 @@ function MonthlyView({
   maxValues: { sleep: number; milk: number }
   onNavigate: (direction: number) => void
   canGoForward: boolean
-  currentWeekStart: Date
   weeksToShow: number
 }) {
   const router = useRouter()
@@ -467,7 +466,7 @@ function MonthlyView({
       {/* 睡眠热力图 */}
       <section className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
-          <Moon size={20} className="text-indigo-500" />
+          <Moon size={20} className="text-sky-500" />
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">睡眠</h2>
         </div>
 
@@ -501,12 +500,12 @@ function MonthlyView({
                   onClick={() => !isFuture && handleDateClick(day.date, 'sleep')}
                   className={`
                     aspect-square rounded-md flex flex-col items-center justify-center text-[10px] font-medium leading-tight p-0.5
-                    ${isFuture ? 'bg-gray-50 dark:bg-gray-900 text-gray-300 dark:text-gray-700 cursor-default' : 'cursor-pointer hover:ring-2 hover:ring-indigo-300 hover:ring-offset-1'}
+                    ${isFuture ? 'bg-gray-50 dark:bg-gray-900 text-gray-300 dark:text-gray-700 cursor-default' : 'cursor-pointer hover:ring-2 hover:ring-sky-300 hover:ring-offset-1'}
                     ${!isFuture && intensity === 0 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400' : ''}
-                    ${!isFuture && intensity === 1 ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : ''}
-                    ${!isFuture && intensity === 2 ? 'bg-indigo-200 dark:bg-indigo-800/40 text-indigo-700 dark:text-indigo-300' : ''}
-                    ${!isFuture && intensity === 3 ? 'bg-indigo-300 dark:bg-indigo-700/50 text-indigo-800 dark:text-indigo-200' : ''}
-                    ${!isFuture && intensity === 4 ? 'bg-indigo-400 dark:bg-indigo-600/60 text-white' : ''}
+                    ${!isFuture && intensity === 1 ? 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400' : ''}
+                    ${!isFuture && intensity === 2 ? 'bg-sky-200 dark:bg-sky-800/40 text-sky-700 dark:text-sky-300' : ''}
+                    ${!isFuture && intensity === 3 ? 'bg-sky-300 dark:bg-sky-700/50 text-sky-800 dark:text-sky-200' : ''}
+                    ${!isFuture && intensity === 4 ? 'bg-sky-400 dark:bg-sky-600/60 text-white' : ''}
                     ${isToday ? 'ring-2 ring-primary ring-offset-1' : ''}
                   `}
                   title={`${day.date}: ${day.stat ? formatMinutesToHours(day.stat.totalSleepMinutes ?? 0) : '无数据'}`}
@@ -529,10 +528,10 @@ function MonthlyView({
         {/* 图例 */}
         <div className="flex items-center justify-end gap-2 mt-3">
           <span className="text-xs text-gray-400">少</span>
-          <div className="w-4 h-4 rounded bg-indigo-100 dark:bg-indigo-900/30"></div>
-          <div className="w-4 h-4 rounded bg-indigo-200 dark:bg-indigo-800/40"></div>
-          <div className="w-4 h-4 rounded bg-indigo-300 dark:bg-indigo-700/50"></div>
-          <div className="w-4 h-4 rounded bg-indigo-400 dark:bg-indigo-600/60"></div>
+          <div className="w-4 h-4 rounded bg-sky-100 dark:bg-sky-900/30"></div>
+          <div className="w-4 h-4 rounded bg-sky-200 dark:bg-sky-800/40"></div>
+          <div className="w-4 h-4 rounded bg-sky-300 dark:bg-sky-700/50"></div>
+          <div className="w-4 h-4 rounded bg-sky-400 dark:bg-sky-600/60"></div>
           <span className="text-xs text-gray-400">多</span>
         </div>
       </section>
@@ -907,7 +906,6 @@ function TrendsPageContent() {
               maxValues={monthlyMaxValues}
               onNavigate={navigateMonthlyWeek}
               canGoForward={canMonthlyGoForward}
-              currentWeekStart={monthlyViewWeekStart}
               weeksToShow={weeksToShow}
             />
           )}

@@ -15,9 +15,9 @@ interface ActivityButtonProps {
 
 const variantStyles = {
   default: 'bg-white hover:bg-gray-50 text-gray-800',
-  sleep: 'bg-gradient-to-br from-indigo-400 to-purple-500 text-white',
+  sleep: 'bg-gradient-to-br from-sky-400 to-blue-500 text-white',
   feed: 'bg-gradient-to-br from-pink-400 to-rose-500 text-white',
-  diaper: 'bg-gradient-to-br from-cyan-400 to-teal-500 text-white',
+  diaper: 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white',
   activity: 'bg-gradient-to-br from-amber-400 to-orange-500 text-white',
 }
 

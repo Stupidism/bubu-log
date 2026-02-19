@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { SliderInput } from '../SliderInput'
 import { ActivityIcon } from '../ActivityIcon'
@@ -45,21 +45,64 @@ const DEFAULT_PREFERENCES: Preferences = {
   defaultBurpSuccess: true,
 }
 
+interface BottleFormInitialState {
+  preferences: Preferences
+  startTime: Date
+  endTime: Date
+  milkAmount: number
+  milkSource: MilkSource
+  burpSuccess: boolean | undefined
+}
+
+function loadBottlePreferences(): Preferences {
+  if (typeof window === 'undefined') return DEFAULT_PREFERENCES
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (!saved) return DEFAULT_PREFERENCES
+    return { ...DEFAULT_PREFERENCES, ...(JSON.parse(saved) as Partial<Preferences>) }
+  } catch (e) {
+    console.error('Failed to load preferences:', e)
+    return DEFAULT_PREFERENCES
+  }
+}
+
+function getBottleInitialState(initialValues?: BottleFormProps['initialValues'], isEditing?: boolean): BottleFormInitialState {
+  const preferences = loadBottlePreferences()
+
+  const defaultEndTime = initialValues?.endTime || new Date()
+  const defaultStartTime = initialValues?.startTime || dayjs(defaultEndTime).subtract(15, 'minute').toDate()
+
+  if (!isEditing && !initialValues && preferences.rememberSelection) {
+    const now = dayjs()
+    return {
+      preferences,
+      startTime: now.subtract(preferences.defaultDuration, 'minute').toDate(),
+      endTime: now.toDate(),
+      milkAmount: preferences.defaultMilkAmount,
+      milkSource: preferences.defaultMilkSource || 'BREAST_MILK',
+      burpSuccess: preferences.defaultBurpSuccess,
+    }
+  }
+
+  return {
+    preferences,
+    startTime: defaultStartTime,
+    endTime: defaultEndTime,
+    milkAmount: initialValues?.milkAmount || 90,
+    milkSource: initialValues?.milkSource || 'BREAST_MILK',
+    burpSuccess: initialValues?.burpSuccess,
+  }
+}
+
 export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: BottleFormProps) {
-  const [preferences, setPreferences] = useState<Preferences>(DEFAULT_PREFERENCES)
-  
-  // 计算初始的开始时间和结束时间
-  const initialEndTime = useMemo(() => initialValues?.endTime || new Date(), [initialValues?.endTime])
-  const initialStartTime = useMemo(() => {
-    if (initialValues?.startTime) return initialValues.startTime
-    return dayjs(initialEndTime).subtract(15, 'minute').toDate()
-  }, [initialEndTime, initialValues?.startTime])
-  
-  const [startTime, setStartTime] = useState(initialStartTime)
-  const [endTime, setEndTime] = useState(initialEndTime)
-  const [milkAmount, setMilkAmount] = useState<number>(initialValues?.milkAmount || 90)
-  const [milkSource, setMilkSource] = useState<MilkSource>(initialValues?.milkSource || 'BREAST_MILK')
-  const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialValues?.burpSuccess)
+  const [initialState] = useState<BottleFormInitialState>(() => getBottleInitialState(initialValues, isEditing))
+  const [preferences, setPreferences] = useState<Preferences>(initialState.preferences)
+  const [startTime, setStartTime] = useState(initialState.startTime)
+  const [endTime, setEndTime] = useState(initialState.endTime)
+  const [milkAmount, setMilkAmount] = useState<number>(initialState.milkAmount)
+  const [milkSource, setMilkSource] = useState<MilkSource>(initialState.milkSource)
+  const [burpSuccess, setBurpSuccess] = useState<boolean | undefined>(initialState.burpSuccess)
 
   // 计算时长
   const duration = calculateDurationMinutes(startTime, endTime)
@@ -77,29 +120,6 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
       return `${minutes}分钟`
     }
   }
-
-  // 加载偏好设置（仅在新建时）
-  useEffect(() => {
-    if (isEditing) return
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const savedPrefs = JSON.parse(saved) as Preferences
-        setPreferences(savedPrefs)
-        if (savedPrefs.rememberSelection && !initialValues) {
-          // 设置默认时长对应的开始时间
-          const now = dayjs()
-          setEndTime(now.toDate())
-          setStartTime(now.subtract(savedPrefs.defaultDuration, 'minute').toDate())
-          setMilkAmount(savedPrefs.defaultMilkAmount)
-          setMilkSource(savedPrefs.defaultMilkSource || 'BREAST_MILK')
-          setBurpSuccess(savedPrefs.defaultBurpSuccess)
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load preferences:', e)
-    }
-  }, [isEditing, initialValues])
 
   const savePreferences = () => {
     const newPrefs: Preferences = {
@@ -148,7 +168,7 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
     <div className="space-y-6 animate-fade-in">
       {/* 活动图标和名称 */}
       <div className="text-center flex flex-col items-center">
-        <ActivityIcon type={ActivityType.BOTTLE} size={48} className="text-blue-500" />
+        <ActivityIcon type={ActivityType.BOTTLE} size={48} className="text-pink-500" />
         <h3 className="text-xl font-bold mt-2 text-gray-800 dark:text-gray-100">
           {ActivityTypeLabels[ActivityType.BOTTLE]}
         </h3>
@@ -171,9 +191,9 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
       />
 
       {/* 时长显示 */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 text-center">
-        <p className="text-base text-blue-600 dark:text-blue-400 mb-1">喂奶时长</p>
-        <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+      <div className="bg-pink-50 dark:bg-pink-900/20 rounded-2xl p-4 text-center">
+        <p className="text-base text-pink-600 dark:text-pink-400 mb-1">喂奶时长</p>
+        <p className="text-3xl font-bold text-pink-700 dark:text-pink-300">
           {formatDuration(duration)}
         </p>
       </div>
@@ -187,7 +207,7 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
         step={10}
         unit="ml"
         label="奶量"
-        color="blue"
+        color="pink"
       />
 
       {/* 奶源选择 */}
@@ -279,7 +299,7 @@ export function BottleForm({ onSubmit, onCancel, initialValues, isEditing }: Bot
           disabled={duration <= 0 || milkAmount <= 0}
           className={`p-4 rounded-2xl font-semibold text-lg transition-all ${
             duration > 0 && milkAmount > 0
-              ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
+              ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg'
               : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
           }`}
         >

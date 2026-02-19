@@ -61,7 +61,7 @@ export function ActivityPicker({
                   onClose()
                 }}
                 disabled={isSleeping || sleepLoading}
-                className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-3 p-3 rounded-xl bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="picker-sleep-start"
               >
                 <Moon size={24} />
@@ -73,7 +73,7 @@ export function ActivityPicker({
                   onClose()
                 }}
                 disabled={sleepLoading}
-                className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 disabled:opacity-50"
+                className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 disabled:opacity-50"
                 data-testid="picker-sleep-end"
               >
                 <Sun size={24} />
@@ -94,7 +94,7 @@ export function ActivityPicker({
                   onSelect(ActivityType.BREASTFEED)
                   onClose()
                 }}
-                className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300"
+                className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300"
                 data-testid="picker-breastfeed"
               >
                 <ActivityIcon type={ActivityType.BREASTFEED} size={22} />
@@ -105,7 +105,7 @@ export function ActivityPicker({
                   onSelect(ActivityType.BOTTLE)
                   onClose()
                 }}
-                className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300"
                 data-testid="picker-bottle"
               >
                 <ActivityIcon type={ActivityType.BOTTLE} size={22} />
@@ -116,7 +116,7 @@ export function ActivityPicker({
                   onSelect(ActivityType.PUMP)
                   onClose()
                 }}
-                className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-fuchsia-50 dark:bg-fuchsia-900/30 text-fuchsia-700 dark:text-fuchsia-300"
                 data-testid="picker-pump"
               >
                 <ActivityIcon type={ActivityType.PUMP} size={22} />
@@ -170,7 +170,7 @@ export function ActivityPicker({
                   onDiaperSelect('both')
                   onClose()
                 }}
-                className="flex flex-col items-center gap-1 p-3 rounded-xl bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300"
+                className="flex flex-col items-center gap-1 p-3 rounded-xl bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300"
                 data-testid="picker-diaper-both"
               >
                 <span className="text-xl">💩💧</span>
@@ -230,7 +230,7 @@ export function ActivityPicker({
                     onSelect(type)
                     onClose()
                   }}
-                  className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                  className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
                   data-testid={`picker-activity-${type.toLowerCase().replace('_', '-')}`}
                 >
                   <ActivityIcon type={type} size={22} />
@@ -261,7 +261,7 @@ export function ActivityPicker({
                     onSelect(type)
                     onClose()
                   }}
-                  className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300"
+                  className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300"
                   data-testid={`picker-activity-${type.toLowerCase().replace('_', '-')}`}
                 >
                   <ActivityIcon type={type} size={22} />
@@ -277,4 +277,3 @@ export function ActivityPicker({
     </>
   )
 }
-

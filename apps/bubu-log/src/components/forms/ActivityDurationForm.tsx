@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState } from 'react'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { ActivityIcon } from '../ActivityIcon'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
@@ -34,23 +34,23 @@ const ACTIVITY_CONFIGS: Partial<Record<ActivityType, ActivityConfig>> = {
   },
   [ActivityType.PASSIVE_EXERCISE]: {
     defaultDuration: 10,
-    color: 'green',
+    color: 'orange',
   },
   [ActivityType.GAS_EXERCISE]: {
     defaultDuration: 10,
-    color: 'lime',
+    color: 'amber',
   },
   [ActivityType.BATH]: {
     defaultDuration: 15,
-    color: 'cyan',
+    color: 'yellow',
   },
   [ActivityType.OUTDOOR]: {
     defaultDuration: 30,
-    color: 'emerald',
+    color: 'amber',
   },
   [ActivityType.EARLY_EDUCATION]: {
     defaultDuration: 20,
-    color: 'purple',
+    color: 'orange',
   },
 }
 
@@ -61,19 +61,72 @@ const DEFAULT_CONFIG: ActivityConfig = {
 
 const STORAGE_KEY_PREFIX = 'activity_duration_'
 
+interface DurationPreferences {
+  rememberSelection: boolean
+  duration: number
+}
+
+interface ActivityDurationInitialState {
+  rememberSelection: boolean
+  startTime: Date
+  endTime: Date
+}
+
+function loadDurationPreferences(type: ActivityType): DurationPreferences {
+  if (typeof window === 'undefined') {
+    return { rememberSelection: false, duration: 0 }
+  }
+
+  try {
+    const saved = localStorage.getItem(`${STORAGE_KEY_PREFIX}${type}`)
+    if (!saved) return { rememberSelection: false, duration: 0 }
+    const parsed = JSON.parse(saved) as Partial<DurationPreferences>
+    return {
+      rememberSelection: Boolean(parsed.rememberSelection),
+      duration: typeof parsed.duration === 'number' ? parsed.duration : 0,
+    }
+  } catch (e) {
+    console.error('Failed to load preferences:', e)
+    return { rememberSelection: false, duration: 0 }
+  }
+}
+
+function getActivityDurationInitialState(
+  type: ActivityType,
+  defaultDuration: number,
+  initialValues?: ActivityDurationFormProps['initialValues'],
+  isEditing?: boolean
+): ActivityDurationInitialState {
+  const fallbackEndTime = initialValues?.endTime || new Date()
+  const fallbackStartTime = initialValues?.startTime || dayjs(fallbackEndTime).subtract(defaultDuration, 'minute').toDate()
+
+  if (initialValues || isEditing) {
+    return {
+      rememberSelection: false,
+      startTime: fallbackStartTime,
+      endTime: fallbackEndTime,
+    }
+  }
+
+  const preferences = loadDurationPreferences(type)
+  const now = dayjs()
+  const duration = preferences.rememberSelection && preferences.duration > 0 ? preferences.duration : defaultDuration
+
+  return {
+    rememberSelection: preferences.rememberSelection && preferences.duration > 0,
+    startTime: now.subtract(duration, 'minute').toDate(),
+    endTime: now.toDate(),
+  }
+}
+
 export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, isEditing }: ActivityDurationFormProps) {
   const config = ACTIVITY_CONFIGS[type] || DEFAULT_CONFIG
-  const [rememberSelection, setRememberSelection] = useState(false)
-  
-  // 计算初始的开始时间和结束时间
-  const initialEndTime = useMemo(() => initialValues?.endTime || new Date(), [initialValues?.endTime])
-  const initialStartTime = useMemo(() => {
-    if (initialValues?.startTime) return initialValues.startTime
-    return dayjs(initialEndTime).subtract(config.defaultDuration, 'minute').toDate()
-  }, [initialEndTime, initialValues?.startTime, config.defaultDuration])
-  
-  const [startTime, setStartTime] = useState(initialStartTime)
-  const [endTime, setEndTime] = useState(initialEndTime)
+  const [initialState] = useState<ActivityDurationInitialState>(() =>
+    getActivityDurationInitialState(type, config.defaultDuration, initialValues, isEditing)
+  )
+  const [rememberSelection, setRememberSelection] = useState(initialState.rememberSelection)
+  const [startTime, setStartTime] = useState(initialState.startTime)
+  const [endTime, setEndTime] = useState(initialState.endTime)
 
   // 计算时长
   const duration = calculateDurationMinutes(startTime, endTime)
@@ -91,38 +144,6 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
       return `${minutes}分钟`
     }
   }
-
-  // 加载保存的偏好设置（仅在新建时）
-  useEffect(() => {
-    if (isEditing) return
-    try {
-      const saved = localStorage.getItem(`${STORAGE_KEY_PREFIX}${type}`)
-      if (saved) {
-        const savedData = JSON.parse(saved)
-        if (savedData.rememberSelection && !initialValues) {
-          const now = dayjs()
-          setEndTime(now.toDate())
-          setStartTime(now.subtract(savedData.duration, 'minute').toDate())
-          setRememberSelection(true)
-        } else if (!initialValues) {
-          const now = dayjs()
-          setEndTime(now.toDate())
-          setStartTime(now.subtract(config.defaultDuration, 'minute').toDate())
-        }
-      } else if (!initialValues) {
-        const now = dayjs()
-        setEndTime(now.toDate())
-        setStartTime(now.subtract(config.defaultDuration, 'minute').toDate())
-      }
-    } catch (e) {
-      console.error('Failed to load preferences:', e)
-      if (!initialValues) {
-        const now = dayjs()
-        setEndTime(now.toDate())
-        setStartTime(now.subtract(config.defaultDuration, 'minute').toDate())
-      }
-    }
-  }, [type, config.defaultDuration, isEditing, initialValues])
 
   // 保存偏好设置
   const savePreferences = () => {
@@ -176,11 +197,8 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
   const getColorStyles = () => {
     const colorMap: Record<string, { bg: string; text: string; textDark: string }> = {
       amber: { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-600 dark:text-amber-400', textDark: 'text-amber-700 dark:text-amber-300' },
-      green: { bg: 'bg-green-50 dark:bg-green-900/20', text: 'text-green-600 dark:text-green-400', textDark: 'text-green-700 dark:text-green-300' },
-      lime: { bg: 'bg-lime-50 dark:bg-lime-900/20', text: 'text-lime-600 dark:text-lime-400', textDark: 'text-lime-700 dark:text-lime-300' },
-      cyan: { bg: 'bg-cyan-50 dark:bg-cyan-900/20', text: 'text-cyan-600 dark:text-cyan-400', textDark: 'text-cyan-700 dark:text-cyan-300' },
-      emerald: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-600 dark:text-emerald-400', textDark: 'text-emerald-700 dark:text-emerald-300' },
-      purple: { bg: 'bg-purple-50 dark:bg-purple-900/20', text: 'text-purple-600 dark:text-purple-400', textDark: 'text-purple-700 dark:text-purple-300' },
+      yellow: { bg: 'bg-yellow-50 dark:bg-yellow-900/20', text: 'text-yellow-700 dark:text-yellow-400', textDark: 'text-yellow-800 dark:text-yellow-300' },
+      orange: { bg: 'bg-orange-50 dark:bg-orange-900/20', text: 'text-orange-600 dark:text-orange-400', textDark: 'text-orange-700 dark:text-orange-300' },
     }
     return colorMap[config.color] || colorMap.amber
   }
@@ -191,7 +209,7 @@ export function ActivityDurationForm({ type, onSubmit, onCancel, initialValues, 
     <div className="space-y-6 animate-fade-in">
       {/* 活动图标和名称 */}
       <div className="text-center flex flex-col items-center">
-        <ActivityIcon type={type} size={48} className="text-amber-500" />
+        <ActivityIcon type={type} size={48} className={colorStyles.textDark} />
         <h3 className="text-xl font-bold mt-2 text-gray-800 dark:text-gray-100">
           {ActivityTypeLabels[type]}
         </h3>

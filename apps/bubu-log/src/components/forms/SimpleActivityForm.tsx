@@ -27,13 +27,13 @@ export function SimpleActivityForm({ type, onSubmit, onCancel, initialValues }: 
   const getGradient = () => {
     switch (type) {
       case ActivityType.SLEEP:
-        return 'from-indigo-500 to-purple-500'
+        return 'from-sky-500 to-blue-500'
       case ActivityType.BREASTFEED:
-        return 'from-pink-500 to-rose-500'
+        return 'from-rose-500 to-pink-500'
       case ActivityType.BOTTLE:
-        return 'from-blue-500 to-indigo-500'
+        return 'from-pink-500 to-rose-500'
       case ActivityType.DIAPER:
-        return 'from-cyan-500 to-teal-500'
+        return 'from-yellow-400 to-amber-500'
       default:
         return 'from-amber-500 to-orange-500'
     }
@@ -69,4 +69,3 @@ export function SimpleActivityForm({ type, onSubmit, onCancel, initialValues }: 
     </div>
   )
 }
-
