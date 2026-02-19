@@ -31,6 +31,11 @@ interface StatsCardListProps {
   onStatCardClick?: (filter: StatFilter) => void
 }
 
+interface CardTone {
+  active: string
+  inactive: string
+}
+
 function formatSleepDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60)
   const minutePart = String(minutes % 60).padStart(2, '0')
@@ -45,34 +50,67 @@ export function StatsCardList({
   const activeFilterSet = new Set(activeFilters)
   const normalizedPeeCount = summary.largePeeDiaperCount + Math.ceil(summary.smallMediumPeeDiaperCount / 2)
 
-  const cards: Array<{ key: StatFilter; label: string; value: string; testId: string }> = [
-    { key: 'sleep', label: '睡', value: formatSleepDuration(summary.totalSleepMinutes), testId: 'stat-card-sleep' },
-    { key: 'bottle', label: '瓶', value: `${summary.totalBottleMilkAmount} ml`, testId: 'stat-card-bottle' },
-    { key: 'breastfeed', label: '亲', value: `${summary.totalBreastfeedMinutes} min`, testId: 'stat-card-breastfeed' },
-    { key: 'pump', label: '吸', value: `${summary.totalPumpMilkAmount} ml`, testId: 'stat-card-pump' },
-    { key: 'diaper', label: '尿', value: `${normalizedPeeCount} 次`, testId: 'stat-card-diaper' },
-    { key: 'outdoor', label: '阳', value: `${summary.totalOutdoorMinutes} min`, testId: 'stat-card-outdoor' },
-    { key: 'headLift', label: '趴', value: `${summary.totalHeadLiftMinutes} min`, testId: 'stat-card-head-lift' },
-    { key: 'rollOver', label: '翻', value: `${summary.totalRollOverCount} 次`, testId: 'stat-card-roll-over' },
+  const toneByFilter: Record<StatFilter, CardTone> = {
+    sleep: {
+      active: 'border-sky-500 bg-sky-100 text-sky-800 dark:border-sky-400 dark:bg-sky-900/60 dark:text-sky-200',
+      inactive: 'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-900/40',
+    },
+    bottle: {
+      active: 'border-pink-500 bg-pink-100 text-pink-800 dark:border-pink-400 dark:bg-pink-900/60 dark:text-pink-200',
+      inactive: 'border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 dark:border-pink-800 dark:bg-pink-950/40 dark:text-pink-300 dark:hover:bg-pink-900/40',
+    },
+    breastfeed: {
+      active: 'border-pink-500 bg-pink-100 text-pink-800 dark:border-pink-400 dark:bg-pink-900/60 dark:text-pink-200',
+      inactive: 'border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 dark:border-pink-800 dark:bg-pink-950/40 dark:text-pink-300 dark:hover:bg-pink-900/40',
+    },
+    pump: {
+      active: 'border-pink-500 bg-pink-100 text-pink-800 dark:border-pink-400 dark:bg-pink-900/60 dark:text-pink-200',
+      inactive: 'border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 dark:border-pink-800 dark:bg-pink-950/40 dark:text-pink-300 dark:hover:bg-pink-900/40',
+    },
+    diaper: {
+      active: 'border-yellow-500 bg-yellow-100 text-yellow-800 dark:border-yellow-400 dark:bg-yellow-900/60 dark:text-yellow-200',
+      inactive: 'border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300 dark:hover:bg-yellow-900/40',
+    },
+    outdoor: {
+      active: 'border-amber-500 bg-amber-100 text-amber-800 dark:border-amber-400 dark:bg-amber-900/60 dark:text-amber-200',
+      inactive: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/40',
+    },
+    headLift: {
+      active: 'border-amber-500 bg-amber-100 text-amber-800 dark:border-amber-400 dark:bg-amber-900/60 dark:text-amber-200',
+      inactive: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/40',
+    },
+    rollOver: {
+      active: 'border-amber-500 bg-amber-100 text-amber-800 dark:border-amber-400 dark:bg-amber-900/60 dark:text-amber-200',
+      inactive: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/40',
+    },
+  }
+
+  const cards: Array<{ key: StatFilter; label: string; value: string; testId: string; tone: CardTone }> = [
+    { key: 'sleep', label: '睡', value: formatSleepDuration(summary.totalSleepMinutes), testId: 'stat-card-sleep', tone: toneByFilter.sleep },
+    { key: 'bottle', label: '瓶', value: `${summary.totalBottleMilkAmount} ml`, testId: 'stat-card-bottle', tone: toneByFilter.bottle },
+    { key: 'breastfeed', label: '亲', value: `${summary.totalBreastfeedMinutes} min`, testId: 'stat-card-breastfeed', tone: toneByFilter.breastfeed },
+    { key: 'pump', label: '吸', value: `${summary.totalPumpMilkAmount} ml`, testId: 'stat-card-pump', tone: toneByFilter.pump },
+    { key: 'diaper', label: '尿', value: `${normalizedPeeCount} 次`, testId: 'stat-card-diaper', tone: toneByFilter.diaper },
+    { key: 'outdoor', label: '阳', value: `${summary.totalOutdoorMinutes} min`, testId: 'stat-card-outdoor', tone: toneByFilter.outdoor },
+    { key: 'headLift', label: '趴', value: `${summary.totalHeadLiftMinutes} min`, testId: 'stat-card-head-lift', tone: toneByFilter.headLift },
+    { key: 'rollOver', label: '翻', value: `${summary.totalRollOverCount} 次`, testId: 'stat-card-roll-over', tone: toneByFilter.rollOver },
   ]
 
   return (
-    <div className="grid grid-cols-4 gap-1.5">
+    <div className="grid grid-cols-4 gap-1">
       {cards.map((card) => {
         const isActive = activeFilterSet.has(card.key)
         return (
           <button
             key={card.key}
             onClick={() => onStatCardClick?.(card.key)}
-            className={`rounded-lg border px-2 py-1.5 text-left transition-colors ${
-              isActive
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`rounded-md border px-2 py-1 text-left transition-colors ${isActive ? card.tone.active : card.tone.inactive}`}
             data-testid={card.testId}
           >
-            <p className="text-[11px] font-medium leading-none">{card.label}</p>
-            <p className="mt-1 text-sm font-semibold leading-tight">{card.value}</p>
+            <div className="flex items-center gap-1">
+              <span className="text-[11px] font-medium leading-none">{card.label}</span>
+              <span className="flex-1 truncate text-right text-[11px] font-semibold leading-none whitespace-nowrap">{card.value}</span>
+            </div>
           </button>
         )
       })}
