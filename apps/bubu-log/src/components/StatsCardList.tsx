@@ -60,28 +60,28 @@ export function StatsCardList({
       inactive: 'border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 dark:border-pink-800 dark:bg-pink-950/40 dark:text-pink-300 dark:hover:bg-pink-900/40',
     },
     breastfeed: {
-      active: 'border-pink-500 bg-pink-100 text-pink-800 dark:border-pink-400 dark:bg-pink-900/60 dark:text-pink-200',
-      inactive: 'border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 dark:border-pink-800 dark:bg-pink-950/40 dark:text-pink-300 dark:hover:bg-pink-900/40',
+      active: 'border-rose-500 bg-rose-100 text-rose-800 dark:border-rose-400 dark:bg-rose-900/60 dark:text-rose-200',
+      inactive: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-900/40',
     },
     pump: {
-      active: 'border-pink-500 bg-pink-100 text-pink-800 dark:border-pink-400 dark:bg-pink-900/60 dark:text-pink-200',
-      inactive: 'border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 dark:border-pink-800 dark:bg-pink-950/40 dark:text-pink-300 dark:hover:bg-pink-900/40',
+      active: 'border-fuchsia-500 bg-fuchsia-100 text-fuchsia-800 dark:border-fuchsia-400 dark:bg-fuchsia-900/60 dark:text-fuchsia-200',
+      inactive: 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 hover:bg-fuchsia-100 dark:border-fuchsia-800 dark:bg-fuchsia-950/40 dark:text-fuchsia-300 dark:hover:bg-fuchsia-900/40',
     },
     diaper: {
-      active: 'border-yellow-500 bg-yellow-100 text-yellow-800 dark:border-yellow-400 dark:bg-yellow-900/60 dark:text-yellow-200',
-      inactive: 'border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300 dark:hover:bg-yellow-900/40',
+      active: 'border-yellow-500 bg-yellow-100 text-yellow-900 dark:border-yellow-400 dark:bg-yellow-900/60 dark:text-yellow-200',
+      inactive: 'border-yellow-200 bg-yellow-50 text-yellow-800 hover:bg-yellow-100 dark:border-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300 dark:hover:bg-yellow-900/40',
     },
     outdoor: {
-      active: 'border-amber-500 bg-amber-100 text-amber-800 dark:border-amber-400 dark:bg-amber-900/60 dark:text-amber-200',
-      inactive: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/40',
+      active: 'border-amber-600 bg-amber-100 text-amber-900 dark:border-amber-500 dark:bg-amber-900/60 dark:text-amber-200',
+      inactive: 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/40',
     },
     headLift: {
-      active: 'border-amber-500 bg-amber-100 text-amber-800 dark:border-amber-400 dark:bg-amber-900/60 dark:text-amber-200',
-      inactive: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/40',
+      active: 'border-orange-500 bg-orange-100 text-orange-900 dark:border-orange-400 dark:bg-orange-900/60 dark:text-orange-200',
+      inactive: 'border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300 dark:hover:bg-orange-900/40',
     },
     rollOver: {
-      active: 'border-amber-500 bg-amber-100 text-amber-800 dark:border-amber-400 dark:bg-amber-900/60 dark:text-amber-200',
-      inactive: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-900/40',
+      active: 'border-orange-600 bg-orange-100 text-orange-900 dark:border-orange-500 dark:bg-orange-900/60 dark:text-orange-200',
+      inactive: 'border-orange-300 bg-orange-50 text-orange-800 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300 dark:hover:bg-orange-900/40',
     },
   }
 
