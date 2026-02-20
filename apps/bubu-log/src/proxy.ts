@@ -5,7 +5,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // 公开路由，不需要认证
-  const publicRoutes = ["/login", "/api/auth", "/manifest.json"]
+  const publicRoutes = ["/login", "/admin", "/api", "/manifest.json"]
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
 
   if (isPublicRoute) {

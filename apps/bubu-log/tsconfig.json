@@ -3,6 +3,7 @@
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],
+      "@payload-config": ["./payload.config.ts"],
       "@bubu-log/ui": ["../../packages/ui/src"],
       "@bubu-log/ui/*": ["../../packages/ui/src/*"],
       "@bubu-log/log-ui": ["../../packages/log-ui/src"],
