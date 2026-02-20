@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
-import { isCMSAdmin } from '../access/isCMSAdmin'
-import { ensureTextId } from '../utils/document'
+import { isCMSAdmin } from '../access/isCMSAdmin.ts'
+import { ensureTextId } from '../utils/document.ts'
 
 export const BabyUsers: CollectionConfig = {
   slug: 'baby-users',

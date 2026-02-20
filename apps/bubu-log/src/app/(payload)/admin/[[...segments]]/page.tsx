@@ -1,7 +1,8 @@
 import configPromise from '@payload-config'
 import { RootPage } from '@payloadcms/next/views'
 import type { Metadata } from 'next'
-import { importMap } from '../../importMap'
+import { isRedirectError } from 'next/dist/client/components/redirect-error'
+import { importMap } from '../importMap.js'
 
 type Args = {
   params: Promise<{ segments: string[] }>
@@ -21,6 +22,10 @@ const Page = async ({ params, searchParams }: Args) => {
       searchParams,
     })
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error
+    }
+
     console.warn(
       'Payload admin init check failed:',
       error instanceof Error ? error.message : 'unknown error'

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
-import { isCMSAdmin } from '../access/isCMSAdmin'
-import { ensureTextId, touchTimestamps } from '../utils/document'
+import { isCMSAdmin } from '../access/isCMSAdmin.ts'
+import { ensureTextId, touchTimestamps } from '../utils/document.ts'
 
 export const Babies: CollectionConfig = {
   slug: 'babies',

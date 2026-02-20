@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs'
 import type { CollectionConfig } from 'payload'
-import { isCMSAdmin } from '../access/isCMSAdmin'
-import { ensureTextId, touchTimestamps } from '../utils/document'
+import { isCMSAdmin } from '../access/isCMSAdmin.ts'
+import { ensureTextId, touchTimestamps } from '../utils/document.ts'
 
 const USERNAME_REGEX = /^[a-zA-Z0-9._-]+$/
 const BCRYPT_HASH_REGEX = /^\$2[aby]\$/

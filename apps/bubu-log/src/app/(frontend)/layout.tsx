@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
-import './globals.css'
-import { Providers } from './providers'
+import '../globals.css'
+import { Providers } from '../providers'
 import { Toaster } from '@bubu-log/ui/sonner'
 
 export const metadata: Metadata = {

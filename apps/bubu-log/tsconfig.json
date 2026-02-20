@@ -1,6 +1,7 @@
 {
   "extends": "@bubu-log/typescript-config/nextjs.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/*": ["./src/*"],
       "@payload-config": ["./payload.config.ts"],
