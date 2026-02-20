@@ -1,0 +1,19 @@
+{
+  "name": "记录宝宝活动",
+  "description": "Siri 听写后调用 bubu-log webhook 创建活动",
+  "request": {
+    "url": "https://your-domain.vercel.app/api/webhooks/voice-input",
+    "method": "POST",
+    "headers": {
+      "x-api-key": "YOUR_VOICE_WEBHOOK_API_KEY",
+      "Content-Type": "application/json"
+    },
+    "json": {
+      "text": "{{Dictated Text}}",
+      "localTime": "{{Current Date:yyyy-MM-dd HH:mm}}"
+    }
+  },
+  "response": {
+    "displayField": "message"
+  }
+}

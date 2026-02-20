@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useEffect, useRef, Suspense, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { AvatarUpload } from '@/components/AvatarUpload'
+import { BabyAvatarLink } from '@/components/BabyAvatarLink'
 import { PullToRefresh } from '@/components/PullToRefresh'
 import { ActivityFAB } from '@/components/ActivityFAB'
 import { DayTimeline, type DayTimelineRef } from '@/components/DayTimeline'
@@ -381,7 +381,7 @@ function HomeContent() {
         {/* 头部 */}
         <header className="px-4 py-3 flex items-center gap-3">
           {/* 头像 */}
-          <AvatarUpload />
+          <BabyAvatarLink />
           
           {/* 日期切换器 */}
           <DateNavigator
