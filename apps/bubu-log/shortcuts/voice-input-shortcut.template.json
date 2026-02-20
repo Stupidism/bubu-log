@@ -1,11 +1,11 @@
 {
   "name": "记录宝宝活动",
-  "description": "Siri 听写后调用 bubu-log webhook 创建活动",
+  "description": "Siri 听写后调用 bubu-log webhook 创建活动（当前用户自动绑定）",
   "request": {
     "url": "https://your-domain.vercel.app/api/webhooks/voice-input",
     "method": "POST",
     "headers": {
-      "x-api-key": "YOUR_VOICE_WEBHOOK_API_KEY",
+      "Authorization": "Bearer YOUR_SIGNED_WEBHOOK_TOKEN",
       "Content-Type": "application/json"
     },
     "json": {
@@ -15,5 +15,9 @@
   },
   "response": {
     "displayField": "message"
+  },
+  "meta": {
+    "tokenSource": "GET /api/webhooks/voice-input/token (requires login)",
+    "expiresAt": "2026-12-31T00:00:00.000Z"
   }
 }

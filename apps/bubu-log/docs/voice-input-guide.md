@@ -14,7 +14,7 @@
 
 ## 方案一：iPhone Siri Shortcuts（推荐）
 
-> 最新版本建议使用 API Key webhook：`/api/webhooks/voice-input`（无需依赖登录 Cookie，Siri 更稳定）。
+> 最新版本建议使用「用户专属 Bearer Token webhook」：自动绑定当前登录用户和宝宝。
 
 ### 设置步骤
 
@@ -34,7 +34,7 @@
      - **URL**: `https://你的域名.vercel.app/api/webhooks/voice-input`
      - **方法**: POST
      - **请求头**:
-       - `x-api-key`: `你的 VOICE_WEBHOOK_API_KEY`
+       - `Authorization`: `Bearer 你的 SIGNED_WEBHOOK_TOKEN`
      - **请求体**: JSON
      - **JSON 内容**:
        - `text`: 选择「听写文本」变量
@@ -135,16 +135,24 @@
 ### 环境变量
 
 - `DEEPSEEK_API_KEY`: 语音文本解析模型 key
-- `VOICE_WEBHOOK_API_KEY`: Webhook 鉴权 key（Siri 请求头 `x-api-key`）
-- `VOICE_WEBHOOK_DEFAULT_BABY_ID`（可选）: 未传 `babyId` 时使用的默认宝宝
-- `VOICE_WEBHOOK_AUDIT_USER_ID`（可选）: 审计日志归属用户 ID
+- `AUTH_SECRET`（或 `NEXTAUTH_SECRET`）: 签名当前用户 webhook token
+- `VOICE_WEBHOOK_API_KEY`（可选）: 全局兼容模式鉴权 key（非当前用户自动绑定模式）
+- `VOICE_WEBHOOK_DEFAULT_BABY_ID`（可选）: 全局兼容模式下默认宝宝
+- `VOICE_WEBHOOK_AUDIT_USER_ID`（可选）: 全局兼容模式下审计日志用户
 - `NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL`（可选）: `/settings` 一键安装快捷指令链接（推荐 iCloud 分享链接）
+
+### 先获取当前用户 token（推荐）
+
+```bash
+GET /api/webhooks/voice-input/token
+Cookie: <登录态 cookie>
+```
 
 ### 请求
 
 ```bash
 POST /api/webhooks/voice-input
-x-api-key: <VOICE_WEBHOOK_API_KEY>
+Authorization: Bearer <SIGNED_WEBHOOK_TOKEN>
 Content-Type: application/json
 
 {
@@ -237,7 +245,8 @@ A: 目前优化为中文，英文可能识别不准。
 语音解析使用 Deepseek AI 模型，成本极低（每月约 ¥0.01）。
 
 API 端点:
-- `/api/webhooks/voice-input`（API Key，推荐给 Siri）
+- `/api/webhooks/voice-input/token`（登录态，生成当前用户 token）
+- `/api/webhooks/voice-input`（Bearer token / session / API Key 兼容）
 - `/api/voice-input`（登录态）
 
 设置入口:
