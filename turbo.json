@@ -1,5 +1,32 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "AUTH_SECRET",
+    "BLOB_READ_WRITE_TOKEN",
+    "DATABASE_URL",
+    "DATABASE_URL_UNPOOLED",
+    "DEEPSEEK_API_KEY",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "NEON_PROJECT_ID",
+    "PAYLOAD_DATABASE_URL",
+    "PAYLOAD_SECRET",
+    "PGDATABASE",
+    "PGHOST",
+    "PGHOST_UNPOOLED",
+    "PGPASSWORD",
+    "PGUSER",
+    "POSTGRES_DATABASE",
+    "POSTGRES_HOST",
+    "POSTGRES_PASSWORD",
+    "POSTGRES_PRISMA_URL",
+    "POSTGRES_URL",
+    "POSTGRES_URL_NON_POOLING",
+    "POSTGRES_URL_NO_SSL",
+    "POSTGRES_USER",
+    "VOLCENGINE_ACCESS_TOKEN",
+    "VOLCENGINE_APP_ID"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
