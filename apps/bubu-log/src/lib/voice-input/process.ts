@@ -1,6 +1,6 @@
-import { Prisma } from '@prisma/client'
-import { prisma } from '@/lib/prisma'
 import { ActivityType, PoopColor, PeeAmount, type SpitUpType, type MilkSource } from '@/types/activity'
+import { getPayloadClient } from '@/lib/payload/client'
+import { createAuditLog } from '@/lib/payload/audit'
 
 // Deepseek API configuration
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions'
@@ -180,6 +180,7 @@ export interface ProcessVoiceInputOptions {
   localTime?: string | null
   babyId: string
   userId?: string | null
+  confirmationBaseUrl?: string | null
 }
 
 export interface ProcessVoiceInputResult {
@@ -259,7 +260,7 @@ const typeLabelsForLog: Record<ActivityType, string> = {
 
 // Parse voice input and create activity
 export async function processVoiceInput(options: ProcessVoiceInputOptions): Promise<ProcessVoiceInputResult> {
-  const { text, localTime, babyId, userId = null } = options
+  const { text, localTime, babyId, userId = null, confirmationBaseUrl = null } = options
 
   try {
     if (!text || typeof text !== 'string') {
@@ -276,6 +277,8 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
       }
     }
 
+    const payload = await getPayloadClient()
+
     // Use provided localTime or fallback to server time
     // localTime should be in format like "2024-01-22 15:30" (user's local time)
     const userLocalTime = localTime || new Date().toISOString()
@@ -286,22 +289,19 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
     // Check if parsing failed
     if ('error' in parsed) {
       // Record failed audit log
-      await prisma.auditLog.create({
-        data: {
-          action: 'CREATE',
-          resourceType: 'ACTIVITY',
-          resourceId: null,
-          inputMethod: 'VOICE',
-          inputText: text,
-          description: `语音: "${text}" - ${parsed.error}`,
-          success: false,
-          errorMessage: parsed.error,
-          beforeData: Prisma.JsonNull,
-          afterData: Prisma.JsonNull,
-          activityId: null,
-          babyId,
-          userId,
-        },
+      await createAuditLog(payload, {
+        action: 'CREATE',
+        resourceId: null,
+        inputMethod: 'VOICE',
+        inputText: text,
+        description: `语音: "${text}" - ${parsed.error}`,
+        success: false,
+        errorMessage: parsed.error,
+        beforeData: null,
+        afterData: null,
+        activityId: null,
+        babyId,
+        userId,
       })
 
       return {
@@ -317,22 +317,19 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
     // Validate activity type
     if (!Object.values(ActivityType).includes(parsed.type)) {
       // Record failed audit log
-      await prisma.auditLog.create({
-        data: {
-          action: 'CREATE',
-          resourceType: 'ACTIVITY',
-          resourceId: null,
-          inputMethod: 'VOICE',
-          inputText: text,
-          description: `语音: "${text}" - 无效类型`,
-          success: false,
-          errorMessage: `无效的活动类型: ${parsed.type}`,
-          beforeData: Prisma.JsonNull,
-          afterData: Prisma.JsonNull,
-          activityId: null,
-          babyId,
-          userId,
-        },
+      await createAuditLog(payload, {
+        action: 'CREATE',
+        resourceId: null,
+        inputMethod: 'VOICE',
+        inputText: text,
+        description: `语音: "${text}" - 无效类型`,
+        success: false,
+        errorMessage: `无效的活动类型: ${parsed.type}`,
+        beforeData: null,
+        afterData: null,
+        activityId: null,
+        babyId,
+        userId,
       })
 
       return {
@@ -360,28 +357,33 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
     if (parsed.confidence < CONFIDENCE_THRESHOLD) {
       // Record low confidence audit log (still counts as needing confirmation)
       const typeLabel = typeLabelsForLog[parsed.type] || parsed.type
-      await prisma.auditLog.create({
-        data: {
-          action: 'CREATE',
-          resourceType: 'ACTIVITY',
-          resourceId: null,
-          inputMethod: 'VOICE',
-          inputText: text,
-          description: `语音: "${text}" - 待确认${typeLabel}`,
-          success: true,
-          beforeData: Prisma.JsonNull,
-          afterData: parsed as unknown as Prisma.InputJsonValue,
-          activityId: null,
-          babyId,
-          userId,
-        },
+      const pendingSubmission = await createAuditLog(payload, {
+        action: 'CREATE',
+        resourceId: null,
+        inputMethod: 'VOICE',
+        inputText: text,
+        description: `语音: "${text}" - 待确认${typeLabel}`,
+        success: true,
+        beforeData: null,
+        afterData: parsed,
+        activityId: null,
+        babyId,
+        userId,
       })
+
+      const submissionId =
+        pendingSubmission && typeof pendingSubmission === 'object' && 'id' in pendingSubmission
+          ? String(pendingSubmission.id)
+          : null
+      const confirmationUrl = buildConfirmationUrl(confirmationBaseUrl, submissionId)
 
       return {
         status: 200,
         body: {
           success: true,
           needConfirmation: true,
+          submissionId,
+          confirmationUrl,
           parsed: {
             type: parsed.type,
             startTime: startTime.toISOString(),
@@ -404,11 +406,12 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
     }
 
     // Create the activity
-    const activity = await prisma.activity.create({
+    const activity = await payload.create({
+      collection: 'activities',
       data: {
         type: parsed.type,
-        startTime,
-        endTime,
+        startTime: startTime.toISOString(),
+        endTime: endTime ? endTime.toISOString() : null,
         babyId,
         milkAmount: parsed.milkAmount,
         milkSource: parsed.milkSource,
@@ -420,6 +423,8 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
         count: parsed.count,
         notes: parsed.notes,
       },
+      depth: 0,
+      overrideAccess: true,
     })
 
     // Generate description for successful audit log
@@ -427,21 +432,18 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
     const description = `语音: "${text}" - 创建${typeLabel}`
 
     // Record audit log for voice input
-    await prisma.auditLog.create({
-      data: {
-        action: 'CREATE',
-        resourceType: 'ACTIVITY',
-        resourceId: activity.id,
-        inputMethod: 'VOICE',
-        inputText: text,
-        description,
-        success: true,
-        beforeData: Prisma.JsonNull,
-        afterData: activity as Prisma.InputJsonValue,
-        activityId: activity.id,
-        babyId,
-        userId,
-      },
+    await createAuditLog(payload, {
+      action: 'CREATE',
+      resourceId: String(activity.id),
+      inputMethod: 'VOICE',
+      inputText: text,
+      description,
+      success: true,
+      beforeData: null,
+      afterData: activity,
+      activityId: String(activity.id),
+      babyId,
+      userId,
     })
 
     // Return success with activity details and parse info
@@ -450,6 +452,8 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
       body: {
         success: true,
         needConfirmation: false,
+        submissionId: null,
+        confirmationUrl: null,
         activity,
         parsed: {
           confidence: parsed.confidence,
@@ -467,22 +471,20 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
     // Try to record the error in audit log
     try {
       if (text) {
-        await prisma.auditLog.create({
-          data: {
-            action: 'CREATE',
-            resourceType: 'ACTIVITY',
-            resourceId: null,
-            inputMethod: 'VOICE',
-            inputText: text,
-            description: `语音: "${text}" - 处理失败`,
-            success: false,
-            errorMessage,
-            beforeData: Prisma.JsonNull,
-            afterData: Prisma.JsonNull,
-            activityId: null,
-            babyId,
-            userId,
-          },
+        const payload = await getPayloadClient()
+        await createAuditLog(payload, {
+          action: 'CREATE',
+          resourceId: null,
+          inputMethod: 'VOICE',
+          inputText: text,
+          description: `语音: "${text}" - 处理失败`,
+          success: false,
+          errorMessage,
+          beforeData: null,
+          afterData: null,
+          activityId: null,
+          babyId,
+          userId,
         })
       }
     } catch {
@@ -497,6 +499,20 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
         code: 'PROCESSING_ERROR'
       },
     }
+  }
+}
+
+function buildConfirmationUrl(baseUrl: string | null, submissionId: string | null): string | null {
+  if (!baseUrl || !submissionId) {
+    return null
+  }
+
+  try {
+    const url = new URL('/', baseUrl)
+    url.searchParams.set('submission_id', submissionId)
+    return url.toString()
+  } catch {
+    return null
   }
 }
 

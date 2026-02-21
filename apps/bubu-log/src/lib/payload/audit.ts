@@ -47,7 +47,7 @@ function normalizeJson(value: unknown): JsonLike {
 }
 
 export async function createAuditLog(payload: Payload, input: CreateAuditInput) {
-  await payload.create({
+  return payload.create({
     collection: 'audit-logs',
     data: {
       action: input.action,

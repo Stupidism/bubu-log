@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
-import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth/get-current-baby'
+import { getPayloadClient } from '@/lib/payload/client'
 import { processVoiceInput } from '@/lib/voice-input/process'
 import { verifyVoiceWebhookToken } from '@/lib/voice-input/webhook-token'
 
@@ -93,12 +93,21 @@ export async function POST(request: NextRequest) {
 
         const auditUserId = process.env.VOICE_WEBHOOK_AUDIT_USER_ID ?? null
         if (auditUserId) {
-          const user = await prisma.user.findUnique({
-            where: { id: auditUserId },
-            select: { id: true },
+          const payload = await getPayloadClient()
+          const userResult = await payload.find({
+            collection: 'app-users',
+            where: {
+              id: {
+                equals: auditUserId,
+              },
+            },
+            limit: 1,
+            pagination: false,
+            depth: 0,
+            overrideAccess: true,
           })
 
-          if (!user) {
+          if (!userResult.docs.length) {
             return NextResponse.json(
               {
                 error: `Invalid VOICE_WEBHOOK_AUDIT_USER_ID: ${auditUserId}`,
@@ -127,10 +136,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const baby = await prisma.baby.findUnique({
-      where: { id: identity.babyId },
-      select: { id: true },
+    const payload = await getPayloadClient()
+    const babyResult = await payload.find({
+      collection: 'babies',
+      where: {
+        id: {
+          equals: identity.babyId,
+        },
+      },
+      limit: 1,
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
     })
+    const baby = babyResult.docs[0]
 
     if (!baby) {
       return NextResponse.json(
@@ -147,6 +166,7 @@ export async function POST(request: NextRequest) {
       localTime,
       babyId: baby.id,
       userId: identity.userId,
+      confirmationBaseUrl: process.env.VOICE_WEBHOOK_PUBLIC_BASE_URL?.trim() || request.nextUrl.origin,
     })
 
     return NextResponse.json(result.body, { status: result.status })

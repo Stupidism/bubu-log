@@ -341,7 +341,7 @@ export async function POST(request: NextRequest) {
     if (parsed.confidence < CONFIDENCE_THRESHOLD) {
       // Record low confidence audit log (still counts as needing confirmation)
       const typeLabel = typeLabelsForLog[parsed.type] || parsed.type
-      await createAuditLog(payload, {
+      const pendingSubmission = await createAuditLog(payload, {
         action: 'CREATE',
         resourceId: null,
         inputMethod: 'VOICE',
@@ -355,9 +355,17 @@ export async function POST(request: NextRequest) {
         userId: user.id,
       })
 
+      const submissionId =
+        pendingSubmission && typeof pendingSubmission === 'object' && 'id' in pendingSubmission
+          ? String(pendingSubmission.id)
+          : null
+      const confirmationUrl = buildConfirmationUrl(request.nextUrl.origin, submissionId)
+
       return NextResponse.json({
         success: true,
         needConfirmation: true,
+        submissionId,
+        confirmationUrl,
         parsed: {
           type: parsed.type,
           startTime: startTime.toISOString(),
@@ -423,6 +431,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       needConfirmation: false,
+      submissionId: null,
+      confirmationUrl: null,
       activity,
       parsed: {
         confidence: parsed.confidence,
@@ -467,6 +477,20 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     )
+  }
+}
+
+function buildConfirmationUrl(baseUrl: string, submissionId: string | null): string | null {
+  if (!submissionId) {
+    return null
+  }
+
+  try {
+    const url = new URL('/', baseUrl)
+    url.searchParams.set('submission_id', submissionId)
+    return url.toString()
+  } catch {
+    return null
   }
 }
 
