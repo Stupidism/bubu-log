@@ -33,6 +33,24 @@ type ResolvedIdentity = {
   userId: string | null
 }
 
+function logWebhookNonSuccess(input: {
+  status: number
+  code: string
+  text: string
+  babyId?: string | null
+  userId?: string | null
+  details?: string
+}) {
+  console.warn('[voice-webhook][non-success]', {
+    status: input.status,
+    code: input.code,
+    text: input.text,
+    babyId: input.babyId ?? null,
+    userId: input.userId ?? null,
+    details: input.details ?? null,
+  })
+}
+
 // POST: Parse voice input and create activity
 // Auth modes (priority):
 // 1) Signed user token (Authorization: Bearer <token>)
@@ -82,6 +100,12 @@ export async function POST(request: NextRequest) {
         const targetBabyId = bodyBabyId || process.env.VOICE_WEBHOOK_DEFAULT_BABY_ID || null
 
         if (!targetBabyId) {
+          logWebhookNonSuccess({
+            status: 400,
+            code: 'MISSING_BABY_ID',
+            text,
+            details: 'missing body.babyId and VOICE_WEBHOOK_DEFAULT_BABY_ID',
+          })
           return NextResponse.json(
             {
               error: 'Missing babyId. Provide body.babyId or VOICE_WEBHOOK_DEFAULT_BABY_ID',
@@ -108,6 +132,14 @@ export async function POST(request: NextRequest) {
           })
 
           if (!userResult.docs.length) {
+            logWebhookNonSuccess({
+              status: 500,
+              code: 'INVALID_AUDIT_USER_ID',
+              text,
+              babyId: targetBabyId,
+              userId: auditUserId,
+              details: `invalid VOICE_WEBHOOK_AUDIT_USER_ID: ${auditUserId}`,
+            })
             return NextResponse.json(
               {
                 error: `Invalid VOICE_WEBHOOK_AUDIT_USER_ID: ${auditUserId}`,
@@ -126,6 +158,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (!identity) {
+      logWebhookNonSuccess({
+        status: 401,
+        code: 'UNAUTHORIZED',
+        text,
+        details: 'missing valid signed token/session/api key',
+      })
       return NextResponse.json(
         {
           error: 'Unauthorized',
@@ -152,6 +190,14 @@ export async function POST(request: NextRequest) {
     const baby = babyResult.docs[0]
 
     if (!baby) {
+      logWebhookNonSuccess({
+        status: 404,
+        code: 'BABY_NOT_FOUND',
+        text,
+        babyId: identity.babyId,
+        userId: identity.userId,
+        details: `baby not found: ${identity.babyId}`,
+      })
       return NextResponse.json(
         {
           error: `Baby not found: ${identity.babyId}`,
@@ -173,6 +219,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Voice webhook processing failed:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    logWebhookNonSuccess({
+      status: 500,
+      code: 'PROCESSING_ERROR',
+      text: '',
+      details: errorMessage,
+    })
 
     return NextResponse.json(
       {

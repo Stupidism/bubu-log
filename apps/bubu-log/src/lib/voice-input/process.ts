@@ -188,6 +188,32 @@ export interface ProcessVoiceInputResult {
   body: Record<string, unknown>
 }
 
+type NonSuccessLogInput = {
+  status: number
+  code: string
+  text: string
+  babyId: string | null
+  userId: string | null
+  details?: string
+  needConfirmation?: boolean
+  submissionId?: string | null
+  confidence?: number | null
+}
+
+function logNonSuccess(input: NonSuccessLogInput) {
+  console.warn('[voice-input][non-success]', {
+    status: input.status,
+    code: input.code,
+    babyId: input.babyId,
+    userId: input.userId,
+    text: input.text,
+    details: input.details ?? null,
+    needConfirmation: input.needConfirmation ?? false,
+    submissionId: input.submissionId ?? null,
+    confidence: input.confidence ?? null,
+  })
+}
+
 async function callDeepseek(text: string, userLocalTime: string): Promise<ParsedActivity | ParseError> {
   const apiKey = process.env.DEEPSEEK_API_KEY
   
@@ -264,6 +290,14 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
 
   try {
     if (!text || typeof text !== 'string') {
+      logNonSuccess({
+        status: 400,
+        code: 'MISSING_TEXT',
+        text: String(text ?? ''),
+        babyId,
+        userId,
+        details: 'missing text payload',
+      })
       return {
         status: 400,
         body: { error: '请提供语音文本内容', code: 'MISSING_TEXT' },
@@ -271,6 +305,14 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
     }
 
     if (!babyId) {
+      logNonSuccess({
+        status: 400,
+        code: 'MISSING_BABY_ID',
+        text,
+        babyId: null,
+        userId,
+        details: 'missing baby id',
+      })
       return {
         status: 400,
         body: { error: '请提供宝宝ID', code: 'MISSING_BABY_ID' },
@@ -304,6 +346,15 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
         userId,
       })
 
+      logNonSuccess({
+        status: 400,
+        code: 'PARSE_FAILED',
+        text,
+        babyId,
+        userId,
+        details: parsed.error,
+      })
+
       return {
         status: 400,
         body: {
@@ -330,6 +381,15 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
         activityId: null,
         babyId,
         userId,
+      })
+
+      logNonSuccess({
+        status: 400,
+        code: 'INVALID_TYPE',
+        text,
+        babyId,
+        userId,
+        details: String(parsed.type),
       })
 
       return {
@@ -363,7 +423,7 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
         inputMethod: 'VOICE',
         inputText: text,
         description: `语音: "${text}" - 待确认${typeLabel}`,
-        success: true,
+        success: false,
         beforeData: null,
         afterData: parsed,
         activityId: null,
@@ -376,6 +436,18 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
           ? String(pendingSubmission.id)
           : null
       const confirmationUrl = buildConfirmationUrl(confirmationBaseUrl, submissionId)
+
+      logNonSuccess({
+        status: 200,
+        code: 'NEED_CONFIRMATION',
+        text,
+        babyId,
+        userId,
+        details: `low confidence: ${parsed.confidence}`,
+        needConfirmation: true,
+        submissionId,
+        confidence: parsed.confidence,
+      })
 
       return {
         status: 200,
@@ -490,6 +562,15 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
     } catch {
       // Ignore audit log errors
     }
+
+    logNonSuccess({
+      status: 500,
+      code: 'PROCESSING_ERROR',
+      text,
+      babyId,
+      userId,
+      details: errorMessage,
+    })
     
     return {
       status: 500,
