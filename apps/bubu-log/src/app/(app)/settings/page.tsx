@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle2, Loader2, PlusCircle } from 'lucide-react'
 import { AvatarUpload } from '@/components/AvatarUpload'
+import { Providers } from '@/app/providers'
 
 const DEFAULT_SHORTCUT_INSTALL_URL = 'https://www.icloud.com/shortcuts/d8a6aa919e0f49d1a1fb465949c36416'
 const SHORTCUT_INSTALL_URL = process.env.NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL?.trim() || DEFAULT_SHORTCUT_INSTALL_URL
@@ -81,63 +82,65 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen pb-10">
-      <header className="px-4 py-3 flex items-center gap-3 border-b border-gray-100 dark:border-gray-800">
-        <Link
-          href="/"
-          className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center"
-          aria-label="返回首页"
-        >
-          <ArrowLeft size={18} />
-        </Link>
-        <div>
-          <h1 className="text-lg font-semibold">设置</h1>
-          <p className="text-xs text-gray-500">头像与快捷指令</p>
-        </div>
-      </header>
-
-      <section className="px-4 pt-6 space-y-4">
-        <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/60 p-5 shadow-sm">
-          <h2 className="text-sm font-medium text-gray-500 mb-4">宝宝头像</h2>
-          <div className="flex flex-col items-center gap-3">
-            <AvatarUpload />
-            <p className="text-xs text-gray-500">点击头像可上传或更换，右上角可删除</p>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/60 p-5 shadow-sm space-y-3">
-          <h2 className="text-sm font-medium text-gray-500">Siri 快捷指令</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            从当前登录状态自动生成专属 token，并复制快捷指令配置，再打开 iPhone 快捷指令。
-          </p>
-
-          <button
-            type="button"
-            onClick={prepareShortcut}
-            disabled={isPreparing}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white font-medium text-sm"
+    <Providers>
+      <main className="min-h-screen pb-10">
+        <header className="px-4 py-3 flex items-center gap-3 border-b border-gray-100 dark:border-gray-800">
+          <Link
+            href="/"
+            className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center"
+            aria-label="返回首页"
           >
-            {isPreparing ? <Loader2 size={16} className="animate-spin" /> : <PlusCircle size={16} />}
-            {isPreparing ? '准备中...' : '新建快捷指令'}
-          </button>
+            <ArrowLeft size={18} />
+          </Link>
+          <div>
+            <h1 className="text-lg font-semibold">设置</h1>
+            <p className="text-xs text-gray-500">头像与快捷指令</p>
+          </div>
+        </header>
 
-          {copied && (
-            <p className="text-xs text-green-600 dark:text-green-400 inline-flex items-center gap-1">
-              <CheckCircle2 size={14} />
-              已复制快捷指令配置到剪贴板
+        <section className="px-4 pt-6 space-y-4">
+          <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/60 p-5 shadow-sm">
+            <h2 className="text-sm font-medium text-gray-500 mb-4">宝宝头像</h2>
+            <div className="flex flex-col items-center gap-3">
+              <AvatarUpload />
+              <p className="text-xs text-gray-500">点击头像可上传或更换，右上角可删除</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/60 p-5 shadow-sm space-y-3">
+            <h2 className="text-sm font-medium text-gray-500">Siri 快捷指令</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              从当前登录状态自动生成专属 token，并复制快捷指令配置，再打开 iPhone 快捷指令。
             </p>
-          )}
 
-          {expiresAt && (
-            <p className="text-xs text-gray-500">Token 过期时间：{new Date(expiresAt).toLocaleString()}</p>
-          )}
+            <button
+              type="button"
+              onClick={prepareShortcut}
+              disabled={isPreparing}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white font-medium text-sm"
+            >
+              {isPreparing ? <Loader2 size={16} className="animate-spin" /> : <PlusCircle size={16} />}
+              {isPreparing ? '准备中...' : '新建快捷指令'}
+            </button>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
-          <p className="text-xs text-gray-500">
-            如需替换模板，可配置 `NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL` 覆盖默认 iCloud 快捷指令链接。
-          </p>
-        </div>
-      </section>
-    </main>
+            {copied && (
+              <p className="text-xs text-green-600 dark:text-green-400 inline-flex items-center gap-1">
+                <CheckCircle2 size={14} />
+                已复制快捷指令配置到剪贴板
+              </p>
+            )}
+
+            {expiresAt && (
+              <p className="text-xs text-gray-500">Token 过期时间：{new Date(expiresAt).toLocaleString()}</p>
+            )}
+
+            {error && <p className="text-xs text-red-500">{error}</p>}
+            <p className="text-xs text-gray-500">
+              如需替换模板，可配置 `NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL` 覆盖默认 iCloud 快捷指令链接。
+            </p>
+          </div>
+        </section>
+      </main>
+    </Providers>
   )
 }
