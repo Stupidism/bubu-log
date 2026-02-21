@@ -50,7 +50,6 @@ export const Activities: CollectionConfig = {
       name: 'id',
       label: 'ID',
       type: 'text',
-      dbName: 'id',
       required: true,
       unique: true,
       admin: {
@@ -61,7 +60,6 @@ export const Activities: CollectionConfig = {
       name: 'type',
       label: '活动类型',
       type: 'text',
-      dbName: 'type',
       required: true,
       admin: {
         description:
@@ -72,7 +70,6 @@ export const Activities: CollectionConfig = {
       name: 'startTime',
       label: '开始时间',
       type: 'date',
-      dbName: 'startTime',
       required: true,
       admin: {
         date: {
@@ -84,7 +81,6 @@ export const Activities: CollectionConfig = {
       name: 'endTime',
       label: '结束时间',
       type: 'date',
-      dbName: 'endTime',
       admin: {
         date: {
           pickerAppearance: 'dayAndTime',
@@ -95,7 +91,6 @@ export const Activities: CollectionConfig = {
       name: 'createdAt',
       label: '创建时间',
       type: 'date',
-      dbName: 'createdAt',
       admin: {
         readOnly: true,
         date: {
@@ -107,7 +102,6 @@ export const Activities: CollectionConfig = {
       name: 'updatedAt',
       label: '更新时间',
       type: 'date',
-      dbName: 'updatedAt',
       admin: {
         readOnly: true,
         date: {
@@ -119,26 +113,22 @@ export const Activities: CollectionConfig = {
       name: 'babyId',
       label: '宝宝 ID',
       type: 'text',
-      dbName: 'babyId',
       required: true,
     },
     {
       name: 'hasPoop',
       label: '有大便',
       type: 'checkbox',
-      dbName: 'hasPoop',
     },
     {
       name: 'hasPee',
       label: '有小便',
       type: 'checkbox',
-      dbName: 'hasPee',
     },
     {
       name: 'poopColor',
       label: '大便颜色',
       type: 'text',
-      dbName: 'poopColor',
       admin: {
         description: 'YELLOW / GREEN / BROWN / BLACK / WHITE / RED',
       },
@@ -147,13 +137,11 @@ export const Activities: CollectionConfig = {
       name: 'poopPhotoUrl',
       label: '大便照片 URL',
       type: 'text',
-      dbName: 'poopPhotoUrl',
     },
     {
       name: 'peeAmount',
       label: '小便量',
       type: 'text',
-      dbName: 'peeAmount',
       admin: {
         description: 'SMALL / MEDIUM / LARGE',
       },
@@ -162,20 +150,17 @@ export const Activities: CollectionConfig = {
       name: 'burpSuccess',
       label: '拍嗝成功',
       type: 'checkbox',
-      dbName: 'burpSuccess',
     },
     {
       name: 'milkAmount',
       label: '奶量(ml)',
       type: 'number',
-      dbName: 'milkAmount',
       min: 0,
     },
     {
       name: 'milkSource',
       label: '奶源',
       type: 'text',
-      dbName: 'milkSource',
       admin: {
         description: 'BREAST_MILK / FORMULA',
       },
@@ -184,7 +169,6 @@ export const Activities: CollectionConfig = {
       name: 'breastFirmness',
       label: '乳房硬度',
       type: 'text',
-      dbName: 'breastFirmness',
       admin: {
         description: 'SOFT / ELASTIC / HARD',
       },
@@ -193,7 +177,6 @@ export const Activities: CollectionConfig = {
       name: 'supplementType',
       label: '补剂类型',
       type: 'text',
-      dbName: 'supplementType',
       admin: {
         description: 'AD / D3',
       },
@@ -202,7 +185,6 @@ export const Activities: CollectionConfig = {
       name: 'spitUpType',
       label: '吐奶类型',
       type: 'text',
-      dbName: 'spitUpType',
       admin: {
         description: 'NORMAL / PROJECTILE',
       },
@@ -211,7 +193,6 @@ export const Activities: CollectionConfig = {
       name: 'count',
       label: '次数',
       type: 'number',
-      dbName: 'count',
       min: 0,
       admin: {
         step: 1,
@@ -221,7 +202,6 @@ export const Activities: CollectionConfig = {
       name: 'notes',
       label: '备注',
       type: 'textarea',
-      dbName: 'notes',
     },
   ],
 }

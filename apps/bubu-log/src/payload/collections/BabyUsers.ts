@@ -44,7 +44,6 @@ export const BabyUsers: CollectionConfig = {
       name: 'id',
       label: 'ID',
       type: 'text',
-      dbName: 'id',
       required: true,
       unique: true,
       admin: {
@@ -55,28 +54,24 @@ export const BabyUsers: CollectionConfig = {
       name: 'babyId',
       label: '宝宝 ID',
       type: 'text',
-      dbName: 'babyId',
       required: true,
     },
     {
       name: 'userId',
       label: '用户 ID',
       type: 'text',
-      dbName: 'userId',
       required: true,
     },
     {
       name: 'isDefault',
       label: '默认宝宝',
       type: 'checkbox',
-      dbName: 'isDefault',
       defaultValue: false,
     },
     {
       name: 'createdAt',
       label: '创建时间',
       type: 'date',
-      dbName: 'createdAt',
       admin: {
         readOnly: true,
         date: {

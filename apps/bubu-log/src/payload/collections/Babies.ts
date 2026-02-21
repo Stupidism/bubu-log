@@ -36,7 +36,6 @@ export const Babies: CollectionConfig = {
       name: 'id',
       label: 'ID',
       type: 'text',
-      dbName: 'id',
       required: true,
       unique: true,
       admin: {
@@ -47,20 +46,17 @@ export const Babies: CollectionConfig = {
       name: 'name',
       label: '宝宝姓名',
       type: 'text',
-      dbName: 'name',
       required: true,
     },
     {
       name: 'avatarUrl',
       label: '头像 URL',
       type: 'text',
-      dbName: 'avatarUrl',
     },
     {
       name: 'birthDate',
       label: '出生日期',
       type: 'date',
-      dbName: 'birthDate',
       admin: {
         date: {
           pickerAppearance: 'dayOnly',
@@ -71,7 +67,6 @@ export const Babies: CollectionConfig = {
       name: 'gender',
       label: '性别',
       type: 'text',
-      dbName: 'gender',
       required: true,
       defaultValue: 'OTHER',
       admin: {
@@ -82,7 +77,6 @@ export const Babies: CollectionConfig = {
       name: 'createdAt',
       label: '创建时间',
       type: 'date',
-      dbName: 'createdAt',
       admin: {
         readOnly: true,
         date: {
@@ -94,7 +88,6 @@ export const Babies: CollectionConfig = {
       name: 'updatedAt',
       label: '更新时间',
       type: 'date',
-      dbName: 'updatedAt',
       admin: {
         readOnly: true,
         date: {
