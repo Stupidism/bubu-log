@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { ArrowLeft, CheckCircle2, Loader2, PlusCircle } from 'lucide-react'
 import { AvatarUpload } from '@/components/AvatarUpload'
 
-const SHORTCUT_INSTALL_URL = process.env.NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL?.trim() || null
+const DEFAULT_SHORTCUT_INSTALL_URL = 'https://www.icloud.com/shortcuts/d8a6aa919e0f49d1a1fb465949c36416'
+const SHORTCUT_INSTALL_URL = process.env.NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL?.trim() || DEFAULT_SHORTCUT_INSTALL_URL
 
 type WebhookTokenResponse = {
   token: string
@@ -21,13 +22,11 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
 
   const prepareShortcut = async () => {
     setIsPreparing(true)
     setCopied(false)
     setError(null)
-    setNotice(null)
 
     try {
       const response = await fetch('/api/webhooks/voice-input/token?days=180', {
@@ -72,11 +71,7 @@ export default function SettingsPage() {
       await navigator.clipboard.writeText(text)
       setCopied(true)
 
-      if (SHORTCUT_INSTALL_URL) {
-        window.location.href = SHORTCUT_INSTALL_URL
-      } else {
-        setNotice('未配置安装链接：已复制配置到剪贴板。请手动创建快捷指令并粘贴 token。')
-      }
+      window.location.href = SHORTCUT_INSTALL_URL
     } catch (err) {
       console.error(err)
       setError('无法生成配置，请稍后重试')
@@ -138,11 +133,8 @@ export default function SettingsPage() {
           )}
 
           {error && <p className="text-xs text-red-500">{error}</p>}
-          {notice && <p className="text-xs text-amber-600 dark:text-amber-400">{notice}</p>}
-
           <p className="text-xs text-gray-500">
-            `shortcuts://create-shortcut` 只会打开空白编辑器。要真正一键安装，请配置
-            `NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL` 为 iCloud 快捷指令分享链接。
+            如需替换模板，可配置 `NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL` 覆盖默认 iCloud 快捷指令链接。
           </p>
         </div>
       </section>
