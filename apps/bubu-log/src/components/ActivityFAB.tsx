@@ -25,6 +25,7 @@ export interface VoiceParsedData {
 interface VoiceInputResponse {
   success: boolean
   message: string
+  code?: string
   needConfirmation?: boolean
   parsed?: VoiceParsedData
   activity?: {
@@ -163,9 +164,8 @@ export function ActivityFAB({
 
       const data: VoiceInputResponse = await response.json()
 
-      if (response.ok && data.success) {
-        // Check if needs confirmation (low confidence)
-        if (data.needConfirmation && data.parsed) {
+      if (response.ok && data.needConfirmation) {
+        if (data.parsed) {
           setResult({ type: 'success', message: data.message })
           setText('')
           // Close dialog and open form for confirmation
@@ -174,15 +174,19 @@ export function ActivityFAB({
             handleNeedConfirmation(data.parsed!)
           }, 500)
         } else {
-          // High confidence - activity was created directly
-          setResult({ type: 'success', message: data.message })
-          setText('')
-          onVoiceSuccess?.(data.message)
-          // 使用正确的 queryKey 格式刷新数据
-          queryClient.invalidateQueries({ queryKey: ['get', '/activities'] })
-          queryClient.invalidateQueries({ queryKey: ['get', '/activities/latest'] })
-          // 不关闭弹窗，用户可以继续输入
+          const errorMsg = data.error || '需要确认，但缺少解析结果'
+          setResult({ type: 'error', message: errorMsg })
+          onVoiceError?.(errorMsg)
         }
+      } else if (response.ok && data.success) {
+        // High confidence - activity was created directly
+        setResult({ type: 'success', message: data.message })
+        setText('')
+        onVoiceSuccess?.(data.message)
+        // 使用正确的 queryKey 格式刷新数据
+        queryClient.invalidateQueries({ queryKey: ['get', '/activities'] })
+        queryClient.invalidateQueries({ queryKey: ['get', '/activities/latest'] })
+        // 不关闭弹窗，用户可以继续输入
       } else {
         const errorMsg = data.error || '解析失败'
         setResult({ type: 'error', message: errorMsg })

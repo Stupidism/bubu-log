@@ -452,7 +452,8 @@ export async function processVoiceInput(options: ProcessVoiceInputOptions): Prom
       return {
         status: 200,
         body: {
-          success: true,
+          success: false,
+          code: 'NEED_CONFIRMATION',
           needConfirmation: true,
           submissionId,
           confirmationUrl,

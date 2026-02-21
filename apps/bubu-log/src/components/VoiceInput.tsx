@@ -22,6 +22,8 @@ interface VoiceInputProps {
 interface VoiceInputResponse {
   success: boolean
   message: string
+  code?: string
+  needConfirmation?: boolean
   activity?: {
     id: string
     type: string
@@ -31,7 +33,6 @@ interface VoiceInputResponse {
     originalText: string
   }
   error?: string
-  code?: string
 }
 
 export function VoiceInput({ onSuccess, onError }: VoiceInputProps) {
@@ -73,7 +74,10 @@ export function VoiceInput({ onSuccess, onError }: VoiceInputProps) {
 
       const data: VoiceInputResponse = await response.json()
 
-      if (response.ok && data.success) {
+      if (response.ok && data.needConfirmation) {
+        setResult({ type: 'success', message: data.message })
+        setText('')
+      } else if (response.ok && data.success) {
         setResult({ type: 'success', message: data.message })
         setText('')
         onSuccess?.(data.message)
@@ -339,4 +343,3 @@ export function VoiceInput({ onSuccess, onError }: VoiceInputProps) {
     </div>
   )
 }
-
