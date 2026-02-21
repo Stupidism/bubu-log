@@ -1,9 +1,12 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { buildConfig } from 'payload'
 import { AppUsers } from './src/payload/collections/AppUsers.ts'
+import { Activities } from './src/payload/collections/Activities.ts'
+import { AuditLogs } from './src/payload/collections/AuditLogs.ts'
 import { Babies } from './src/payload/collections/Babies.ts'
 import { BabyUsers } from './src/payload/collections/BabyUsers.ts'
 import { CMSAdmins } from './src/payload/collections/CMSAdmins.ts'
+import { DailyStats } from './src/payload/collections/DailyStats.ts'
 
 const normalizePGSSLMode = (url: string) => {
   if (!url) {
@@ -24,6 +27,9 @@ const databaseURL =
       process.env.DATABASE_URL_UNPOOLED ||
       'postgresql://postgres:postgres@127.0.0.1:5432/postgres'
   )
+const allowSchemaPush =
+  process.env.PAYLOAD_DB_PUSH === 'true' &&
+  process.env.PAYLOAD_ALLOW_DESTRUCTIVE_PUSH === 'true'
 
 const CMS_ADMINS_COLLECTION = 'cms-admins' as const
 
@@ -33,7 +39,9 @@ const config = buildConfig({
     pool: {
       connectionString: databaseURL,
     },
-    push: process.env.PAYLOAD_DB_PUSH === 'true',
+    // Prevent accidental schema push in app runtime.
+    // Enable only for explicit one-off environments.
+    push: allowSchemaPush,
   }),
   admin: {
     user: CMS_ADMINS_COLLECTION,
@@ -41,7 +49,7 @@ const config = buildConfig({
       autoGenerate: false,
     },
   },
-  collections: [CMSAdmins, AppUsers, Babies, BabyUsers],
+  collections: [CMSAdmins, AppUsers, Babies, BabyUsers, Activities, DailyStats, AuditLogs],
   onInit: async (payload) => {
     const explicitEmail = process.env.PAYLOAD_ADMIN_EMAIL?.trim().toLowerCase()
     const explicitPassword = process.env.PAYLOAD_ADMIN_PASSWORD?.trim()
@@ -103,7 +111,7 @@ const config = buildConfig({
       payload.logger.info(`Payload admin user created: ${email}`)
     } catch (error) {
       payload.logger.warn(
-        'Payload admin bootstrap skipped because CMS tables are not initialized yet. Set PAYLOAD_DB_PUSH=true once on a branch database.'
+        'Payload admin bootstrap skipped because CMS tables are not initialized yet. Run pnpm db:migrate on the target branch database first.'
       )
       payload.logger.debug(error)
     }

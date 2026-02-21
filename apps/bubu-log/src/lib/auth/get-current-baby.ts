@@ -1,5 +1,6 @@
-import { auth } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { auth } from '@/lib/auth'
+import { getPayloadClient } from '@/lib/payload/client'
+import { toDate } from '@/lib/payload/utils'
 
 export type CurrentBaby = {
   id: string
@@ -20,6 +21,40 @@ export type AuthContext = {
   baby: CurrentBaby
 }
 
+type BabyDoc = {
+  id: string
+  name: string
+  avatarUrl?: string | null
+  birthDate?: string | Date | null
+}
+
+type BabyUserDoc = {
+  id: string
+  babyId: string | BabyDoc
+  isDefault?: boolean | null
+}
+
+async function resolveBabyFromBinding(binding: BabyUserDoc): Promise<BabyDoc | null> {
+  if (typeof binding.babyId === 'object' && binding.babyId) {
+    return binding.babyId
+  }
+
+  const babyId = typeof binding.babyId === 'string' ? binding.babyId : null
+  if (!babyId) {
+    return null
+  }
+
+  const payload = await getPayloadClient()
+  const baby = await payload.findByID({
+    collection: 'babies',
+    id: babyId,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  return (baby as BabyDoc | null) || null
+}
+
 /**
  * 获取当前登录用户的默认宝宝
  * 如果用户未登录或没有关联的宝宝，返回 null
@@ -29,70 +64,81 @@ export async function getCurrentBaby(): Promise<AuthContext | null> {
   try {
     session = await auth()
   } catch (error) {
-    // JWT 解析错误（可能是旧的数据库 session cookie）
-    // 返回 null，让用户重新登录
     console.error('Session error:', error)
     return null
   }
-  
-  if (!session?.user?.id) {
+
+  if (!session?.user || !(session.user as { id?: string }).id) {
     return null
   }
 
-  // 查找用户的默认宝宝
-  const babyUser = await prisma.babyUser.findFirst({
+  const userId = (session.user as { id: string }).id
+  const payload = await getPayloadClient()
+
+  const defaultBinding = await payload.find({
+    collection: 'baby-users',
     where: {
-      userId: session.user.id,
-      isDefault: true,
+      and: [
+        {
+          userId: {
+            equals: userId,
+          },
+        },
+        {
+          isDefault: {
+            equals: true,
+          },
+        },
+      ],
     },
-    include: {
-      baby: true,
-    },
+    limit: 1,
+    pagination: false,
+    depth: 1,
+    sort: 'createdAt',
+    overrideAccess: true,
   })
 
-  // 如果没有默认宝宝，查找第一个关联的宝宝
-  if (!babyUser) {
-    const firstBabyUser = await prisma.babyUser.findFirst({
+  let binding = (defaultBinding.docs[0] as BabyUserDoc | undefined) ?? null
+
+  if (!binding) {
+    const firstBinding = await payload.find({
+      collection: 'baby-users',
       where: {
-        userId: session.user.id,
+        userId: {
+          equals: userId,
+        },
       },
-      include: {
-        baby: true,
-      },
+      limit: 1,
+      pagination: false,
+      depth: 1,
+      sort: 'createdAt',
+      overrideAccess: true,
     })
 
-    if (!firstBabyUser) {
-      return null
-    }
+    binding = (firstBinding.docs[0] as BabyUserDoc | undefined) ?? null
+  }
 
-    return {
-      user: {
-        id: session.user.id,
-        name: session.user.name ?? null,
-        email: session.user.email ?? null,
-        image: session.user.image ?? null,
-      },
-      baby: {
-        id: firstBabyUser.baby.id,
-        name: firstBabyUser.baby.name,
-        avatarUrl: firstBabyUser.baby.avatarUrl,
-        birthDate: firstBabyUser.baby.birthDate,
-      },
-    }
+  if (!binding) {
+    return null
+  }
+
+  const babyDoc = await resolveBabyFromBinding(binding)
+  if (!babyDoc) {
+    return null
   }
 
   return {
     user: {
-      id: session.user.id,
+      id: userId,
       name: session.user.name ?? null,
       email: session.user.email ?? null,
       image: session.user.image ?? null,
     },
     baby: {
-      id: babyUser.baby.id,
-      name: babyUser.baby.name,
-      avatarUrl: babyUser.baby.avatarUrl,
-      birthDate: babyUser.baby.birthDate,
+      id: babyDoc.id,
+      name: babyDoc.name,
+      avatarUrl: babyDoc.avatarUrl ?? null,
+      birthDate: toDate(babyDoc.birthDate),
     },
   }
 }
@@ -103,9 +149,9 @@ export async function getCurrentBaby(): Promise<AuthContext | null> {
  */
 export async function requireAuth(): Promise<AuthContext> {
   const context = await getCurrentBaby()
-  
+
   if (!context) {
-    throw new Error("Unauthorized")
+    throw new Error('Unauthorized')
   }
 
   return context

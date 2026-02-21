@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAdminUser } from '@/lib/auth/require-admin'
-import { prisma } from '@/lib/prisma'
+import { getPayloadClient } from '@/lib/payload/client'
+import type { BabyDoc, BabyUserDoc } from '@/lib/payload/models'
 
 const createBabySchema = z.object({
   name: z.string().trim().min(1, '宝宝名称不能为空').max(40, '宝宝名称不能超过40个字符'),
@@ -18,9 +19,7 @@ function toBirthDate(value: string | null | undefined): Date | null {
     return null
   }
 
-  const parsedDate = input.includes('T')
-    ? new Date(input)
-    : new Date(`${input}T00:00:00`)
+  const parsedDate = input.includes('T') ? new Date(input) : new Date(`${input}T00:00:00`)
 
   if (Number.isNaN(parsedDate.getTime())) {
     throw new Error('出生日期格式不正确')
@@ -29,26 +28,72 @@ function toBirthDate(value: string | null | undefined): Date | null {
   return parsedDate
 }
 
+function getRelationId(value: unknown): string | null {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (typeof value === 'object' && value && 'id' in value) {
+    const relationId = (value as { id?: unknown }).id
+    return typeof relationId === 'string' ? relationId : null
+  }
+
+  return null
+}
+
 export async function GET() {
   try {
     await requireAdminUser()
+    const payload = await getPayloadClient()
 
-    const babies = await prisma.baby.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: {
-          select: { users: true },
+    const babiesResult = await payload.find({
+      collection: 'babies',
+      sort: '-createdAt',
+      limit: 500,
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    const babies = babiesResult.docs as BabyDoc[]
+
+    if (babies.length === 0) {
+      return NextResponse.json([])
+    }
+
+    const babyIds = babies.map((baby) => baby.id)
+
+    const bindingsResult = await payload.find({
+      collection: 'baby-users',
+      where: {
+        babyId: {
+          in: babyIds,
         },
       },
+      limit: 5000,
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
     })
+
+    const counts = new Map<string, number>()
+
+    for (const item of bindingsResult.docs as BabyUserDoc[]) {
+      const babyId = getRelationId(item.babyId)
+      if (!babyId) {
+        continue
+      }
+
+      counts.set(babyId, (counts.get(babyId) || 0) + 1)
+    }
 
     return NextResponse.json(
       babies.map((baby) => ({
         id: baby.id,
         name: baby.name,
-        birthDate: baby.birthDate,
-        createdAt: baby.createdAt,
-        userCount: baby._count.users,
+        birthDate: baby.birthDate || null,
+        createdAt: baby.createdAt || null,
+        userCount: counts.get(baby.id) || 0,
       }))
     )
   } catch (error) {
@@ -65,29 +110,29 @@ export async function POST(request: NextRequest) {
   try {
     await requireAdminUser()
 
+    const payload = await getPayloadClient()
+
     const body = await request.json()
     const parsed = createBabySchema.parse(body)
     const birthDate = toBirthDate(parsed.birthDate)
 
-    const baby = await prisma.baby.create({
+    const baby = (await payload.create({
+      collection: 'babies',
       data: {
         name: parsed.name,
-        birthDate,
+        birthDate: birthDate ? birthDate.toISOString() : null,
       },
-      include: {
-        _count: {
-          select: { users: true },
-        },
-      },
-    })
+      depth: 0,
+      overrideAccess: true,
+    } as never)) as BabyDoc
 
     return NextResponse.json(
       {
         id: baby.id,
         name: baby.name,
-        birthDate: baby.birthDate,
-        createdAt: baby.createdAt,
-        userCount: baby._count.users,
+        birthDate: baby.birthDate || null,
+        createdAt: baby.createdAt || null,
+        userCount: 0,
       },
       { status: 201 }
     )

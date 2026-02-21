@@ -1,31 +1,81 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getPayloadClient } from '@/lib/payload/client'
+
+type BabyUserDoc = {
+  babyId: string | {
+    id: string
+    name: string
+    avatarUrl?: string | null
+  }
+}
 
 export async function GET() {
   try {
     const session = await auth()
+    const userId = session?.user && (session.user as { id?: string }).id
 
-    if (!session?.user?.id) {
+    if (!userId) {
       return NextResponse.json({ authenticated: false, hasBaby: false }, { status: 401 })
     }
 
-    const babyUser = await prisma.babyUser.findFirst({
-      where: { userId: session.user.id },
-      include: { baby: true },
-      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+    const payload = await getPayloadClient()
+
+    const result = await payload.find({
+      collection: 'baby-users',
+      where: {
+        userId: {
+          equals: userId,
+        },
+      },
+      sort: '-isDefault,createdAt',
+      limit: 1,
+      pagination: false,
+      depth: 1,
+      overrideAccess: true,
     })
+
+    const babyUser = (result.docs[0] as BabyUserDoc | undefined) ?? null
+
+    if (!babyUser) {
+      return NextResponse.json({
+        authenticated: true,
+        hasBaby: false,
+        baby: null,
+      })
+    }
+
+    let baby: { id: string; name: string; avatarUrl: string | null } | null = null
+
+    if (typeof babyUser.babyId === 'object' && babyUser.babyId) {
+      baby = {
+        id: babyUser.babyId.id,
+        name: babyUser.babyId.name,
+        avatarUrl: babyUser.babyId.avatarUrl ?? null,
+      }
+    } else if (typeof babyUser.babyId === 'string') {
+      try {
+        const babyDoc = await payload.findByID({
+          collection: 'babies',
+          id: babyUser.babyId,
+          depth: 0,
+          overrideAccess: true,
+        })
+
+        baby = {
+          id: String(babyDoc.id),
+          name: String((babyDoc as { name?: string }).name || ''),
+          avatarUrl: ((babyDoc as { avatarUrl?: string | null }).avatarUrl ?? null),
+        }
+      } catch {
+        baby = null
+      }
+    }
 
     return NextResponse.json({
       authenticated: true,
-      hasBaby: Boolean(babyUser),
-      baby: babyUser
-        ? {
-            id: babyUser.baby.id,
-            name: babyUser.baby.name,
-            avatarUrl: babyUser.baby.avatarUrl,
-          }
-        : null,
+      hasBaby: Boolean(baby),
+      baby,
     })
   } catch (error) {
     console.error('Failed to fetch auth context:', error)

@@ -71,6 +71,9 @@ export interface Config {
     'app-users': AppUser;
     babies: Baby;
     'baby-users': BabyUser;
+    activities: Activity;
+    'daily-stats': DailyStat;
+    'audit-logs': AuditLog;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -82,6 +85,9 @@ export interface Config {
     'app-users': AppUsersSelect<false> | AppUsersSelect<true>;
     babies: BabiesSelect<false> | BabiesSelect<true>;
     'baby-users': BabyUsersSelect<false> | BabyUsersSelect<true>;
+    activities: ActivitiesSelect<false> | ActivitiesSelect<true>;
+    'daily-stats': DailyStatsSelect<false> | DailyStatsSelect<true>;
+    'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -159,7 +165,10 @@ export interface AppUser {
   email?: string | null;
   image?: string | null;
   emailVerified?: string | null;
-  role: 'ADMIN' | 'DAD' | 'MOM' | 'NANNY' | 'GRANDPARENT' | 'OTHER';
+  /**
+   * ADMIN / DAD / MOM / NANNY / GRANDPARENT / OTHER
+   */
+  role: string;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -172,7 +181,10 @@ export interface Baby {
   name: string;
   avatarUrl?: string | null;
   birthDate?: string | null;
-  gender: 'BOY' | 'GIRL' | 'OTHER';
+  /**
+   * BOY / GIRL / OTHER
+   */
+  gender: string;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -182,9 +194,121 @@ export interface Baby {
  */
 export interface BabyUser {
   id: string;
-  babyId: string | Baby;
-  userId: string | AppUser;
+  babyId: string;
+  userId: string;
   isDefault?: boolean | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "activities".
+ */
+export interface Activity {
+  id: string;
+  /**
+   * SLEEP / DIAPER / BREASTFEED / BOTTLE / PUMP / HEAD_LIFT / PASSIVE_EXERCISE / ROLL_OVER / PULL_TO_SIT / GAS_EXERCISE / BATH / OUTDOOR / EARLY_EDUCATION / SUPPLEMENT / SPIT_UP
+   */
+  type: string;
+  startTime: string;
+  endTime?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  babyId: string;
+  hasPoop?: boolean | null;
+  hasPee?: boolean | null;
+  /**
+   * YELLOW / GREEN / BROWN / BLACK / WHITE / RED
+   */
+  poopColor?: string | null;
+  poopPhotoUrl?: string | null;
+  /**
+   * SMALL / MEDIUM / LARGE
+   */
+  peeAmount?: string | null;
+  burpSuccess?: boolean | null;
+  milkAmount?: number | null;
+  /**
+   * BREAST_MILK / FORMULA
+   */
+  milkSource?: string | null;
+  /**
+   * SOFT / ELASTIC / HARD
+   */
+  breastFirmness?: string | null;
+  /**
+   * AD / D3
+   */
+  supplementType?: string | null;
+  /**
+   * NORMAL / PROJECTILE
+   */
+  spitUpType?: string | null;
+  count?: number | null;
+  notes?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "daily-stats".
+ */
+export interface DailyStat {
+  id: string;
+  date: string;
+  babyId: string;
+  sleepCount: number;
+  totalSleepMinutes: number;
+  breastfeedCount: number;
+  totalBreastfeedMinutes: number;
+  bottleCount: number;
+  totalMilkAmount: number;
+  pumpCount: number;
+  totalPumpMilkAmount: number;
+  diaperCount: number;
+  poopCount: number;
+  peeCount: number;
+  exerciseCount: number;
+  totalHeadLiftMinutes: number;
+  supplementADCount: number;
+  supplementD3Count: number;
+  spitUpCount: number;
+  projectileSpitUpCount: number;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs".
+ */
+export interface AuditLog {
+  id: string;
+  action: string;
+  resourceType: string;
+  resourceId?: string | null;
+  inputMethod: string;
+  inputText?: string | null;
+  description?: string | null;
+  success: boolean;
+  errorMessage?: string | null;
+  beforeData?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  afterData?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  babyId?: string | null;
+  activityId?: string | null;
+  userId?: string | null;
   createdAt?: string | null;
 }
 /**
@@ -226,6 +350,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'baby-users';
         value: string | BabyUser;
+      } | null)
+    | ({
+        relationTo: 'activities';
+        value: string | Activity;
+      } | null)
+    | ({
+        relationTo: 'daily-stats';
+        value: string | DailyStat;
+      } | null)
+    | ({
+        relationTo: 'audit-logs';
+        value: string | AuditLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -330,6 +466,81 @@ export interface BabyUsersSelect<T extends boolean = true> {
   babyId?: T;
   userId?: T;
   isDefault?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "activities_select".
+ */
+export interface ActivitiesSelect<T extends boolean = true> {
+  id?: T;
+  type?: T;
+  startTime?: T;
+  endTime?: T;
+  createdAt?: T;
+  updatedAt?: T;
+  babyId?: T;
+  hasPoop?: T;
+  hasPee?: T;
+  poopColor?: T;
+  poopPhotoUrl?: T;
+  peeAmount?: T;
+  burpSuccess?: T;
+  milkAmount?: T;
+  milkSource?: T;
+  breastFirmness?: T;
+  supplementType?: T;
+  spitUpType?: T;
+  count?: T;
+  notes?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "daily-stats_select".
+ */
+export interface DailyStatsSelect<T extends boolean = true> {
+  id?: T;
+  date?: T;
+  babyId?: T;
+  sleepCount?: T;
+  totalSleepMinutes?: T;
+  breastfeedCount?: T;
+  totalBreastfeedMinutes?: T;
+  bottleCount?: T;
+  totalMilkAmount?: T;
+  pumpCount?: T;
+  totalPumpMilkAmount?: T;
+  diaperCount?: T;
+  poopCount?: T;
+  peeCount?: T;
+  exerciseCount?: T;
+  totalHeadLiftMinutes?: T;
+  supplementADCount?: T;
+  supplementD3Count?: T;
+  spitUpCount?: T;
+  projectileSpitUpCount?: T;
+  createdAt?: T;
+  updatedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs_select".
+ */
+export interface AuditLogsSelect<T extends boolean = true> {
+  id?: T;
+  action?: T;
+  resourceType?: T;
+  resourceId?: T;
+  inputMethod?: T;
+  inputText?: T;
+  description?: T;
+  success?: T;
+  errorMessage?: T;
+  beforeData?: T;
+  afterData?: T;
+  babyId?: T;
+  activityId?: T;
+  userId?: T;
   createdAt?: T;
 }
 /**

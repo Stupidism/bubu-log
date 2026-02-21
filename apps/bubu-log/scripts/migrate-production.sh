@@ -31,6 +31,10 @@ echo "🔄 运行数据库迁移..."
 # 精确匹配 DATABASE_URL（不匹配 DATABASE_URL_UNPOOLED）
 DATABASE_URL=$(grep "^DATABASE_URL=" .env.production | sed 's/^DATABASE_URL=//' | tr -d '"')
 DATABASE_URL_UNPOOLED=$(grep "^DATABASE_URL_UNPOOLED=" .env.production | sed 's/^DATABASE_URL_UNPOOLED=//' | tr -d '"')
+PAYLOAD_DATABASE_URL=$(grep "^PAYLOAD_DATABASE_URL=" .env.production | sed 's/^PAYLOAD_DATABASE_URL=//' | tr -d '"')
+if [ -z "$PAYLOAD_DATABASE_URL" ]; then
+    PAYLOAD_DATABASE_URL="$DATABASE_URL"
+fi
 
 if [ -z "$DATABASE_URL" ]; then
     echo "❌ 错误: 未找到 DATABASE_URL"
@@ -46,7 +50,8 @@ fi
 # 设置环境变量并运行迁移
 export DATABASE_URL
 export DATABASE_URL_UNPOOLED
-pnpm prisma db push --skip-generate
+export PAYLOAD_DATABASE_URL
+pnpm db:migrate
 
 RESULT=$?
 

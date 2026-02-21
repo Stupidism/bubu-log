@@ -1,165 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Prisma, ActivityType as PrismaActivityType } from '@prisma/client'
-import { prisma } from '@/lib/prisma'
+import { type Where } from 'payload'
+import { requireAuth } from '@/lib/auth/get-current-baby'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { startOfDayChina, endOfDayChina } from '@/lib/dayjs'
-import { requireAuth } from '@/lib/auth/get-current-baby'
+import { getPayloadClient } from '@/lib/payload/client'
+import { createAuditLog } from '@/lib/payload/audit'
+import type { ActivityDoc } from '@/lib/payload/models'
 
-// GET: 获取活动列表
-export async function GET(request: NextRequest) {
-  try {
-    const { baby } = await requireAuth()
-    
-    const searchParams = request.nextUrl.searchParams
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const type = searchParams.get('type') as ActivityType | null
-    const types = searchParams.get('types') // 逗号分隔的多类型
-    const date = searchParams.get('date') // YYYY-MM-DD 格式
-    const startTimeGte = searchParams.get('startTimeGte') // ISO 格式，活动开始时间下限
-    const startTimeLt = searchParams.get('startTimeLt') // ISO 格式，活动开始时间上限
-    const crossStartTime = searchParams.get('crossStartTime') === 'true' // 是否包含跨越开始边界的活动
-    const crossEndTime = searchParams.get('crossEndTime') === 'true' // 是否包含跨越结束边界的活动
-
-    const where: Record<string, unknown> = {
-      babyId: baby.id,
-    }
-
-    if (type) {
-      where.type = type
-    } else if (types) {
-      const typeList = types.split(',').map(t => t.trim()) as ActivityType[]
-      where.type = { in: typeList }
-    }
-
-    // 支持两种查询模式：
-    // 1. date 参数：查询某一天的活动（包括跨夜活动）
-    // 2. startTimeGte/startTimeLt 参数：查询指定时间范围内开始的活动
-    //    - crossStartTime=true: 也包含开始时间早于 startTimeGte 但结束时间 >= startTimeGte 的活动
-    //    - crossEndTime=true: 也包含开始时间 < startTimeLt 但结束时间 >= startTimeLt 的活动
-    if (startTimeGte || startTimeLt) {
-      // 时间范围查询模式
-      const startTimeGteDate = startTimeGte ? new Date(startTimeGte) : null
-      const startTimeLtDate = startTimeLt ? new Date(startTimeLt) : null
-      
-      // 构建查询条件
-      const conditions: Record<string, unknown>[] = []
-      
-      // 基本条件：活动开始时间在指定范围内
-      const basicCondition: Record<string, unknown> = {}
-      const startTimeCondition: Record<string, Date> = {}
-      if (startTimeGteDate) {
-        startTimeCondition.gte = startTimeGteDate
-      }
-      if (startTimeLtDate) {
-        startTimeCondition.lt = startTimeLtDate
-      }
-      basicCondition.startTime = startTimeCondition
-      conditions.push(basicCondition)
-      
-      // crossStartTime: 活动开始时间 < startTimeGte，但结束时间 >= startTimeGte（或正在进行中）
-      if (crossStartTime && startTimeGteDate) {
-        conditions.push({
-          AND: [
-            { startTime: { lt: startTimeGteDate } },
-            {
-              OR: [
-                { endTime: { gte: startTimeGteDate } },
-                { endTime: null }, // 进行中的活动
-              ],
-            },
-          ],
-        })
-      }
-      
-      // crossEndTime: 活动开始时间 < startTimeLt，但结束时间 >= startTimeLt（或正在进行中）
-      if (crossEndTime && startTimeLtDate) {
-        conditions.push({
-          AND: [
-            { startTime: { lt: startTimeLtDate } },
-            {
-              OR: [
-                { endTime: { gte: startTimeLtDate } },
-                { endTime: null }, // 进行中的活动
-              ],
-            },
-          ],
-        })
-      }
-      
-      // 如果有多个条件，用 OR 组合
-      if (conditions.length > 1) {
-        where.OR = conditions
-      } else {
-        where.startTime = startTimeCondition
-      }
-    } else if (date) {
-      // 日期查询模式：使用中国时区计算当天的开始和结束时间
-      // 北京时间 date 00:00:00 到 23:59:59.999
-      const startOfDay = startOfDayChina(date)
-      const endOfDay = endOfDayChina(date)
-
-      // 查询条件：活动与指定日期有交集
-      // 一个活动与日期有交集的条件是：
-      // startTime < endOfDay+1ms AND (endTime > startOfDay OR endTime IS NULL)
-      // 简化为：活动开始于当天结束之前，且（活动结束于当天开始之后，或活动仍在进行中）
-      where.AND = [
-        {
-          // 活动开始时间在当天结束之前（包含当天开始的活动）
-          startTime: {
-            lte: endOfDay,
-          },
-        },
-        {
-          // 活动结束时间在当天开始之后，或活动仍在进行中
-          OR: [
-            {
-              endTime: {
-                gte: startOfDay,
-              },
-            },
-            {
-              // 进行中的活动（endTime 为 null）- 只要开始时间合理就应该显示
-              endTime: null,
-            },
-          ],
-        },
-      ]
-    }
-
-    const activities = await prisma.activity.findMany({
-      where,
-      orderBy: { startTime: 'desc' },
-      take: limit,
-    })
-
-    return NextResponse.json(activities)
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-    console.error('Failed to fetch activities:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch activities' },
-      { status: 500 }
-    )
-  }
-}
-
-// 点事件类型（没有时长的活动）
 const POINT_EVENT_TYPES = ['DIAPER', 'SUPPLEMENT', 'SPIT_UP', 'ROLL_OVER', 'PULL_TO_SIT']
-// 喂奶冲突组：只有瓶喂和亲喂互相冲突（吸奶不在此组）
 const FEEDING_CONFLICT_TYPES = ['BREASTFEED', 'BOTTLE']
-// 同类型不允许重叠（不可 force）
-const SAME_TYPE_DURATION_TYPES = ['SLEEP', 'HEAD_LIFT', 'PASSIVE_EXERCISE', 'GAS_EXERCISE', 'BATH', 'OUTDOOR', 'EARLY_EDUCATION', 'PUMP']
-// 睡眠冲突组：睡眠与这些具体活动冲突；与户外、换尿布不冲突
-const SLEEP_CONFLICT_TYPES = ['HEAD_LIFT', 'PASSIVE_EXERCISE', 'ROLL_OVER', 'PULL_TO_SIT', 'GAS_EXERCISE', 'BATH', 'EARLY_EDUCATION']
-// 时间容差（毫秒）- 1分钟内视为相同时间
+const SAME_TYPE_DURATION_TYPES = [
+  'SLEEP',
+  'HEAD_LIFT',
+  'PASSIVE_EXERCISE',
+  'GAS_EXERCISE',
+  'BATH',
+  'OUTDOOR',
+  'EARLY_EDUCATION',
+  'PUMP',
+]
+const SLEEP_CONFLICT_TYPES = [
+  'HEAD_LIFT',
+  'PASSIVE_EXERCISE',
+  'ROLL_OVER',
+  'PULL_TO_SIT',
+  'GAS_EXERCISE',
+  'BATH',
+  'EARLY_EDUCATION',
+]
 const TIME_TOLERANCE_MS = 60 * 1000
 
-// 活动类型标签（用于错误提示）
 const TYPE_LABELS: Record<string, string> = {
   SLEEP: '睡眠',
   BREASTFEED: '亲喂',
@@ -178,10 +48,27 @@ const TYPE_LABELS: Record<string, string> = {
   EARLY_EDUCATION: '早教',
 }
 
-// 检查是否是未来时间
+type OverlapResult = {
+  code: string
+  message: string
+  conflictingActivity?: ActivityDoc
+}
+
+function toDate(value: string | null | undefined): Date | null {
+  if (!value) {
+    return null
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return null
+  }
+
+  return parsed
+}
+
 function isFutureTime(time: Date): boolean {
   const now = new Date()
-  // 允许2分钟的误差（考虑到网络延迟等）
   const tolerance = 2 * 60 * 1000
   return time.getTime() > now.getTime() + tolerance
 }
@@ -192,107 +79,175 @@ function getOverlapEndTime(type: string, startTime: Date, endTime: Date | null):
   }
 
   if (FEEDING_CONFLICT_TYPES.includes(type)) {
-    return new Date(startTime.getTime() + 30 * 60 * 1000) // 默认30分钟
+    return new Date(startTime.getTime() + 30 * 60 * 1000)
   }
 
   if (SAME_TYPE_DURATION_TYPES.includes(type) || type === 'SLEEP') {
-    return new Date(startTime.getTime() + 4 * 60 * 60 * 1000) // 默认4小时
+    return new Date(startTime.getTime() + 4 * 60 * 60 * 1000)
   }
 
-  // 点事件按瞬时处理，但为了重叠查询给一个极短窗口
   return new Date(startTime.getTime() + 1000)
 }
 
-async function findOverlappingActivity(
-  babyId: string,
-  types: PrismaActivityType[],
-  startTime: Date,
-  endTime: Date,
+async function findOverlappingActivity(args: {
+  babyId: string
+  types: string[]
+  startTime: Date
+  endTime: Date
   excludeId?: string
-) {
-  if (types.length === 0) return null
+}): Promise<ActivityDoc | null> {
+  if (args.types.length === 0) {
+    return null
+  }
 
-  return prisma.activity.findFirst({
-    where: {
-      babyId,
-      type: { in: types },
-      ...(excludeId ? { id: { not: excludeId } } : {}),
-      AND: [
-        { startTime: { lt: endTime } },
+  const payload = await getPayloadClient()
+
+  const conditions: Where[] = [
+    {
+      babyId: {
+        equals: args.babyId,
+      },
+    },
+    {
+      type: {
+        in: args.types,
+      },
+    },
+    {
+      startTime: {
+        less_than: args.endTime.toISOString(),
+      },
+    },
+    {
+      or: [
         {
-          OR: [
-            { endTime: { gt: startTime } },
-            { endTime: null }, // 进行中的活动
-          ],
+          endTime: {
+            greater_than: args.startTime.toISOString(),
+          },
+        },
+        {
+          endTime: {
+            exists: false,
+          },
         },
       ],
     },
+  ]
+
+  if (args.excludeId) {
+    conditions.push({
+      id: {
+        not_equals: args.excludeId,
+      },
+    })
+  }
+
+  const result = await payload.find({
+    collection: 'activities',
+    where: {
+      and: conditions,
+    },
+    limit: 1,
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
   })
+
+  return (result.docs[0] as ActivityDoc | undefined) ?? null
 }
 
-// 检查时间重叠
-async function checkTimeOverlap(
-  babyId: string,
-  type: string,
-  startTime: Date,
-  endTime: Date | null,
+async function checkTimeOverlap(params: {
+  babyId: string
+  type: string
+  startTime: Date
+  endTime: Date | null
   excludeId?: string
-): Promise<{ code: string; message: string; conflictingActivity?: unknown } | null> {
+}): Promise<OverlapResult | null> {
+  const { babyId, type, startTime, endTime, excludeId } = params
   const isPointEvent = POINT_EVENT_TYPES.includes(type)
   const isFeedingConflictType = FEEDING_CONFLICT_TYPES.includes(type)
   const isSameTypeDuration = SAME_TYPE_DURATION_TYPES.includes(type)
   const isSleepConflictType = type === 'SLEEP' || SLEEP_CONFLICT_TYPES.includes(type)
-  
-  // 0. 检查是否是未来时间
+
   if (isFutureTime(startTime)) {
     return {
       code: 'FUTURE_TIME',
       message: '不能录入未来的活动',
     }
   }
+
   if (endTime && isFutureTime(endTime)) {
     return {
       code: 'FUTURE_TIME',
       message: '活动结束时间不能在未来',
     }
   }
-  
-  // 1. 点事件：检查同类型同时间（1分钟容差）
+
   if (isPointEvent) {
+    const payload = await getPayloadClient()
     const startMin = new Date(startTime.getTime() - TIME_TOLERANCE_MS)
     const startMax = new Date(startTime.getTime() + TIME_TOLERANCE_MS)
-    
-    const duplicate = await prisma.activity.findFirst({
-      where: {
-        babyId,
-        type: type as PrismaActivityType,
-        startTime: {
-          gte: startMin,
-          lte: startMax,
+
+    const conditions: Where[] = [
+      {
+        babyId: {
+          equals: babyId,
         },
-        ...(excludeId ? { id: { not: excludeId } } : {}),
       },
+      {
+        type: {
+          equals: type,
+        },
+      },
+      {
+        startTime: {
+          greater_than_equal: startMin.toISOString(),
+        },
+      },
+      {
+        startTime: {
+          less_than_equal: startMax.toISOString(),
+        },
+      },
+    ]
+
+    if (excludeId) {
+      conditions.push({
+        id: {
+          not_equals: excludeId,
+        },
+      })
+    }
+
+    const duplicate = await payload.find({
+      collection: 'activities',
+      where: {
+        and: conditions,
+      },
+      limit: 1,
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
     })
-    
-    if (duplicate) {
+
+    if (duplicate.totalDocs > 0) {
       return {
         code: 'DUPLICATE_ACTIVITY',
-        message: `该时间点已存在相同类型的记录`,
-        conflictingActivity: duplicate,
+        message: '该时间点已存在相同类型的记录',
+        conflictingActivity: duplicate.docs[0] as ActivityDoc,
       }
     }
   }
-  
-  // 2. 喂奶冲突：只有瓶喂/亲喂互斥（吸奶不参与）
+
   if (isFeedingConflictType) {
     const activityEnd = getOverlapEndTime(type, startTime, endTime)
-    const overlapping = await findOverlappingActivity(
+    const overlapping = await findOverlappingActivity({
       babyId,
-      FEEDING_CONFLICT_TYPES as PrismaActivityType[],
+      types: FEEDING_CONFLICT_TYPES,
       startTime,
-      activityEnd,
-      excludeId
-    )
+      endTime: activityEnd,
+      excludeId,
+    })
 
     if (overlapping) {
       const overlappingType = TYPE_LABELS[overlapping.type] || overlapping.type
@@ -303,41 +258,38 @@ async function checkTimeOverlap(
       }
     }
   }
-  
-  // 3. 同类型时长活动：不允许重叠（不可 force）
+
   if (isSameTypeDuration) {
     const activityEnd = getOverlapEndTime(type, startTime, endTime)
-    const overlapping = await findOverlappingActivity(
+    const overlapping = await findOverlappingActivity({
       babyId,
-      [type as PrismaActivityType],
+      types: [type],
       startTime,
-      activityEnd,
-      excludeId
-    )
+      endTime: activityEnd,
+      excludeId,
+    })
 
     if (overlapping) {
       const typeLabel = TYPE_LABELS[type] || type
       return {
-        code: 'DUPLICATE_ACTIVITY', // 同类型重叠不允许绕过
+        code: 'DUPLICATE_ACTIVITY',
         message: `该时间段与已有的${typeLabel}记录重叠，请检查`,
         conflictingActivity: overlapping,
       }
     }
   }
 
-  // 4. 睡眠与具体活动冲突（可 force）
   if (isSleepConflictType) {
     const activityEnd = getOverlapEndTime(type, startTime, endTime)
-    const targetTypes = (type === 'SLEEP'
-      ? SLEEP_CONFLICT_TYPES
-      : ['SLEEP']) as PrismaActivityType[]
-    const overlapping = await findOverlappingActivity(
+    const targetTypes = type === 'SLEEP' ? SLEEP_CONFLICT_TYPES : ['SLEEP']
+
+    const overlapping = await findOverlappingActivity({
       babyId,
-      targetTypes,
+      types: targetTypes,
       startTime,
-      activityEnd,
-      excludeId
-    )
+      endTime: activityEnd,
+      excludeId,
+    })
 
     if (overlapping) {
       const overlappingType = TYPE_LABELS[overlapping.type] || overlapping.type
@@ -348,15 +300,189 @@ async function checkTimeOverlap(
       }
     }
   }
-  
+
   return null
 }
 
-// POST: 创建新活动
+export async function GET(request: NextRequest) {
+  try {
+    const { baby } = await requireAuth()
+    const payload = await getPayloadClient()
+
+    const searchParams = request.nextUrl.searchParams
+    const limit = parseInt(searchParams.get('limit') || '50', 10)
+    const type = searchParams.get('type') as ActivityType | null
+    const types = searchParams.get('types')
+    const date = searchParams.get('date')
+    const startTimeGte = searchParams.get('startTimeGte')
+    const startTimeLt = searchParams.get('startTimeLt')
+    const crossStartTime = searchParams.get('crossStartTime') === 'true'
+    const crossEndTime = searchParams.get('crossEndTime') === 'true'
+
+    const conditions: Where[] = [
+      {
+        babyId: {
+          equals: baby.id,
+        },
+      },
+    ]
+
+    if (type) {
+      conditions.push({
+        type: {
+          equals: type,
+        },
+      })
+    } else if (types) {
+      const typeList = types
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+
+      if (typeList.length > 0) {
+        conditions.push({
+          type: {
+            in: typeList,
+          },
+        })
+      }
+    }
+
+    if (startTimeGte || startTimeLt) {
+      const startTimeGteDate = toDate(startTimeGte)
+      const startTimeLtDate = toDate(startTimeLt)
+
+      const rangeCondition: Record<string, string> = {}
+      if (startTimeGteDate) {
+        rangeCondition.greater_than_equal = startTimeGteDate.toISOString()
+      }
+      if (startTimeLtDate) {
+        rangeCondition.less_than = startTimeLtDate.toISOString()
+      }
+
+      const options: Where[] = []
+      if (Object.keys(rangeCondition).length > 0) {
+        options.push({
+          startTime: rangeCondition,
+        })
+      }
+
+      if (crossStartTime && startTimeGteDate) {
+        options.push({
+          and: [
+            {
+              startTime: {
+                less_than: startTimeGteDate.toISOString(),
+              },
+            },
+            {
+              or: [
+                {
+                  endTime: {
+                    greater_than_equal: startTimeGteDate.toISOString(),
+                  },
+                },
+                {
+                  endTime: {
+                    exists: false,
+                  },
+                },
+              ],
+            },
+          ],
+        })
+      }
+
+      if (crossEndTime && startTimeLtDate) {
+        options.push({
+          and: [
+            {
+              startTime: {
+                less_than: startTimeLtDate.toISOString(),
+              },
+            },
+            {
+              or: [
+                {
+                  endTime: {
+                    greater_than_equal: startTimeLtDate.toISOString(),
+                  },
+                },
+                {
+                  endTime: {
+                    exists: false,
+                  },
+                },
+              ],
+            },
+          ],
+        })
+      }
+
+      if (options.length === 1) {
+        conditions.push(options[0])
+      } else if (options.length > 1) {
+        conditions.push({
+          or: options,
+        })
+      }
+    } else if (date) {
+      const startOfDay = startOfDayChina(date)
+      const endOfDay = endOfDayChina(date)
+
+      conditions.push({
+        and: [
+          {
+            startTime: {
+              less_than_equal: endOfDay.toISOString(),
+            },
+          },
+          {
+            or: [
+              {
+                endTime: {
+                  greater_than_equal: startOfDay.toISOString(),
+                },
+              },
+              {
+                endTime: {
+                  exists: false,
+                },
+              },
+            ],
+          },
+        ],
+      })
+    }
+
+    const activities = await payload.find({
+      collection: 'activities',
+      where: {
+        and: conditions,
+      },
+      sort: '-startTime',
+      limit,
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    return NextResponse.json(activities.docs)
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    console.error('Failed to fetch activities:', error)
+    return NextResponse.json({ error: 'Failed to fetch activities' }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { baby, user } = await requireAuth()
-    
+    const payload = await getPayloadClient()
+
     const body = await request.json()
     const {
       type,
@@ -375,18 +501,29 @@ export async function POST(request: NextRequest) {
       spitUpType,
       count,
       notes,
-      force, // 强制创建（忽略重叠警告）
+      force,
     } = body
 
     const startTimeDate = new Date(startTime)
-    // 点事件（换尿布、补剂）的 endTime 应该与 startTime 相同
-    const isPointEvent = POINT_EVENT_TYPES.includes(type)
-    const endTimeDate = isPointEvent ? startTimeDate : (endTime ? new Date(endTime) : null)
+    if (Number.isNaN(startTimeDate.getTime())) {
+      return NextResponse.json({ error: '无效的开始时间' }, { status: 400 })
+    }
 
-    // 检查时间重叠
-    const overlap = await checkTimeOverlap(baby.id, type, startTimeDate, endTimeDate)
+    const isPointEvent = POINT_EVENT_TYPES.includes(type)
+    const endTimeDate = isPointEvent ? startTimeDate : endTime ? new Date(endTime) : null
+
+    if (endTimeDate && Number.isNaN(endTimeDate.getTime())) {
+      return NextResponse.json({ error: '无效的结束时间' }, { status: 400 })
+    }
+
+    const overlap = await checkTimeOverlap({
+      babyId: baby.id,
+      type,
+      startTime: startTimeDate,
+      endTime: endTimeDate,
+    })
+
     if (overlap) {
-      // DUPLICATE_ACTIVITY 始终阻止，OVERLAP_ACTIVITY 可以通过 force 绕过
       if (overlap.code === 'DUPLICATE_ACTIVITY' || !force) {
         return NextResponse.json(
           {
@@ -399,11 +536,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const activity = await prisma.activity.create({
+    const activity = await payload.create({
+      collection: 'activities',
       data: {
         type,
-        startTime: startTimeDate,
-        endTime: endTimeDate,
+        startTime: startTimeDate.toISOString(),
+        endTime: endTimeDate ? endTimeDate.toISOString() : null,
         babyId: baby.id,
         hasPoop,
         hasPee,
@@ -419,62 +557,50 @@ export async function POST(request: NextRequest) {
         count,
         notes,
       },
+      depth: 0,
+      overrideAccess: true,
     })
 
-    // Generate description for audit log
     const typeLabel = ActivityTypeLabels[type as ActivityType] || type
     let description = `创建${typeLabel}`
-    if (milkAmount) {
+    if (typeof milkAmount === 'number' && milkAmount > 0) {
       description += ` ${milkAmount}ml`
     }
 
-    // Record audit log
-    await prisma.auditLog.create({
-      data: {
-        action: 'CREATE',
-        resourceType: 'ACTIVITY',
-        resourceId: activity.id,
-        inputMethod: 'TEXT',
-        inputText: null,
-        description,
-        success: true,
-        beforeData: Prisma.JsonNull,
-        afterData: activity as Prisma.InputJsonValue,
-        activityId: activity.id,
-        babyId: baby.id,
-        userId: user.id,
-      },
+    await createAuditLog(payload, {
+      action: 'CREATE',
+      resourceId: String(activity.id),
+      inputMethod: 'TEXT',
+      description,
+      success: true,
+      beforeData: null,
+      afterData: activity,
+      activityId: String(activity.id),
+      babyId: baby.id,
+      userId: user.id,
     })
 
     return NextResponse.json(activity, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
     console.error('Failed to create activity:', error)
-    return NextResponse.json(
-      { error: 'Failed to create activity' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to create activity' }, { status: 500 })
   }
 }
 
-// PUT: 批量修改活动日期
 export async function PUT(request: NextRequest) {
   try {
     const { baby, user } = await requireAuth()
-    
+    const payload = await getPayloadClient()
+
     const body = await request.json()
-    const { ids, targetDate } = body
+    const { ids, targetDate } = body as { ids?: string[]; targetDate?: string }
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json(
-        { error: 'ids array is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'ids array is required' }, { status: 400 })
     }
 
     if (!targetDate || !/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
@@ -484,163 +610,193 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // 解析目标日期
-    const targetDateObj = new Date(targetDate + 'T00:00:00')
-    
-    // 检查目标日期是否是未来
-    const today = new Date()
-    today.setHours(23, 59, 59, 999) // 允许修改到今天
-    if (targetDateObj > today) {
-      return NextResponse.json(
-        { error: '不能将活动移动到未来日期' },
-        { status: 400 }
-      )
+    const targetDateObj = new Date(`${targetDate}T00:00:00`)
+    if (Number.isNaN(targetDateObj.getTime())) {
+      return NextResponse.json({ error: '无效日期' }, { status: 400 })
     }
 
-    // 获取要修改的活动（只能修改属于当前宝宝的活动）
-    const activities = await prisma.activity.findMany({
-      where: { id: { in: ids }, babyId: baby.id },
+    const today = new Date()
+    today.setHours(23, 59, 59, 999)
+    if (targetDateObj > today) {
+      return NextResponse.json({ error: '不能将活动移动到未来日期' }, { status: 400 })
+    }
+
+    const activitiesResult = await payload.find({
+      collection: 'activities',
+      where: {
+        and: [
+          {
+            id: {
+              in: ids,
+            },
+          },
+          {
+            babyId: {
+              equals: baby.id,
+            },
+          },
+        ],
+      },
+      limit: ids.length,
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
     })
 
+    const activities = activitiesResult.docs as ActivityDoc[]
+
     if (activities.length === 0) {
-      return NextResponse.json(
-        { error: '未找到可修改的活动' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: '未找到可修改的活动' }, { status: 404 })
     }
 
-    // 批量更新活动日期
-    // 保持原来的时间（小时分钟秒），只修改日期部分
     let updatedCount = 0
+
     for (const activity of activities) {
-      const originalStart = new Date(activity.startTime)
+      const originalStart = toDate(activity.startTime)
+      if (!originalStart) {
+        continue
+      }
+
       const newStartTime = new Date(targetDateObj)
-      newStartTime.setHours(originalStart.getHours(), originalStart.getMinutes(), originalStart.getSeconds(), originalStart.getMilliseconds())
-      
+      newStartTime.setHours(
+        originalStart.getHours(),
+        originalStart.getMinutes(),
+        originalStart.getSeconds(),
+        originalStart.getMilliseconds()
+      )
+
       let newEndTime: Date | null = null
-      if (activity.endTime) {
-        const originalEnd = new Date(activity.endTime)
+      const originalEnd = toDate(activity.endTime || null)
+
+      if (originalEnd) {
         newEndTime = new Date(targetDateObj)
-        newEndTime.setHours(originalEnd.getHours(), originalEnd.getMinutes(), originalEnd.getSeconds(), originalEnd.getMilliseconds())
-        
-        // 如果原活动跨天（结束时间小于开始时间的时钟时间），保持跨天
-        if (originalEnd.getHours() < originalStart.getHours() || 
-            (originalEnd.getHours() === originalStart.getHours() && originalEnd.getMinutes() < originalStart.getMinutes())) {
+        newEndTime.setHours(
+          originalEnd.getHours(),
+          originalEnd.getMinutes(),
+          originalEnd.getSeconds(),
+          originalEnd.getMilliseconds()
+        )
+
+        if (
+          originalEnd.getHours() < originalStart.getHours() ||
+          (originalEnd.getHours() === originalStart.getHours() &&
+            originalEnd.getMinutes() < originalStart.getMinutes())
+        ) {
           newEndTime.setDate(newEndTime.getDate() + 1)
         }
       }
 
-      await prisma.activity.update({
-        where: { id: activity.id },
+      await payload.update({
+        collection: 'activities',
+        id: activity.id,
         data: {
-          startTime: newStartTime,
-          endTime: newEndTime,
+          startTime: newStartTime.toISOString(),
+          endTime: newEndTime ? newEndTime.toISOString() : null,
         },
+        depth: 0,
+        overrideAccess: true,
       })
 
-      // 记录审计日志
-      await prisma.auditLog.create({
-        data: {
-          action: 'UPDATE',
-          resourceType: 'ACTIVITY',
-          resourceId: activity.id,
-          inputMethod: 'TEXT',
-          inputText: null,
-          description: `批量修改日期至 ${targetDate}`,
-          success: true,
-          beforeData: activity as Prisma.InputJsonValue,
-          afterData: { ...activity, startTime: newStartTime, endTime: newEndTime } as Prisma.InputJsonValue,
-          activityId: activity.id,
-          babyId: baby.id,
-          userId: user.id,
+      await createAuditLog(payload, {
+        action: 'UPDATE',
+        resourceId: activity.id,
+        inputMethod: 'TEXT',
+        description: `批量修改日期至 ${targetDate}`,
+        success: true,
+        beforeData: activity,
+        afterData: {
+          ...activity,
+          startTime: newStartTime.toISOString(),
+          endTime: newEndTime ? newEndTime.toISOString() : null,
         },
+        activityId: activity.id,
+        babyId: baby.id,
+        userId: user.id,
       })
 
-      updatedCount++
+      updatedCount += 1
     }
 
     return NextResponse.json({ success: true, count: updatedCount })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
     console.error('Failed to batch update activity dates:', error)
-    return NextResponse.json(
-      { error: 'Failed to batch update activity dates' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to batch update activity dates' }, { status: 500 })
   }
 }
 
-// DELETE: 批量删除活动
 export async function DELETE(request: NextRequest) {
   try {
     const { baby, user } = await requireAuth()
-    
+    const payload = await getPayloadClient()
+
     const body = await request.json()
-    const { ids } = body
+    const { ids } = body as { ids?: string[] }
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json(
-        { error: 'ids array is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'ids array is required' }, { status: 400 })
     }
 
-    // 获取要删除的活动完整信息（只能删除属于当前宝宝的活动）
-    const activities = await prisma.activity.findMany({
-      where: { id: { in: ids }, babyId: baby.id },
-    })
-
-    const result = await prisma.activity.deleteMany({
+    const activitiesResult = await payload.find({
+      collection: 'activities',
       where: {
-        id: { in: ids },
-        babyId: baby.id,
+        and: [
+          {
+            id: {
+              in: ids,
+            },
+          },
+          {
+            babyId: {
+              equals: baby.id,
+            },
+          },
+        ],
       },
+      limit: ids.length,
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
     })
 
-    // 统计删除的活动类型
-    const typeCounts: Record<string, number> = {}
-    activities.forEach(a => {
-      const label = ActivityTypeLabels[a.type as ActivityType] || a.type
-      typeCounts[label] = (typeCounts[label] || 0) + 1
-    })
+    const activities = activitiesResult.docs as ActivityDoc[]
 
-    // 为每个删除的活动记录审计日志
+    let deletedCount = 0
+
     for (const activity of activities) {
-      await prisma.auditLog.create({
-        data: {
-          action: 'DELETE',
-          resourceType: 'ACTIVITY',
-          resourceId: activity.id,
-          inputMethod: 'TEXT',
-          inputText: null,
-          description: `批量删除${ActivityTypeLabels[activity.type as ActivityType] || activity.type}`,
-          success: true,
-          beforeData: activity as Prisma.InputJsonValue,
-          afterData: Prisma.JsonNull,
-          activityId: null,
-          babyId: baby.id,
-          userId: user.id,
-        },
+      await payload.delete({
+        collection: 'activities',
+        id: activity.id,
+        depth: 0,
+        overrideAccess: true,
       })
+
+      await createAuditLog(payload, {
+        action: 'DELETE',
+        resourceId: activity.id,
+        inputMethod: 'TEXT',
+        description: `批量删除${ActivityTypeLabels[activity.type as ActivityType] || activity.type}`,
+        success: true,
+        beforeData: activity,
+        afterData: null,
+        activityId: null,
+        babyId: baby.id,
+        userId: user.id,
+      })
+
+      deletedCount += 1
     }
 
-    return NextResponse.json({ success: true, count: result.count })
+    return NextResponse.json({ success: true, count: deletedCount })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
     console.error('Failed to batch delete activities:', error)
-    return NextResponse.json(
-      { error: 'Failed to batch delete activities' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to batch delete activities' }, { status: 500 })
   }
 }

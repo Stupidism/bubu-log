@@ -1,37 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { ActivityType } from '@/types/activity'
 import { requireAuth } from '@/lib/auth/get-current-baby'
+import { ActivityType } from '@/types/activity'
+import { getPayloadClient } from '@/lib/payload/client'
 
-// GET: 获取某类活动的最新记录（用于判断交替状态）
 export async function GET(request: NextRequest) {
   try {
     const { baby } = await requireAuth()
-    
+    const payload = await getPayloadClient()
+
     const searchParams = request.nextUrl.searchParams
-    const types = searchParams.get('types')?.split(',') as ActivityType[] | undefined
+    const types = searchParams
+      .get('types')
+      ?.split(',')
+      .map((item) => item.trim()) as ActivityType[] | undefined
 
     if (!types || types.length === 0) {
-      return NextResponse.json(
-        { error: 'Types parameter is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Types parameter is required' }, { status: 400 })
     }
 
-    const activity = await prisma.activity.findFirst({
+    const result = await payload.find({
+      collection: 'activities',
       where: {
-        babyId: baby.id,
-        type: { in: types },
+        and: [
+          {
+            babyId: {
+              equals: baby.id,
+            },
+          },
+          {
+            type: {
+              in: types,
+            },
+          },
+        ],
       },
-      orderBy: { startTime: 'desc' },
+      sort: '-startTime',
+      limit: 1,
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
     })
 
-    return NextResponse.json(activity)
+    return NextResponse.json(result.docs[0] || null)
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     console.error('Failed to fetch latest activity:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch latest activity' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch latest activity' }, { status: 500 })
   }
 }

@@ -66,6 +66,7 @@ export const AppUsers: CollectionConfig = {
       name: 'id',
       label: 'ID',
       type: 'text',
+      dbName: 'id',
       required: true,
       unique: true,
       admin: {
@@ -76,6 +77,7 @@ export const AppUsers: CollectionConfig = {
       name: 'username',
       label: '用户名',
       type: 'text',
+      dbName: 'username',
       required: true,
       unique: true,
       validate: (value: string | null | undefined) => {
@@ -95,6 +97,7 @@ export const AppUsers: CollectionConfig = {
       name: 'password',
       label: '密码',
       type: 'text',
+      dbName: 'password',
       admin: {
         description: '创建用户或重置密码时填写，留空则不修改。',
       },
@@ -106,22 +109,26 @@ export const AppUsers: CollectionConfig = {
       name: 'name',
       label: '姓名',
       type: 'text',
+      dbName: 'name',
     },
     {
       name: 'email',
       label: '邮箱',
       type: 'email',
+      dbName: 'email',
       unique: true,
     },
     {
       name: 'image',
       label: '头像 URL',
       type: 'text',
+      dbName: 'image',
     },
     {
       name: 'emailVerified',
       label: '邮箱验证时间',
       type: 'date',
+      dbName: 'emailVerified',
       admin: {
         date: {
           pickerAppearance: 'dayAndTime',
@@ -131,22 +138,19 @@ export const AppUsers: CollectionConfig = {
     {
       name: 'role',
       label: '角色',
-      type: 'select',
+      type: 'text',
+      dbName: 'role',
       defaultValue: 'OTHER',
       required: true,
-      options: [
-        { label: '管理员', value: 'ADMIN' },
-        { label: '爸爸', value: 'DAD' },
-        { label: '妈妈', value: 'MOM' },
-        { label: '月嫂', value: 'NANNY' },
-        { label: '祖辈', value: 'GRANDPARENT' },
-        { label: '其他', value: 'OTHER' },
-      ],
+      admin: {
+        description: 'ADMIN / DAD / MOM / NANNY / GRANDPARENT / OTHER',
+      },
     },
     {
       name: 'createdAt',
       label: '创建时间',
       type: 'date',
+      dbName: 'createdAt',
       admin: {
         readOnly: true,
         date: {
@@ -158,6 +162,7 @@ export const AppUsers: CollectionConfig = {
       name: 'updatedAt',
       label: '更新时间',
       type: 'date',
+      dbName: 'updatedAt',
       admin: {
         readOnly: true,
         date: {
