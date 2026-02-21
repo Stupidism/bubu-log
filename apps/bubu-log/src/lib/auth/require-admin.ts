@@ -1,12 +1,19 @@
-import { UserRole } from '@prisma/client'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getPayloadClient } from '@/lib/payload/client'
 
 export type AdminUser = {
   id: string
   name: string | null
   username: string | null
   email: string | null
+}
+
+type AppUserDoc = {
+  id: string
+  name?: string | null
+  username?: string | null
+  email?: string | null
+  role?: string | null
 }
 
 export async function getCurrentAdminUser(): Promise<AdminUser | null> {
@@ -18,30 +25,36 @@ export async function getCurrentAdminUser(): Promise<AdminUser | null> {
     return null
   }
 
-  if (!session?.user?.id) {
+  const userId = session?.user && (session.user as { id?: string }).id
+  if (!userId) {
     return null
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      name: true,
-      username: true,
-      email: true,
-      role: true,
-    },
-  })
+  const payload = await getPayloadClient()
 
-  if (!user || user.role !== UserRole.ADMIN) {
+  let user: AppUserDoc | null = null
+  try {
+    const doc = await payload.findByID({
+      collection: 'app-users',
+      id: userId,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    user = doc as AppUserDoc
+  } catch {
+    user = null
+  }
+
+  if (!user || user.role !== 'ADMIN') {
     return null
   }
 
   return {
     id: user.id,
-    name: user.name,
-    username: user.username,
-    email: user.email,
+    name: user.name ?? null,
+    username: user.username ?? null,
+    email: user.email ?? null,
   }
 }
 

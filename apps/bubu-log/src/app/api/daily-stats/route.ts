@@ -1,50 +1,112 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { ActivityType } from '@prisma/client'
+import { type Where } from 'payload'
 import { requireAuth } from '@/lib/auth/get-current-baby'
+import { ActivityType } from '@/types/activity'
+import { getPayloadClient } from '@/lib/payload/client'
+import type { ActivityDoc, DailyStatDoc } from '@/lib/payload/models'
 
-// 计算某天在当天范围内的睡眠时长（分钟）
 function calculateDurationInDay(startTime: Date, endTime: Date, targetDate: Date): number {
   const dayStart = new Date(targetDate)
   dayStart.setHours(0, 0, 0, 0)
   const dayEnd = new Date(targetDate)
   dayEnd.setHours(23, 59, 59, 999)
-  
+
   const effectiveStart = startTime < dayStart ? dayStart : startTime
   const effectiveEnd = endTime > dayEnd ? dayEnd : endTime
-  
-  if (effectiveStart >= effectiveEnd) return 0
-  
+
+  if (effectiveStart >= effectiveEnd) {
+    return 0
+  }
+
   return Math.round((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60))
 }
 
-// 计算两个时间之间的分钟数
 function calculateDurationMinutes(startTime: Date, endTime: Date): number {
   return Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60))
 }
 
-// 计算某天的统计数据
+function toDate(value: string | null | undefined): Date | null {
+  if (!value) {
+    return null
+  }
+
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 async function computeDailyStats(babyId: string, date: Date) {
+  const payload = await getPayloadClient()
+
   const dayStart = new Date(date)
   dayStart.setHours(0, 0, 0, 0)
   const dayEnd = new Date(date)
   dayEnd.setHours(23, 59, 59, 999)
-  
-  // 获取当天的所有活动（开始时间或结束时间在当天范围内）
-  const activities = await prisma.activity.findMany({
+
+  const activitiesResult = await payload.find({
+    collection: 'activities',
     where: {
-      babyId,
-      OR: [
-        // 开始时间在当天
-        { startTime: { gte: dayStart, lte: dayEnd } },
-        // 结束时间在当天（跨天的活动）
-        { endTime: { gte: dayStart, lte: dayEnd } },
-        // 跨越整天的活动
-        { AND: [{ startTime: { lt: dayStart } }, { endTime: { gt: dayEnd } }] },
+      and: [
+        {
+          babyId: {
+            equals: babyId,
+          },
+        },
+        {
+          or: [
+            {
+              and: [
+                {
+                  startTime: {
+                    greater_than_equal: dayStart.toISOString(),
+                  },
+                },
+                {
+                  startTime: {
+                    less_than_equal: dayEnd.toISOString(),
+                  },
+                },
+              ],
+            },
+            {
+              and: [
+                {
+                  endTime: {
+                    greater_than_equal: dayStart.toISOString(),
+                  },
+                },
+                {
+                  endTime: {
+                    less_than_equal: dayEnd.toISOString(),
+                  },
+                },
+              ],
+            },
+            {
+              and: [
+                {
+                  startTime: {
+                    less_than: dayStart.toISOString(),
+                  },
+                },
+                {
+                  endTime: {
+                    greater_than: dayEnd.toISOString(),
+                  },
+                },
+              ],
+            },
+          ],
+        },
       ],
     },
+    limit: 1000,
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
   })
-  
+
+  const activities = activitiesResult.docs as ActivityDoc[]
+
   const stats = {
     sleepCount: 0,
     totalSleepMinutes: 0,
@@ -64,176 +126,236 @@ async function computeDailyStats(babyId: string, date: Date) {
     spitUpCount: 0,
     projectileSpitUpCount: 0,
   }
-  
+
   for (const activity of activities) {
+    const startTime = toDate(activity.startTime)
+    const endTime = toDate(activity.endTime || null)
+
+    if (!startTime) {
+      continue
+    }
+
+    const isStartInDay = startTime >= dayStart && startTime <= dayEnd
+
     switch (activity.type) {
       case ActivityType.SLEEP:
-        if (activity.endTime) {
-          const duration = calculateDurationInDay(activity.startTime, activity.endTime, date)
+        if (endTime) {
+          const duration = calculateDurationInDay(startTime, endTime, date)
           if (duration > 0) {
-            stats.sleepCount++
+            stats.sleepCount += 1
             stats.totalSleepMinutes += duration
           }
         }
         break
-        
+
       case ActivityType.BREASTFEED:
-        // 只统计开始时间在当天的亲喂
-        if (activity.startTime >= dayStart && activity.startTime <= dayEnd) {
-          stats.breastfeedCount++
-          if (activity.endTime) {
-            stats.totalBreastfeedMinutes += calculateDurationMinutes(activity.startTime, activity.endTime)
+        if (isStartInDay) {
+          stats.breastfeedCount += 1
+          if (endTime) {
+            stats.totalBreastfeedMinutes += calculateDurationMinutes(startTime, endTime)
           }
         }
         break
-        
+
       case ActivityType.BOTTLE:
-        // 只统计开始时间在当天的瓶喂
-        if (activity.startTime >= dayStart && activity.startTime <= dayEnd) {
-          stats.bottleCount++
-          stats.totalMilkAmount += activity.milkAmount || 0
+        if (isStartInDay) {
+          stats.bottleCount += 1
+          stats.totalMilkAmount += typeof activity.milkAmount === 'number' ? activity.milkAmount : 0
         }
         break
 
       case ActivityType.PUMP:
-        // 只统计开始时间在当天的吸奶
-        if (activity.startTime >= dayStart && activity.startTime <= dayEnd) {
-          stats.pumpCount++
-          stats.totalPumpMilkAmount += activity.milkAmount || 0
+        if (isStartInDay) {
+          stats.pumpCount += 1
+          stats.totalPumpMilkAmount += typeof activity.milkAmount === 'number' ? activity.milkAmount : 0
         }
         break
-        
+
       case ActivityType.DIAPER:
-        stats.diaperCount++
-        if (activity.hasPoop) stats.poopCount++
-        if (activity.hasPee) stats.peeCount++
+        stats.diaperCount += 1
+        if (activity.hasPoop) stats.poopCount += 1
+        if (activity.hasPee) stats.peeCount += 1
         break
-        
+
       case ActivityType.HEAD_LIFT:
-        if (activity.startTime >= dayStart && activity.startTime <= dayEnd) {
-          stats.exerciseCount++
-          if (activity.endTime) {
-            stats.totalHeadLiftMinutes += calculateDurationMinutes(activity.startTime, activity.endTime)
+        if (isStartInDay) {
+          stats.exerciseCount += 1
+          if (endTime) {
+            stats.totalHeadLiftMinutes += calculateDurationMinutes(startTime, endTime)
           }
         }
         break
-        
+
       case ActivityType.PASSIVE_EXERCISE:
       case ActivityType.GAS_EXERCISE:
       case ActivityType.BATH:
       case ActivityType.OUTDOOR:
       case ActivityType.EARLY_EDUCATION:
-        if (activity.startTime >= dayStart && activity.startTime <= dayEnd) {
-          stats.exerciseCount++
+        if (isStartInDay) {
+          stats.exerciseCount += 1
         }
         break
-        
+
       case ActivityType.SUPPLEMENT:
-        if (activity.startTime >= dayStart && activity.startTime <= dayEnd) {
+        if (isStartInDay) {
           if (activity.supplementType === 'AD') {
-            stats.supplementADCount++
+            stats.supplementADCount += 1
           } else if (activity.supplementType === 'D3') {
-            stats.supplementD3Count++
+            stats.supplementD3Count += 1
           }
         }
         break
-        
+
       case ActivityType.SPIT_UP:
-        if (activity.startTime >= dayStart && activity.startTime <= dayEnd) {
-          stats.spitUpCount++
+        if (isStartInDay) {
+          stats.spitUpCount += 1
           if (activity.spitUpType === 'PROJECTILE') {
-            stats.projectileSpitUpCount++
+            stats.projectileSpitUpCount += 1
           }
         }
+        break
+
+      default:
         break
     }
   }
-  
+
   return stats
 }
 
-// GET /api/daily-stats - 获取日期范围内的统计数据
 export async function GET(request: NextRequest) {
   try {
     const { baby } = await requireAuth()
-    
+    const payload = await getPayloadClient()
+
     const searchParams = request.nextUrl.searchParams
     const startDateStr = searchParams.get('startDate')
     const endDateStr = searchParams.get('endDate')
-    
-    const where: { babyId: string; date?: { gte?: Date; lte?: Date } } = {
-      babyId: baby.id,
-    }
-    
-    // 使用本地日期解析，避免时区问题
+
+    const conditions: Where[] = [
+      {
+        babyId: {
+          equals: baby.id,
+        },
+      },
+    ]
+
     if (startDateStr) {
       const [year, month, day] = startDateStr.split('-').map(Number)
       const startDate = new Date(year, month - 1, day, 0, 0, 0, 0)
-      where.date = { ...where.date, gte: startDate }
+      if (!Number.isNaN(startDate.getTime())) {
+        conditions.push({
+          date: {
+            greater_than_equal: startDate.toISOString(),
+          },
+        })
+      }
     }
-    
+
     if (endDateStr) {
       const [year, month, day] = endDateStr.split('-').map(Number)
       const endDate = new Date(year, month - 1, day, 0, 0, 0, 0)
-      where.date = { ...where.date, lte: endDate }
+      if (!Number.isNaN(endDate.getTime())) {
+        conditions.push({
+          date: {
+            less_than_equal: endDate.toISOString(),
+          },
+        })
+      }
     }
-    
-    // 不使用 limit，返回日期范围内的所有记录
-    const stats = await prisma.dailyStat.findMany({
-      where,
-      orderBy: { date: 'asc' },
+
+    const stats = await payload.find({
+      collection: 'daily-stats',
+      where: {
+        and: conditions,
+      },
+      sort: 'date',
+      limit: 500,
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
     })
-    
-    return NextResponse.json(stats)
+
+    return NextResponse.json(stats.docs)
   } catch (error) {
     console.error('Failed to fetch daily stats:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch daily stats' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch daily stats' }, { status: 500 })
   }
 }
 
-// POST /api/daily-stats - 计算并保存某天的统计数据
 export async function POST(request: NextRequest) {
   try {
     const { baby } = await requireAuth()
-    
+    const payload = await getPayloadClient()
+
     const body = await request.json()
-    const { date: dateStr } = body
-    
+    const dateStr = body.date as string | undefined
+
     if (!dateStr) {
       return NextResponse.json({ error: '日期是必需的' }, { status: 400 })
     }
-    
+
     const date = new Date(dateStr)
     date.setHours(0, 0, 0, 0)
-    
-    // 计算统计数据
+
+    if (Number.isNaN(date.getTime())) {
+      return NextResponse.json({ error: '日期格式无效' }, { status: 400 })
+    }
+
     const stats = await computeDailyStats(baby.id, date)
-    
-    // 使用 upsert 更新或创建
-    const dailyStat = await prisma.dailyStat.upsert({
-      where: { 
-        babyId_date: {
-          babyId: baby.id,
-          date,
-        }
+
+    const existing = await payload.find({
+      collection: 'daily-stats',
+      where: {
+        and: [
+          {
+            babyId: {
+              equals: baby.id,
+            },
+          },
+          {
+            date: {
+              equals: date.toISOString(),
+            },
+          },
+        ],
       },
-      update: stats,
-      create: {
-        date,
-        babyId: baby.id,
-        ...stats,
-      },
+      limit: 1,
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
     })
-    
+
+    let dailyStat: DailyStatDoc
+
+    if (existing.totalDocs > 0) {
+      const updated = await payload.update({
+        collection: 'daily-stats',
+        id: String(existing.docs[0].id),
+        data: stats,
+        depth: 0,
+        overrideAccess: true,
+      })
+
+      dailyStat = updated as DailyStatDoc
+    } else {
+      const created = await payload.create({
+        collection: 'daily-stats',
+        data: {
+          date: date.toISOString(),
+          babyId: baby.id,
+          ...stats,
+        },
+        depth: 0,
+        overrideAccess: true,
+      })
+
+      dailyStat = created as DailyStatDoc
+    }
+
     return NextResponse.json(dailyStat)
   } catch (error) {
     console.error('Failed to compute daily stats:', error)
-    return NextResponse.json(
-      { error: 'Failed to compute daily stats' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to compute daily stats' }, { status: 500 })
   }
 }

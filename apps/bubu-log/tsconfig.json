@@ -1,8 +1,10 @@
 {
   "extends": "@bubu-log/typescript-config/nextjs.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/*": ["./src/*"],
+      "@payload-config": ["./payload.config.ts"],
       "@bubu-log/ui": ["../../packages/ui/src"],
       "@bubu-log/ui/*": ["../../packages/ui/src/*"],
       "@bubu-log/log-ui": ["../../packages/log-ui/src"],
@@ -17,5 +19,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "scripts/**/*.ts"]
 }

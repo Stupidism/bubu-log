@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from 'next'
-import './globals.css'
-import { Providers } from './providers'
-import { ModalContainer } from '@/components/modals/ModalContainer'
+import '../globals.css'
+import { Providers } from '../providers'
 import { Toaster } from '@bubu-log/ui/sonner'
-import { AgentationWrapper } from '@/components/AgentationWrapper'
 
 export const metadata: Metadata = {
   title: '卜卜日志 - Baby Care Tracker',
@@ -50,16 +48,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased min-h-screen">
         <Providers>
-          {/* Mobile-first: 限制最大宽度，PC端保持手机比例 */}
-          <div className="phone-container mx-auto max-w-md min-h-screen bg-background shadow-xl relative">
-            {children}
-          </div>
-          {/* 全局弹窗容器 - 通过 URL 参数控制 */}
-          <ModalContainer />
+          {children}
           {/* 全局 Toast 提示 */}
           <Toaster />
-          {/* 开发环境视觉反馈工具 */}
-          <AgentationWrapper />
         </Providers>
       </body>
     </html>

@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
+import { usePathname } from 'next/navigation'
 import { ActivityDetailModal } from './ActivityDetailModal'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
 import { DiaperModal } from './DiaperModal'
@@ -21,6 +22,11 @@ import { SpitUpModal } from './SpitUpModal'
  * 所以可以一次性渲染所有弹窗，让它们各自管理自己的状态
  */
 export function ModalContainer() {
+  const pathname = usePathname()
+  if (pathname?.startsWith('/login')) {
+    return null
+  }
+
   return (
     <Suspense fallback={null}>
       {/* 活动详情/编辑弹窗 */}
@@ -61,4 +67,3 @@ export function ModalContainer() {
     </Suspense>
   )
 }
-

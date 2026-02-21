@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
-import { prisma } from '@/lib/prisma'
 import { ActivityType, PoopColor, PeeAmount, type SpitUpType, type MilkSource } from '@/types/activity'
 import { requireAuth } from '@/lib/auth/get-current-baby'
+import { getPayloadClient } from '@/lib/payload/client'
+import { createAuditLog } from '@/lib/payload/audit'
 
 // Deepseek API configuration
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions'
@@ -251,6 +251,7 @@ const typeLabelsForLog: Record<ActivityType, string> = {
 export async function POST(request: NextRequest) {
   try {
     const { baby, user } = await requireAuth()
+    const payload = await getPayloadClient()
     
     const body = await request.json()
     const { text, localTime } = body
@@ -272,22 +273,19 @@ export async function POST(request: NextRequest) {
     // Check if parsing failed
     if ('error' in parsed) {
       // Record failed audit log
-      await prisma.auditLog.create({
-        data: {
-          action: 'CREATE',
-          resourceType: 'ACTIVITY',
-          resourceId: null,
-          inputMethod: 'VOICE',
-          inputText: text,
-          description: `语音: "${text}" - ${parsed.error}`,
-          success: false,
-          errorMessage: parsed.error,
-          beforeData: Prisma.JsonNull,
-          afterData: Prisma.JsonNull,
-          activityId: null,
-          babyId: baby.id,
-          userId: user.id,
-        },
+      await createAuditLog(payload, {
+        action: 'CREATE',
+        resourceId: null,
+        inputMethod: 'VOICE',
+        inputText: text,
+        description: `语音: "${text}" - ${parsed.error}`,
+        success: false,
+        errorMessage: parsed.error,
+        beforeData: null,
+        afterData: null,
+        activityId: null,
+        babyId: baby.id,
+        userId: user.id,
       })
 
       return NextResponse.json(
@@ -303,22 +301,19 @@ export async function POST(request: NextRequest) {
     // Validate activity type
     if (!Object.values(ActivityType).includes(parsed.type)) {
       // Record failed audit log
-      await prisma.auditLog.create({
-        data: {
-          action: 'CREATE',
-          resourceType: 'ACTIVITY',
-          resourceId: null,
-          inputMethod: 'VOICE',
-          inputText: text,
-          description: `语音: "${text}" - 无效类型`,
-          success: false,
-          errorMessage: `无效的活动类型: ${parsed.type}`,
-          beforeData: Prisma.JsonNull,
-          afterData: Prisma.JsonNull,
-          activityId: null,
-          babyId: baby.id,
-          userId: user.id,
-        },
+      await createAuditLog(payload, {
+        action: 'CREATE',
+        resourceId: null,
+        inputMethod: 'VOICE',
+        inputText: text,
+        description: `语音: "${text}" - 无效类型`,
+        success: false,
+        errorMessage: `无效的活动类型: ${parsed.type}`,
+        beforeData: null,
+        afterData: null,
+        activityId: null,
+        babyId: baby.id,
+        userId: user.id,
       })
 
       return NextResponse.json(
@@ -346,21 +341,18 @@ export async function POST(request: NextRequest) {
     if (parsed.confidence < CONFIDENCE_THRESHOLD) {
       // Record low confidence audit log (still counts as needing confirmation)
       const typeLabel = typeLabelsForLog[parsed.type] || parsed.type
-      await prisma.auditLog.create({
-        data: {
-          action: 'CREATE',
-          resourceType: 'ACTIVITY',
-          resourceId: null,
-          inputMethod: 'VOICE',
-          inputText: text,
-          description: `语音: "${text}" - 待确认${typeLabel}`,
-          success: true,
-          beforeData: Prisma.JsonNull,
-          afterData: parsed as unknown as Prisma.InputJsonValue,
-          activityId: null,
-          babyId: baby.id,
-          userId: user.id,
-        },
+      await createAuditLog(payload, {
+        action: 'CREATE',
+        resourceId: null,
+        inputMethod: 'VOICE',
+        inputText: text,
+        description: `语音: "${text}" - 待确认${typeLabel}`,
+        success: true,
+        beforeData: null,
+        afterData: parsed,
+        activityId: null,
+        babyId: baby.id,
+        userId: user.id,
       })
 
       return NextResponse.json({
@@ -387,11 +379,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the activity
-    const activity = await prisma.activity.create({
+    const activity = await payload.create({
+      collection: 'activities',
       data: {
         type: parsed.type,
-        startTime,
-        endTime,
+        startTime: startTime.toISOString(),
+        endTime: endTime ? endTime.toISOString() : null,
         babyId: baby.id,
         milkAmount: parsed.milkAmount,
         milkSource: parsed.milkSource,
@@ -403,6 +396,8 @@ export async function POST(request: NextRequest) {
         count: parsed.count,
         notes: parsed.notes,
       },
+      depth: 0,
+      overrideAccess: true,
     })
 
     // Generate description for successful audit log
@@ -410,21 +405,18 @@ export async function POST(request: NextRequest) {
     const description = `语音: "${text}" - 创建${typeLabel}`
 
     // Record audit log for voice input
-    await prisma.auditLog.create({
-      data: {
-        action: 'CREATE',
-        resourceType: 'ACTIVITY',
-        resourceId: activity.id,
-        inputMethod: 'VOICE',
-        inputText: text,
-        description,
-        success: true,
-        beforeData: Prisma.JsonNull,
-        afterData: activity as Prisma.InputJsonValue,
-        activityId: activity.id,
-        babyId: baby.id,
-        userId: user.id,
-      },
+    await createAuditLog(payload, {
+      action: 'CREATE',
+      resourceId: String(activity.id),
+      inputMethod: 'VOICE',
+      inputText: text,
+      description,
+      success: true,
+      beforeData: null,
+      afterData: activity,
+      activityId: String(activity.id),
+      babyId: baby.id,
+      userId: user.id,
     })
 
     // Return success with activity details and parse info
@@ -449,20 +441,18 @@ export async function POST(request: NextRequest) {
       const body = await request.clone().json().catch(() => ({}))
       const inputText = body.text || ''
       if (inputText) {
-        await prisma.auditLog.create({
-          data: {
-            action: 'CREATE',
-            resourceType: 'ACTIVITY',
-            resourceId: null,
-            inputMethod: 'VOICE',
-            inputText,
-            description: `语音: "${inputText}" - 处理失败`,
-            success: false,
-            errorMessage,
-            beforeData: Prisma.JsonNull,
-            afterData: Prisma.JsonNull,
-            activityId: null,
-          },
+        const payload = await getPayloadClient()
+        await createAuditLog(payload, {
+          action: 'CREATE',
+          resourceId: null,
+          inputMethod: 'VOICE',
+          inputText,
+          description: `语音: "${inputText}" - 处理失败`,
+          success: false,
+          errorMessage,
+          beforeData: null,
+          afterData: null,
+          activityId: null,
         })
       }
     } catch {
@@ -543,4 +533,3 @@ function generateConfirmationMessage(parsed: ParsedActivity): string {
 
   return message
 }
-

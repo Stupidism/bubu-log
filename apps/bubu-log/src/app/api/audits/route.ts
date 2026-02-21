@@ -1,53 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { type Where } from 'payload'
 import { requireAuth } from '@/lib/auth/get-current-baby'
+import { getPayloadClient } from '@/lib/payload/client'
 
-// GET: 获取审计日志列表
 export async function GET(request: NextRequest) {
   try {
     const { baby } = await requireAuth()
-    
+    const payload = await getPayloadClient()
+
     const searchParams = request.nextUrl.searchParams
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const limit = parseInt(searchParams.get('limit') || '50', 10)
+    const offset = parseInt(searchParams.get('offset') || '0', 10)
     const action = searchParams.get('action') as 'CREATE' | 'UPDATE' | 'DELETE' | null
     const resourceType = searchParams.get('resourceType') as 'ACTIVITY' | null
     const successParam = searchParams.get('success')
 
-    const where: Record<string, unknown> = {
-      babyId: baby.id,
-    }
+    const conditions: Where[] = [
+      {
+        babyId: {
+          equals: baby.id,
+        },
+      },
+    ]
 
     if (action) {
-      where.action = action
-    }
-    if (resourceType) {
-      where.resourceType = resourceType
-    }
-    if (successParam !== null) {
-      where.success = successParam === 'true'
+      conditions.push({
+        action: {
+          equals: action,
+        },
+      })
     }
 
-    const [data, total] = await Promise.all([
-      prisma.auditLog.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        skip: offset,
-      }),
-      prisma.auditLog.count({ where }),
-    ])
+    if (resourceType) {
+      conditions.push({
+        resourceType: {
+          equals: resourceType,
+        },
+      })
+    }
+
+    if (successParam !== null) {
+      conditions.push({
+        success: {
+          equals: successParam === 'true',
+        },
+      })
+    }
+
+    const requestedCount = offset + limit
+
+    const result = await payload.find({
+      collection: 'audit-logs',
+      where: {
+        and: conditions,
+      },
+      sort: '-createdAt',
+      limit: requestedCount,
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
+    })
+
+    const docs = result.docs.slice(offset, offset + limit)
 
     return NextResponse.json({
-      data,
-      total,
-      hasMore: offset + data.length < total,
+      data: docs,
+      total: result.totalDocs,
+      hasMore: offset + docs.length < result.totalDocs,
     })
   } catch (error) {
     console.error('Failed to fetch audit logs:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch audit logs' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch audit logs' }, { status: 500 })
   }
 }

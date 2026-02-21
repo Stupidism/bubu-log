@@ -1,68 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
-import { prisma } from '@/lib/prisma'
-import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { requireAuth } from '@/lib/auth/get-current-baby'
+import { ActivityType, ActivityTypeLabels } from '@/types/activity'
+import { getPayloadClient } from '@/lib/payload/client'
+import { createAuditLog } from '@/lib/payload/audit'
+import type { ActivityDoc } from '@/lib/payload/models'
 
-// 点事件类型（没有时长的活动，endTime 应该与 startTime 相同）
 const POINT_EVENT_TYPES = ['DIAPER', 'SUPPLEMENT', 'SPIT_UP', 'ROLL_OVER', 'PULL_TO_SIT']
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
-// GET: 获取单个活动
+async function findActivityByIdForBaby(id: string, babyId: string): Promise<ActivityDoc | null> {
+  const payload = await getPayloadClient()
+
+  const result = await payload.find({
+    collection: 'activities',
+    where: {
+      and: [
+        {
+          id: {
+            equals: id,
+          },
+        },
+        {
+          babyId: {
+            equals: babyId,
+          },
+        },
+      ],
+    },
+    limit: 1,
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  return (result.docs[0] as ActivityDoc | undefined) ?? null
+}
+
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
     const { baby } = await requireAuth()
     const { id } = await params
-    
-    const activity = await prisma.activity.findFirst({
-      where: { id, babyId: baby.id },
-    })
+
+    const activity = await findActivityByIdForBaby(id, baby.id)
 
     if (!activity) {
-      return NextResponse.json(
-        { error: 'Activity not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Activity not found' }, { status: 404 })
     }
 
     return NextResponse.json(activity)
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
     console.error('Failed to fetch activity:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch activity' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch activity' }, { status: 500 })
   }
 }
 
-// PATCH: 更新活动
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const { baby, user } = await requireAuth()
     const { id } = await params
-    const body = await request.json()
-    
-    // 获取原活动信息用于生成描述（确保属于当前宝宝）
-    const originalActivity = await prisma.activity.findFirst({
-      where: { id, babyId: baby.id },
-    })
+
+    const payload = await getPayloadClient()
+
+    const originalActivity = await findActivityByIdForBaby(id, baby.id)
 
     if (!originalActivity) {
-      return NextResponse.json(
-        { error: 'Activity not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Activity not found' }, { status: 404 })
     }
 
+    const body = await request.json()
     const {
       type,
       startTime,
@@ -82,23 +94,39 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const updateData: Record<string, unknown> = {}
 
-    // 判断活动类型（使用更新后的类型，或原活动的类型）
     const activityType = type ?? originalActivity.type
     const isPointEvent = POINT_EVENT_TYPES.includes(activityType)
 
-    if (type !== undefined) updateData.type = type
+    if (type !== undefined) {
+      updateData.type = type
+    }
+
     if (startTime !== undefined) {
-      const startTimeDate = new Date(startTime)
-      updateData.startTime = startTimeDate
-      // 点事件的 endTime 应该与 startTime 相同
+      const parsed = new Date(startTime)
+      if (Number.isNaN(parsed.getTime())) {
+        return NextResponse.json({ error: '无效的开始时间' }, { status: 400 })
+      }
+
+      updateData.startTime = parsed.toISOString()
+
       if (isPointEvent) {
-        updateData.endTime = startTimeDate
+        updateData.endTime = parsed.toISOString()
       }
     }
+
     if (endTime !== undefined && !isPointEvent) {
-      // 只有非点事件才允许独立设置 endTime
-      updateData.endTime = endTime ? new Date(endTime) : null
+      if (endTime === null) {
+        updateData.endTime = null
+      } else {
+        const parsed = new Date(endTime)
+        if (Number.isNaN(parsed.getTime())) {
+          return NextResponse.json({ error: '无效的结束时间' }, { status: 400 })
+        }
+
+        updateData.endTime = parsed.toISOString()
+      }
     }
+
     if (hasPoop !== undefined) updateData.hasPoop = hasPoop
     if (hasPee !== undefined) updateData.hasPee = hasPee
     if (poopColor !== undefined) updateData.poopColor = poopColor
@@ -111,103 +139,82 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (count !== undefined) updateData.count = count
     if (notes !== undefined) updateData.notes = notes
 
-    const activity = await prisma.activity.update({
-      where: { id },
+    const activity = await payload.update({
+      collection: 'activities',
+      id,
       data: updateData,
+      depth: 0,
+      overrideAccess: true,
     })
 
-    // 生成修改描述
-    const typeLabel = ActivityTypeLabels[activity.type as ActivityType] || activity.type
-    const description = `修改${typeLabel}`
+    const typeLabel = ActivityTypeLabels[(activity as ActivityDoc).type as ActivityType] || (activity as ActivityDoc).type
 
-    // 记录审计日志
-    await prisma.auditLog.create({
-      data: {
-        action: 'UPDATE',
-        resourceType: 'ACTIVITY',
-        resourceId: activity.id,
-        inputMethod: 'TEXT',
-        inputText: null,
-        description,
-        success: true,
-        beforeData: originalActivity as object,
-        afterData: activity as object,
-        activityId: activity.id,
-        babyId: baby.id,
-        userId: user.id,
-      },
+    await createAuditLog(payload, {
+      action: 'UPDATE',
+      resourceId: String(activity.id),
+      inputMethod: 'TEXT',
+      description: `修改${typeLabel}`,
+      success: true,
+      beforeData: originalActivity,
+      afterData: activity,
+      activityId: String(activity.id),
+      babyId: baby.id,
+      userId: user.id,
     })
 
     return NextResponse.json(activity)
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
     console.error('Failed to update activity:', error)
-    return NextResponse.json(
-      { error: 'Failed to update activity' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to update activity' }, { status: 500 })
   }
 }
 
-// DELETE: 删除活动
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
     const { baby, user } = await requireAuth()
     const { id } = await params
-    
-    // 获取活动信息用于生成描述（确保属于当前宝宝）
-    const activity = await prisma.activity.findFirst({
-      where: { id, babyId: baby.id },
-    })
+
+    const payload = await getPayloadClient()
+
+    const activity = await findActivityByIdForBaby(id, baby.id)
 
     if (!activity) {
-      return NextResponse.json(
-        { error: 'Activity not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Activity not found' }, { status: 404 })
     }
 
     const typeLabel = ActivityTypeLabels[activity.type as ActivityType] || activity.type
 
-    await prisma.activity.delete({
-      where: { id },
+    await payload.delete({
+      collection: 'activities',
+      id,
+      depth: 0,
+      overrideAccess: true,
     })
 
-    // 记录审计日志
-    await prisma.auditLog.create({
-      data: {
-        action: 'DELETE',
-        resourceType: 'ACTIVITY',
-        resourceId: id,
-        inputMethod: 'TEXT',
-        inputText: null,
-        description: `删除${typeLabel}`,
-        success: true,
-        beforeData: activity as Prisma.InputJsonValue,
-        afterData: Prisma.JsonNull,
-        activityId: null,
-        babyId: baby.id,
-        userId: user.id,
-      },
+    await createAuditLog(payload, {
+      action: 'DELETE',
+      resourceId: id,
+      inputMethod: 'TEXT',
+      description: `删除${typeLabel}`,
+      success: true,
+      beforeData: activity,
+      afterData: null,
+      activityId: null,
+      babyId: baby.id,
+      userId: user.id,
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
     console.error('Failed to delete activity:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete activity' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to delete activity' }, { status: 500 })
   }
 }
