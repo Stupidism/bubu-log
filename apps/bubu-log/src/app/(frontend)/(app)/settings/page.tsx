@@ -118,9 +118,20 @@ export default function SettingsPage() {
 
         <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/60 p-5 shadow-sm space-y-3">
           <h2 className="text-sm font-medium text-gray-500">Siri 快捷指令</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            从当前登录状态自动生成专属 token，并复制快捷指令配置，再打开 iPhone 快捷指令。
-          </p>
+          <ol className="list-decimal pl-5 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+            <li>点击下方「新建快捷指令」。系统会为当前登录用户生成专属 token，并复制配置 JSON 到剪贴板。</li>
+            <li>会自动打开 iCloud 快捷指令模板。先在快捷指令里找到动作「Get Contents of URL（获取 URL 内容）」。</li>
+            <li>在这个动作里确认：Method = POST，Request Body = JSON，并保留 `text` 与 `localTime` 字段。</li>
+            <li>把复制配置里的 `request.headers.Authorization` 值，粘贴到「Get Contents of URL → Headers → Authorization」。</li>
+          </ol>
+
+          <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20 p-3">
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-300">最重要：token 粘贴位置</p>
+            <p className="text-xs text-amber-700/90 dark:text-amber-200/90 mt-1">
+              在「Get Contents of URL」动作的 Headers 里，键填 `Authorization`，值粘贴 `Bearer v1...`。这个值来自复制 JSON 的
+              `request.headers.Authorization`，不要只粘贴 `v1...` 主体。
+            </p>
+          </div>
 
           <button
             type="button"
@@ -135,7 +146,7 @@ export default function SettingsPage() {
           {copied && (
             <p className="text-xs text-green-600 dark:text-green-400 inline-flex items-center gap-1">
               <CheckCircle2 size={14} />
-              已复制快捷指令配置到剪贴板
+              已复制快捷指令配置到剪贴板（请按上面第 4 步粘贴 Authorization）
             </p>
           )}
 
