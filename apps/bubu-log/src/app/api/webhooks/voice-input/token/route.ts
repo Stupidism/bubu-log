@@ -11,6 +11,16 @@ export async function GET(request: NextRequest) {
     const days = daysParam ? Number.parseInt(daysParam, 10) : 180
     const normalizedDays = Number.isFinite(days) ? Math.min(Math.max(days, 1), 365) : 180
 
+    // In preview deployments, request.nextUrl.origin may be protected by Vercel auth.
+    // Allow overriding to a public/custom domain for Shortcuts webhook calls.
+    const configuredBaseUrl = process.env.VOICE_WEBHOOK_PUBLIC_BASE_URL?.trim()
+    let webhookUrl: string
+    try {
+      webhookUrl = new URL('/api/webhooks/voice-input', configuredBaseUrl || request.nextUrl.origin).toString()
+    } catch {
+      webhookUrl = `${request.nextUrl.origin}/api/webhooks/voice-input`
+    }
+
     const { token, expiresAt } = createVoiceWebhookToken({
       userId: user.id,
       babyId: baby.id,
@@ -20,7 +30,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       token,
       expiresAt,
-      webhookUrl: `${request.nextUrl.origin}/api/webhooks/voice-input`,
+      webhookUrl,
       babyId: baby.id,
       babyName: baby.name,
       userId: user.id,

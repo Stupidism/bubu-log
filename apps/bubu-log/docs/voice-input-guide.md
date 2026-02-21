@@ -139,6 +139,7 @@
 
 - `DEEPSEEK_API_KEY`: 语音文本解析模型 key
 - `AUTH_SECRET`（或 `NEXTAUTH_SECRET`）: 签名当前用户 webhook token
+- `VOICE_WEBHOOK_PUBLIC_BASE_URL`（建议）: 快捷指令调用的公开域名（如 `https://bubu.sunmer.xyz`），用于避免预览域名受 Vercel 认证拦截
 - `VOICE_WEBHOOK_API_KEY`（可选）: 全局兼容模式鉴权 key（非当前用户自动绑定模式）
 - `VOICE_WEBHOOK_DEFAULT_BABY_ID`（可选）: 全局兼容模式下默认宝宝
 - `VOICE_WEBHOOK_AUDIT_USER_ID`（可选）: 全局兼容模式下审计日志用户
