@@ -214,6 +214,9 @@ export async function PATCH(
       await setDefaultBabyForUser(user.id, targetBabyId)
     }
 
+    const latestBindings = await listUserBindings(user.id)
+    const currentBinding = latestBindings.find((item) => relationId(item.babyId) === targetBabyId)
+
     return NextResponse.json({
       data: {
         id: String(updatedBaby.id),
@@ -221,7 +224,7 @@ export async function PATCH(
         avatarUrl: updatedBaby.avatarUrl ?? null,
         birthDate: updatedBaby.birthDate ?? null,
         gender: updatedBaby.gender ?? null,
-        isDefault: shouldSetDefault,
+        isDefault: Boolean(currentBinding?.isDefault),
       },
     })
   } catch (error) {

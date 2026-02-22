@@ -1,7 +1,8 @@
 import { buildBabyScopedPath } from '@/lib/baby-scope'
-import { getCurrentBaby } from '@/lib/auth/get-current-baby'
+import { asAuthFailure, requireAuth } from '@/lib/auth/get-current-baby'
 
 export type PageSearchParams = Record<string, string | string[] | undefined>
+const NO_BABY_PLACEHOLDER_ID = '__no_baby__'
 
 function toQueryString(searchParams: PageSearchParams | undefined): string {
   if (!searchParams) {
@@ -31,12 +32,21 @@ export async function resolveDefaultScopedUrl(
   subPath = '',
   searchParams?: PageSearchParams
 ): Promise<string> {
-  const context = await getCurrentBaby()
-  if (!context) {
-    return '/login'
+  let basePath = '/login'
+
+  try {
+    const context = await requireAuth()
+    basePath = buildBabyScopedPath(context.baby.id, subPath)
+  } catch (error) {
+    const failure = asAuthFailure(error)
+    if (!failure || failure.code === 'UNAUTHORIZED') {
+      basePath = '/login'
+    } else if (failure.code === 'NO_BABY_BINDING' || failure.code === 'BABY_NOT_FOUND') {
+      // Route authenticated users without available baby binding into the in-app no-baby state.
+      basePath = buildBabyScopedPath(NO_BABY_PLACEHOLDER_ID, subPath)
+    }
   }
 
-  const basePath = buildBabyScopedPath(context.baby.id, subPath)
   const queryString = toQueryString(searchParams)
   return queryString ? `${basePath}?${queryString}` : basePath
 }
