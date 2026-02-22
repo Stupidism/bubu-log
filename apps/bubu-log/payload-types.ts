@@ -168,7 +168,7 @@ export interface AppUser {
   /**
    * ADMIN / DAD / MOM / NANNY / GRANDPARENT / OTHER
    */
-  role: string;
+  role: 'ADMIN' | 'DAD' | 'MOM' | 'NANNY' | 'GRANDPARENT' | 'OTHER';
   createdAt?: string | null;
   updatedAt?: string | null;
 }

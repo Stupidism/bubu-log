@@ -131,12 +131,17 @@ export const AppUsers: CollectionConfig = {
     {
       name: 'role',
       label: '角色',
-      type: 'text',
+      type: 'select',
       defaultValue: 'OTHER',
       required: true,
-      admin: {
-        description: 'ADMIN / DAD / MOM / NANNY / GRANDPARENT / OTHER',
-      },
+      options: [
+        { label: '管理员', value: 'ADMIN' },
+        { label: '爸爸', value: 'DAD' },
+        { label: '妈妈', value: 'MOM' },
+        { label: '月嫂', value: 'NANNY' },
+        { label: '祖辈', value: 'GRANDPARENT' },
+        { label: '其他', value: 'OTHER' },
+      ],
     },
     {
       name: 'createdAt',
