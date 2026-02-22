@@ -207,12 +207,12 @@ export async function POST(request: NextRequest) {
         where: {
           and: [
             {
-              userId: {
+              user: {
                 equals: identity.userId,
               },
             },
             {
-              babyId: {
+              baby: {
                 equals: identity.babyId,
               },
             },

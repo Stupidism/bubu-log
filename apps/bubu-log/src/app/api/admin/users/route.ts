@@ -117,7 +117,7 @@ async function listUsersForAdmin(): Promise<AdminManagedUser[]> {
   const bindingsResult = await payload.find({
     collection: 'baby-users',
     where: {
-      userId: {
+      user: {
         in: userIds,
       },
     },
@@ -131,12 +131,12 @@ async function listUsersForAdmin(): Promise<AdminManagedUser[]> {
   const unresolvedBabyIds = new Set<string>()
 
   for (const item of bindingsResult.docs as BabyUserDoc[]) {
-    const bindingUserId = getRelationId(item.userId)
+    const bindingUserId = getRelationId(item.user)
     if (!bindingUserId) {
       continue
     }
 
-    const babyRelation = item.babyId
+    const babyRelation = item.baby
     const babyId = getRelationId(babyRelation)
     const babyName =
       typeof babyRelation === 'object' && babyRelation && 'name' in babyRelation
@@ -263,8 +263,8 @@ export async function POST(request: NextRequest) {
       await payload.create({
         collection: 'baby-users',
         data: {
-          userId: createdUserId,
-          babyId: createdBabyId,
+          user: createdUserId,
+          baby: createdBabyId,
           isDefault: true,
         },
         depth: 0,

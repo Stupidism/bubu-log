@@ -52,7 +52,7 @@ async function mapUserWithBabies(user: AppUserDoc): Promise<AdminManagedUser> {
   const bindingsResult = await payload.find({
     collection: 'baby-users',
     where: {
-      userId: {
+      user: {
         equals: user.id,
       },
     },
@@ -64,7 +64,7 @@ async function mapUserWithBabies(user: AppUserDoc): Promise<AdminManagedUser> {
   })
 
   const bindings = (bindingsResult.docs as BabyUserDoc[]).map((item) => {
-    const baby = item.babyId
+    const baby = item.baby
     const babyId = getRelationId(baby)
     const babyName =
       typeof baby === 'object' && baby && 'name' in baby ? String((baby as BabyDoc).name || '') : ''

@@ -66,7 +66,7 @@ export async function GET() {
     const bindingsResult = await payload.find({
       collection: 'baby-users',
       where: {
-        babyId: {
+        baby: {
           in: babyIds,
         },
       },
@@ -79,7 +79,7 @@ export async function GET() {
     const counts = new Map<string, number>()
 
     for (const item of bindingsResult.docs as BabyUserDoc[]) {
-      const babyId = getRelationId(item.babyId)
+      const babyId = getRelationId(item.baby)
       if (!babyId) {
         continue
       }
