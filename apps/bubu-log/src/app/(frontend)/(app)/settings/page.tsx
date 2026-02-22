@@ -64,14 +64,18 @@ export default function SettingsPage() {
 
   const prepareShortcut = async () => {
     const openedWindow = window.open(SHORTCUT_INSTALL_URL, '_blank', 'noopener,noreferrer')
-    if (!openedWindow) {
+    const popupBlocked = !openedWindow
+
+    if (popupBlocked) {
       setError('浏览器拦截了新窗口，请允许弹窗后重试')
     }
 
     setIsPreparing(true)
     setCopied(false)
     setAuthorizationValue(null)
-    setError(null)
+    if (!popupBlocked) {
+      setError(null)
+    }
 
     try {
       const response = await fetch('/api/webhooks/voice-input/token?days=180', {
@@ -95,7 +99,7 @@ export default function SettingsPage() {
       }
     } catch (err) {
       console.error(err)
-      setError('无法生成配置，请稍后重试')
+      setError(popupBlocked ? '浏览器拦截了新窗口，且无法生成配置，请稍后重试' : '无法生成配置，请稍后重试')
     } finally {
       setIsPreparing(false)
     }

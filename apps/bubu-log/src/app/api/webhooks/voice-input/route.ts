@@ -33,6 +33,8 @@ type ResolvedIdentity = {
   userId: string | null
 }
 
+type AuthMode = 'signed-token' | 'session' | 'api-key'
+
 function logWebhookNonSuccess(input: {
   status: number
   code: string
@@ -67,6 +69,7 @@ export async function POST(request: NextRequest) {
     const configuredApiKey = process.env.VOICE_WEBHOOK_API_KEY?.trim() || null
 
     let identity: ResolvedIdentity | null = null
+    let authMode: AuthMode | null = null
 
     // Mode 1: signed user token
     if (bearerToken) {
@@ -76,6 +79,7 @@ export async function POST(request: NextRequest) {
           babyId: payload.babyId,
           userId: payload.userId,
         }
+        authMode = 'signed-token'
       }
     }
 
@@ -87,6 +91,7 @@ export async function POST(request: NextRequest) {
           babyId: baby.id,
           userId: user.id,
         }
+        authMode = 'session'
       } catch {
         // Continue to API-key mode check
       }
@@ -154,6 +159,7 @@ export async function POST(request: NextRequest) {
           babyId: targetBabyId,
           userId: auditUserId,
         }
+        authMode = 'api-key'
       }
     }
 
@@ -175,6 +181,65 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = await getPayloadClient()
+    if (authMode === 'signed-token') {
+      if (!identity.userId) {
+        logWebhookNonSuccess({
+          status: 401,
+          code: 'INVALID_SIGNED_TOKEN',
+          text,
+          babyId: identity.babyId,
+          details: 'signed token missing userId',
+        })
+        return NextResponse.json(
+          {
+            error: 'Invalid signed token',
+            code: 'INVALID_SIGNED_TOKEN',
+          },
+          { status: 401 },
+        )
+      }
+
+      const bindingResult = await payload.find({
+        collection: 'baby-users',
+        where: {
+          and: [
+            {
+              userId: {
+                equals: identity.userId,
+              },
+            },
+            {
+              babyId: {
+                equals: identity.babyId,
+              },
+            },
+          ],
+        },
+        limit: 1,
+        pagination: false,
+        depth: 0,
+        overrideAccess: true,
+      })
+
+      if (!bindingResult.docs.length) {
+        logWebhookNonSuccess({
+          status: 403,
+          code: 'SIGNED_TOKEN_ACCESS_REVOKED',
+          text,
+          babyId: identity.babyId,
+          userId: identity.userId,
+          details: 'baby-user binding not found',
+        })
+        return NextResponse.json(
+          {
+            error: 'Signed token access revoked',
+            code: 'SIGNED_TOKEN_ACCESS_REVOKED',
+          },
+          { status: 403 },
+        )
+      }
+    }
+
     const babyResult = await payload.find({
       collection: 'babies',
       where: {
