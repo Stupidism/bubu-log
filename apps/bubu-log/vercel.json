@@ -1,4 +1,10 @@
 {
-  "framework": "nextjs",
-  "ignoreCommand": "npx -y turbo-ignore"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "npx -y turbo-ignore",
+  "crons": [
+    {
+      "path": "/api/cron/daily-stats-yesterday",
+      "schedule": "0 19 * * *"
+    }
+  ]
 }

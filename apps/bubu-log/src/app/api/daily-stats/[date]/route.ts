@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/get-current-baby'
+import { authFailureResponse, getRequestedBabyId, requireAuth } from '@/lib/auth/get-current-baby'
 import { getPayloadClient } from '@/lib/payload/client'
+import { parseDailyStatDate } from '@/lib/daily-stats/compute'
+import { endOfDayChina, startOfDayChina } from '@/lib/dayjs'
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ date: string }> }
 ) {
   try {
-    const { baby } = await requireAuth()
+    const { baby } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const payload = await getPayloadClient()
     const { date: dateStr } = await params
 
-    const date = new Date(dateStr)
-    date.setHours(0, 0, 0, 0)
-
-    if (Number.isNaN(date.getTime())) {
+    const parsedDate = parseDailyStatDate(dateStr)
+    if (!parsedDate) {
       return NextResponse.json({ error: '无效的日期格式' }, { status: 400 })
     }
 
-    const nextDate = new Date(date)
-    nextDate.setDate(nextDate.getDate() + 1)
+    const dayStart = startOfDayChina(parsedDate)
+    const dayEnd = endOfDayChina(parsedDate)
 
     const stat = await payload.find({
       collection: 'daily-stats',
@@ -32,12 +32,12 @@ export async function GET(
           },
           {
             date: {
-              greater_than_equal: date.toISOString(),
+              greater_than_equal: dayStart.toISOString(),
             },
           },
           {
             date: {
-              less_than: nextDate.toISOString(),
+              less_than_equal: dayEnd.toISOString(),
             },
           },
         ],
@@ -54,6 +54,11 @@ export async function GET(
 
     return NextResponse.json(stat.docs[0])
   } catch (error) {
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
+    }
+
     console.error('Failed to fetch daily stat:', error)
     return NextResponse.json({ error: 'Failed to fetch daily stat' }, { status: 500 })
   }

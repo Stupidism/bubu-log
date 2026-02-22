@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/get-current-baby'
+import { authFailureResponse, getRequestedBabyId, requireAuth } from '@/lib/auth/get-current-baby'
 import { ActivityType } from '@/types/activity'
 import { getPayloadClient } from '@/lib/payload/client'
 
 export async function GET(request: NextRequest) {
   try {
-    const { baby } = await requireAuth()
+    const { baby } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const payload = await getPayloadClient()
 
     const searchParams = request.nextUrl.searchParams
@@ -43,8 +43,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result.docs[0] || null)
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
     }
 
     console.error('Failed to fetch latest activity:', error)

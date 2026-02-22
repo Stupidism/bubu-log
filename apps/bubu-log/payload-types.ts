@@ -165,9 +165,6 @@ export interface AppUser {
   email?: string | null;
   image?: string | null;
   emailVerified?: string | null;
-  /**
-   * ADMIN / DAD / MOM / NANNY / GRANDPARENT / OTHER
-   */
   role: 'ADMIN' | 'DAD' | 'MOM' | 'NANNY' | 'GRANDPARENT' | 'OTHER';
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -179,6 +176,7 @@ export interface AppUser {
 export interface Baby {
   id: string;
   name: string;
+  fullName?: string | null;
   avatarUrl?: string | null;
   birthDate?: string | null;
   /**
@@ -451,6 +449,7 @@ export interface AppUsersSelect<T extends boolean = true> {
 export interface BabiesSelect<T extends boolean = true> {
   id?: T;
   name?: T;
+  fullName?: T;
   avatarUrl?: T;
   birthDate?: T;
   gender?: T;

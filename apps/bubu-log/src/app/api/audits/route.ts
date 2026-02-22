@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { type Where } from 'payload'
-import { requireAuth } from '@/lib/auth/get-current-baby'
+import { authFailureResponse, getRequestedBabyId, requireAuth } from '@/lib/auth/get-current-baby'
 import { getPayloadClient } from '@/lib/payload/client'
 
 export async function GET(request: NextRequest) {
   try {
-    const { baby } = await requireAuth()
+    const { baby } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const payload = await getPayloadClient()
 
     const searchParams = request.nextUrl.searchParams
@@ -71,6 +71,11 @@ export async function GET(request: NextRequest) {
       hasMore: offset + docs.length < result.totalDocs,
     })
   } catch (error) {
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
+    }
+
     console.error('Failed to fetch audit logs:', error)
     return NextResponse.json({ error: 'Failed to fetch audit logs' }, { status: 500 })
   }

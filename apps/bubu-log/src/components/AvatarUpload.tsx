@@ -2,8 +2,9 @@
 
 import { useRef } from 'react'
 import { Camera, X, Baby, Loader2 } from 'lucide-react'
-import { useBabyProfile, useUpdateBabyProfile } from '@/lib/api/hooks'
+import { useBabyProfile } from '@/lib/api/hooks'
 import { useQueryClient } from '@tanstack/react-query'
+import { withCurrentBabyIdOnApiPath } from '@/lib/baby-scope'
 
 interface AvatarUploadProps {
   onAvatarChange?: (avatarUrl: string | null) => void
@@ -38,7 +39,7 @@ export function AvatarUpload({ onAvatarChange }: AvatarUploadProps) {
       const formData = new FormData()
       formData.append('file', file)
 
-      const res = await fetch('/api/baby-profile/avatar', {
+      const res = await fetch(withCurrentBabyIdOnApiPath('/api/baby-profile/avatar'), {
         method: 'POST',
         body: formData,
       })
@@ -65,7 +66,7 @@ export function AvatarUpload({ onAvatarChange }: AvatarUploadProps) {
 
   const removeAvatar = async () => {
     try {
-      const res = await fetch('/api/baby-profile/avatar', {
+      const res = await fetch(withCurrentBabyIdOnApiPath('/api/baby-profile/avatar'), {
         method: 'DELETE',
       })
 
