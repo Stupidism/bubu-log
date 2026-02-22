@@ -30,15 +30,17 @@ function SheetPortal({
 
 function SheetOverlay({
   className,
+  style,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
   return (
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-[1000] bg-black/50",
         className
       )}
+      style={{ zIndex: 1000, ...style }}
       {...props}
     />
   )
@@ -48,27 +50,36 @@ function SheetContent({
   className,
   children,
   side = "right",
+  style,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
 }) {
+  const positionStyle: React.CSSProperties =
+    side === "right" || side === "left"
+      ? { top: 0, bottom: 0 }
+      : side === "top"
+        ? { top: 0 }
+        : { bottom: 0 }
+
   return (
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-[60] flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-[1010] flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
           side === "right" &&
-            "inset-y-0 right-0 h-full w-3/4 border-l translate-x-0 data-[state=closed]:translate-x-full data-[state=open]:translate-x-0 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+            "top-0 bottom-0 right-0 h-full w-3/4 border-l translate-x-0 data-[state=closed]:translate-x-full data-[state=open]:translate-x-0 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
           side === "left" &&
-            "inset-y-0 left-0 h-full w-3/4 border-r translate-x-0 data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+            "top-0 bottom-0 left-0 h-full w-3/4 border-r translate-x-0 data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
           side === "top" &&
             "inset-x-0 top-0 h-auto border-b translate-y-0 data-[state=closed]:-translate-y-full data-[state=open]:translate-y-0 data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
           side === "bottom" &&
             "inset-x-0 bottom-0 h-auto border-t translate-y-0 data-[state=closed]:translate-y-full data-[state=open]:translate-y-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
           className
         )}
+        style={{ zIndex: 1010, ...positionStyle, ...style }}
         {...props}
       >
         {children}
