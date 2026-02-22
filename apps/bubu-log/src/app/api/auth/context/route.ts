@@ -11,8 +11,16 @@ type BabyUserDoc = {
 }
 
 export async function GET() {
+  let session
+
   try {
-    const session = await auth()
+    session = await auth()
+  } catch (error) {
+    console.error('Failed to parse auth session for auth context:', error)
+    return NextResponse.json({ authenticated: false, hasBaby: false }, { status: 401 })
+  }
+
+  try {
     const userId = session?.user && (session.user as { id?: string }).id
 
     if (!userId) {

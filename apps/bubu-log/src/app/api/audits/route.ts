@@ -9,8 +9,10 @@ export async function GET(request: NextRequest) {
     const payload = await getPayloadClient()
 
     const searchParams = request.nextUrl.searchParams
-    const limit = parseInt(searchParams.get('limit') || '50', 10)
-    const offset = parseInt(searchParams.get('offset') || '0', 10)
+    const parsedLimit = Number.parseInt(searchParams.get('limit') || '50', 10)
+    const parsedOffset = Number.parseInt(searchParams.get('offset') || '0', 10)
+    const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 200) : 50
+    const offset = Number.isFinite(parsedOffset) ? Math.min(Math.max(parsedOffset, 0), 5000) : 0
     const action = searchParams.get('action') as 'CREATE' | 'UPDATE' | 'DELETE' | null
     const resourceType = searchParams.get('resourceType') as 'ACTIVITY' | null
     const successParam = searchParams.get('success')
