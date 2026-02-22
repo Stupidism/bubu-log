@@ -66,7 +66,6 @@ export const AppUsers: CollectionConfig = {
       name: 'id',
       label: 'ID',
       type: 'text',
-      required: true,
       unique: true,
       admin: {
         readOnly: true,

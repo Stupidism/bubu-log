@@ -36,7 +36,6 @@ export const Babies: CollectionConfig = {
       name: 'id',
       label: 'ID',
       type: 'text',
-      required: true,
       unique: true,
       admin: {
         readOnly: true,
