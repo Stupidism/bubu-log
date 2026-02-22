@@ -17,9 +17,6 @@ type AppUserLike = {
   image?: string | null
 }
 
-const ALLOWED_AUTO_BIND_EMAILS = ['stupidism32@gmail.com', 'sunfeng32@qq.com']
-const DEFAULT_BABY_NAME = '卜卜'
-
 function normalizeUsername(input: string): string {
   const cleaned = input
     .toLowerCase()
@@ -171,71 +168,6 @@ async function findOrCreateOAuthAppUser(user: {
   return created as AppUserLike
 }
 
-async function ensureDefaultBabyAssociation(userId: string, email: string | null | undefined) {
-  const normalizedEmail = email?.toLowerCase()
-  if (!normalizedEmail || !ALLOWED_AUTO_BIND_EMAILS.includes(normalizedEmail)) {
-    return
-  }
-
-  const payload = await getPayloadClient()
-
-  const defaultBabyResult = await payload.find({
-    collection: 'babies',
-    where: {
-      name: {
-        equals: DEFAULT_BABY_NAME,
-      },
-    },
-    limit: 1,
-    pagination: false,
-    depth: 0,
-    overrideAccess: true,
-  })
-
-  if (defaultBabyResult.totalDocs === 0) {
-    return
-  }
-
-  const defaultBabyId = String(defaultBabyResult.docs[0].id)
-
-  const existingBinding = await payload.find({
-    collection: 'baby-users',
-    where: {
-      and: [
-        {
-          userId: {
-            equals: userId,
-          },
-        },
-        {
-          babyId: {
-            equals: defaultBabyId,
-          },
-        },
-      ],
-    },
-    limit: 1,
-    pagination: false,
-    depth: 0,
-    overrideAccess: true,
-  })
-
-  if (existingBinding.totalDocs > 0) {
-    return
-  }
-
-  await payload.create({
-    collection: 'baby-users',
-    data: {
-      userId,
-      babyId: defaultBabyId,
-      isDefault: true,
-    },
-    depth: 0,
-    overrideAccess: true,
-  })
-}
-
 const providers: Provider[] = [
   Credentials({
     name: 'credentials',
@@ -320,8 +252,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: user.name,
           image: user.image,
         })
-
-        await ensureDefaultBabyAssociation(appUser.id, appUser.email)
 
         ;(user as { id?: string }).id = appUser.id
         user.name = appUser.name || user.name
