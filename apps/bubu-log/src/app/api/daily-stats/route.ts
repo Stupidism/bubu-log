@@ -2,15 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { type Where } from 'payload'
 import { authFailureResponse, getRequestedBabyId, requireAuth } from '@/lib/auth/get-current-baby'
 import { ActivityType } from '@/types/activity'
+import { parseDailyStatDate } from '@/lib/daily-stats/compute'
+import { endOfDayChina, startOfDayChina } from '@/lib/dayjs'
 import { getPayloadClient } from '@/lib/payload/client'
 import type { ActivityDoc, DailyStatDoc } from '@/lib/payload/models'
 
-function calculateDurationInDay(startTime: Date, endTime: Date, targetDate: Date): number {
-  const dayStart = new Date(targetDate)
-  dayStart.setHours(0, 0, 0, 0)
-  const dayEnd = new Date(targetDate)
-  dayEnd.setHours(23, 59, 59, 999)
-
+function calculateDurationInDay(startTime: Date, endTime: Date, dayStart: Date, dayEnd: Date): number {
   const effectiveStart = startTime < dayStart ? dayStart : startTime
   const effectiveEnd = endTime > dayEnd ? dayEnd : endTime
 
@@ -34,13 +31,10 @@ function toDate(value: string | null | undefined): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-async function computeDailyStats(babyId: string, date: Date) {
+async function computeDailyStats(babyId: string, dateStr: string) {
   const payload = await getPayloadClient()
-
-  const dayStart = new Date(date)
-  dayStart.setHours(0, 0, 0, 0)
-  const dayEnd = new Date(date)
-  dayEnd.setHours(23, 59, 59, 999)
+  const dayStart = startOfDayChina(dateStr)
+  const dayEnd = endOfDayChina(dateStr)
 
   const activitiesResult = await payload.find({
     collection: 'activities',
@@ -140,7 +134,7 @@ async function computeDailyStats(babyId: string, date: Date) {
     switch (activity.type) {
       case ActivityType.SLEEP:
         if (endTime) {
-          const duration = calculateDurationInDay(startTime, endTime, date)
+          const duration = calculateDurationInDay(startTime, endTime, dayStart, dayEnd)
           if (duration > 0) {
             stats.sleepCount += 1
             stats.totalSleepMinutes += duration
@@ -241,9 +235,9 @@ export async function GET(request: NextRequest) {
     ]
 
     if (startDateStr) {
-      const [year, month, day] = startDateStr.split('-').map(Number)
-      const startDate = new Date(year, month - 1, day, 0, 0, 0, 0)
-      if (!Number.isNaN(startDate.getTime())) {
+      const parsedStartDate = parseDailyStatDate(startDateStr)
+      if (parsedStartDate) {
+        const startDate = startOfDayChina(parsedStartDate)
         conditions.push({
           date: {
             greater_than_equal: startDate.toISOString(),
@@ -253,9 +247,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (endDateStr) {
-      const [year, month, day] = endDateStr.split('-').map(Number)
-      const endDate = new Date(year, month - 1, day, 0, 0, 0, 0)
-      if (!Number.isNaN(endDate.getTime())) {
+      const parsedEndDate = parseDailyStatDate(endDateStr)
+      if (parsedEndDate) {
+        const endDate = endOfDayChina(parsedEndDate)
         conditions.push({
           date: {
             less_than_equal: endDate.toISOString(),
@@ -300,14 +294,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '日期是必需的' }, { status: 400 })
     }
 
-    const date = new Date(dateStr)
-    date.setHours(0, 0, 0, 0)
-
-    if (Number.isNaN(date.getTime())) {
+    const parsedDate = parseDailyStatDate(dateStr)
+    if (!parsedDate) {
       return NextResponse.json({ error: '日期格式无效' }, { status: 400 })
     }
+    const statDate = startOfDayChina(parsedDate)
 
-    const stats = await computeDailyStats(baby.id, date)
+    const stats = await computeDailyStats(baby.id, parsedDate)
 
     const existing = await payload.find({
       collection: 'daily-stats',
@@ -320,7 +313,7 @@ export async function POST(request: NextRequest) {
           },
           {
             date: {
-              equals: date.toISOString(),
+              equals: statDate.toISOString(),
             },
           },
         ],
@@ -347,7 +340,7 @@ export async function POST(request: NextRequest) {
       const created = await payload.create({
         collection: 'daily-stats',
         data: {
-          date: date.toISOString(),
+          date: statDate.toISOString(),
           babyId: baby.id,
           ...stats,
         },
