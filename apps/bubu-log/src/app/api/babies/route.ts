@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import configPromise from '@payload-config'
+import { REST_GET } from '@payloadcms/next/routes'
 import {
   authFailureResponse,
   getRequestedBabyId,
@@ -219,7 +221,31 @@ function findDefaultBabyId(babies: BabyListItem[]): string | null {
   return babies.find((item) => item.isDefault)?.id ?? babies[0]?.id ?? null
 }
 
+function shouldProxyToPayloadGET(request: NextRequest): boolean {
+  const queryKeys = request.nextUrl.searchParams
+  const payloadQueryHints = ['depth', 'limit', 'page', 'sort', 'locale', 'fallback-locale', 'draft']
+  if (payloadQueryHints.some((key) => queryKeys.has(key))) {
+    return true
+  }
+
+  for (const key of queryKeys.keys()) {
+    if (key.startsWith('where[') || key.startsWith('select[')) {
+      return true
+    }
+  }
+
+  const referer = request.headers.get('referer') || ''
+  return referer.includes('/admin/')
+}
+
 export async function GET(request: NextRequest) {
+  if (shouldProxyToPayloadGET(request)) {
+    const handler = REST_GET(configPromise)
+    return handler(request, {
+      params: Promise.resolve({ slug: ['babies'] }),
+    } as never)
+  }
+
   try {
     const user = await requireUser()
     const babies = await listUserBabies(user.id)
