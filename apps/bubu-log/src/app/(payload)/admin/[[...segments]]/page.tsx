@@ -3,6 +3,7 @@ import { RootPage } from '@payloadcms/next/views'
 import type { Metadata } from 'next'
 import { isRedirectError } from 'next/dist/client/components/redirect-error'
 import { importMap } from '../importMap.js'
+import { ADMIN_APP_NAME, adminFavicon, adminIconSvg } from '@/lib/branding'
 
 type Args = {
   params: Promise<{ segments: string[] }>
@@ -10,7 +11,14 @@ type Args = {
 }
 
 export const metadata: Metadata = {
-  title: 'Payload 管理后台',
+  title: ADMIN_APP_NAME,
+  icons: {
+    icon: [
+      { url: adminFavicon, sizes: '32x32', type: 'image/png' },
+      { url: adminIconSvg, sizes: 'any', type: 'image/svg+xml' },
+    ],
+    apple: adminIconSvg,
+  },
 }
 
 const Page = async ({ params, searchParams }: Args) => {
@@ -33,7 +41,7 @@ const Page = async ({ params, searchParams }: Args) => {
 
     return (
       <main className="mx-auto min-h-screen max-w-2xl px-6 py-12">
-        <h1 className="text-2xl font-semibold">Payload 管理后台未完成初始化</h1>
+        <h1 className="text-2xl font-semibold">{ADMIN_APP_NAME} 未完成初始化</h1>
         <p className="mt-4 text-sm text-muted-foreground">
           当前数据库缺少 Payload 所需表。请使用数据库分支配置 `PAYLOAD_DATABASE_URL`，并临时设置
           <code className="mx-1 rounded bg-muted px-1 py-0.5 text-xs">PAYLOAD_DB_PUSH=true</code>

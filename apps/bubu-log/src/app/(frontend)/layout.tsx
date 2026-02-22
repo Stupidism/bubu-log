@@ -2,22 +2,33 @@ import type { Metadata, Viewport } from 'next'
 import '../globals.css'
 import { Providers } from '../providers'
 import { Toaster } from '@bubu-log/ui/sonner'
+import {
+  APP_NAME,
+  APP_DESCRIPTION,
+  DARK_THEME_COLOR,
+  appAppleTouchIcon,
+  appFavicon,
+  appIcon192,
+  appIconSvg,
+  themeColor,
+} from '@/lib/branding'
 
 export const metadata: Metadata = {
-  title: '卜卜日志 - Baby Care Tracker',
-  description: '记录宝宝的睡眠、喂奶、换尿布和日常活动',
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: appFavicon, sizes: '32x32', type: 'image/png' },
+      { url: appIcon192, sizes: '192x192', type: 'image/png' },
+      { url: appIconSvg, sizes: 'any', type: 'image/svg+xml' },
     ],
-    apple: '/apple-touch-icon.png',
+    apple: appAppleTouchIcon,
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: '卜卜日志',
+    title: APP_NAME,
   },
 }
 
@@ -28,8 +39,8 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#fefbf6' },
-    { media: '(prefers-color-scheme: dark)', color: '#1a1a2e' },
+    { media: '(prefers-color-scheme: light)', color: themeColor },
+    { media: '(prefers-color-scheme: dark)', color: DARK_THEME_COLOR },
   ],
 }
 

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">卜卜日记后台管理 Icon</title>
+  <desc id="desc">Black admin icon with Payload mark at top-right.</desc>
+  <defs>
+    <linearGradient id="bg-admin" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FAFAFA"/>
+      <stop offset="100%" stop-color="#E5E7EB"/>
+    </linearGradient>
+    <linearGradient id="ring-admin" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111111"/>
+      <stop offset="100%" stop-color="#374151"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="64" y="64" width="896" height="896" rx="212" fill="url(#bg-admin)"/>
+  <rect x="96" y="96" width="832" height="832" rx="180" fill="none" stroke="url(#ring-admin)" stroke-width="24"/>
+
+  <path d="M472 214 C454 340 450 566 470 808" fill="none" stroke="#111111" stroke-width="90" stroke-linecap="round"/>
+  <circle cx="536" cy="344" r="72" fill="#111111"/>
+  <path d="M560 366 C604 396 638 430 676 480" fill="none" stroke="#111111" stroke-width="60" stroke-linecap="round"/>
+  <circle cx="516" cy="324" r="16" fill="#F9FAFB" opacity="0.9"/>
+
+  <path d="M474 516 C560 474 606 470 650 500" fill="none" stroke="#4B5563" stroke-width="28" stroke-linecap="round" opacity="0.9"/>
+
+  <circle cx="812" cy="216" r="92" fill="#111111"/>
+  <circle cx="812" cy="216" r="78" fill="none" stroke="#6B7280" stroke-width="8"/>
+  <g transform="translate(760 158) scale(1.15)">
+    <path d="M50.67,86.55l-29.8-17.2c-.37-.22-.6-.61-.6-1.04v-26.56c0-.46.5-.75.9-.52l34.6,19.98c.48.28,1.09-.07,1.09-.63v-12.96c0-.52-.28-.99-.72-1.25L14.5,22.32c-.37-.22-.83-.22-1.21,0l-5.45,3.15c-.37.22-.6.61-.6,1.04v49.37c0,.43.23.83.6,1.04l42.75,24.68c.37.22.83.22,1.21,0l35.9-20.73c.48-.28.48-.97,0-1.25l-11.2-6.47c-.45-.26-1-.26-1.45,0l-23.18,13.38c-.37.22-.83.22-1.21,0Z" fill="#FFFFFF"/>
+    <path d="M94.56,25.47L51.8.79c-.37-.22-.83-.22-1.21,0l-22.6,13.05c-.48.28-.48.97,0,1.25l11.1,6.41c.45.26,1,.26,1.45,0l10.12-5.84c.37-.22.83-.22,1.21,0l29.8,17.2c.37.22.6.61.6,1.04v26.7c0,.52.28.99.72,1.25l11.08,6.4c.48.28,1.09-.07,1.09-.63V26.52c0-.43-.23-.83-.6-1.04Z" fill="#FFFFFF"/>
+  </g>
+</svg>
