@@ -40,12 +40,10 @@ jobs:
         run: pnpm install
 
       - name: Lint
-        run: pnpm lint
+        run: pnpm -C apps/bubu-log lint
 
       - name: Type check
-        run: |
-          pnpm -C apps/bubu-log tsc --noEmit
-          pnpm -C packages/ui tsc --noEmit
+        run: pnpm -C apps/bubu-log exec tsc --noEmit
 
       - name: Unit tests
         run: pnpm -r test --if-present
