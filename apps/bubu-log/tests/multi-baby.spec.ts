@@ -34,17 +34,18 @@ test.describe('Multi Baby URL Scope', () => {
     await page.goto(`/b/${TEST_BABY_ID_2}`)
     await page.getByTestId('drawer-trigger').click()
 
-    await expect(page.getByTestId('drawer-link-timeline')).toBeVisible()
-    await expect(page.getByTestId('drawer-link-stats')).toBeVisible()
+    await expect(page.getByTestId('drawer-link-home')).toBeVisible()
+    await expect(page.getByTestId('drawer-link-records')).toBeVisible()
+    await expect(page.getByTestId('drawer-link-trends')).toBeVisible()
     await expect(page.getByTestId('drawer-link-audits')).toBeVisible()
     await expect(page.getByTestId('drawer-link-babies')).toBeVisible()
     await expect(page.getByTestId('drawer-link-settings')).toBeVisible()
 
-    const statsLink = page.getByTestId('drawer-link-stats')
-    await statsLink.evaluate((element) => {
+    const trendsLink = page.getByTestId('drawer-link-trends')
+    await trendsLink.evaluate((element) => {
       ;(element as HTMLAnchorElement).click()
     })
-    await expect(page).toHaveURL(new RegExp(`/b/${TEST_BABY_ID_2}/stats`))
+    await expect(page).toHaveURL(new RegExp(`/b/${TEST_BABY_ID_2}/stats/trends$`))
   })
 
   test('baby management page should support create edit and default switch', async ({ page }) => {

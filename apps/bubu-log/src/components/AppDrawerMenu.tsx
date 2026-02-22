@@ -12,7 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@bubu-log/ui/sheet'
-import { Baby, BarChart3, ClipboardList, History, Menu, Settings } from 'lucide-react'
+import { Baby, ClipboardList, History, House, Menu, Settings, TrendingUp } from 'lucide-react'
 import { buildBabyScopedPath } from '@/lib/baby-scope'
 
 type DrawerItem = {
@@ -41,16 +41,22 @@ export function AppDrawerMenu({ babyId }: AppDrawerMenuProps) {
   const items = useMemo<DrawerItem[]>(
     () => [
       {
-        key: 'timeline',
-        label: '历史数据',
+        key: 'home',
+        label: '首页',
         href: buildBabyScopedPath(babyId),
+        icon: House,
+      },
+      {
+        key: 'records',
+        label: '记录明细',
+        href: buildBabyScopedPath(babyId, '/stats'),
         icon: ClipboardList,
       },
       {
-        key: 'stats',
-        label: '统计数据',
-        href: buildBabyScopedPath(babyId, '/stats'),
-        icon: BarChart3,
+        key: 'trends',
+        label: '查看趋势',
+        href: buildBabyScopedPath(babyId, '/stats/trends'),
+        icon: TrendingUp,
       },
       {
         key: 'audits',
