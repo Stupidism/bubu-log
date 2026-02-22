@@ -9,6 +9,7 @@ import { getPayloadClient } from '@/lib/payload/client'
 type BabyDoc = {
   id: string
   name?: string | null
+  fullName?: string | null
   avatarUrl?: string | null
   birthDate?: string | null
   gender?: 'BOY' | 'GIRL' | 'OTHER' | null
@@ -23,6 +24,7 @@ type BabyUserDoc = {
 type BabyListItem = {
   id: string
   name: string
+  fullName: string | null
   avatarUrl: string | null
   birthDate: string | null
   gender: 'BOY' | 'GIRL' | 'OTHER' | null
@@ -31,6 +33,7 @@ type BabyListItem = {
 
 type CreateBabyRequestBody = {
   name?: string
+  fullName?: string | null
   birthDate?: string | null
   gender?: 'BOY' | 'GIRL' | 'OTHER' | null
   isDefault?: boolean
@@ -60,6 +63,23 @@ function normalizeBabyName(value: string | undefined): string | null {
 
   if (normalized.length > 30) {
     return null
+  }
+
+  return normalized
+}
+
+function normalizeBabyFullName(value: string | null | undefined): string | null | 'INVALID' {
+  if (value === undefined || value === null) {
+    return null
+  }
+
+  const normalized = value.trim()
+  if (!normalized) {
+    return null
+  }
+
+  if (normalized.length > 60) {
+    return 'INVALID'
   }
 
   return normalized
@@ -136,6 +156,7 @@ async function listUserBabies(userId: string): Promise<BabyListItem[]> {
       {
         id: String(item.id),
         name: String(item.name || ''),
+        fullName: item.fullName ? String(item.fullName) : null,
         avatarUrl: item.avatarUrl ?? null,
         birthDate: item.birthDate ?? null,
         gender: item.gender ?? null,
@@ -239,6 +260,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const fullName = normalizeBabyFullName(body.fullName)
+    if (fullName === 'INVALID') {
+      return NextResponse.json(
+        { error: '宝宝大名不能超过 60 个字符' },
+        { status: 400 }
+      )
+    }
+
     const birthDate = parseBirthDate(body.birthDate)
     if (body.birthDate && !birthDate) {
       return NextResponse.json({ error: '出生日期格式无效' }, { status: 400 })
@@ -256,6 +285,7 @@ export async function POST(request: NextRequest) {
       collection: 'babies',
       data: {
         name,
+        fullName,
         birthDate,
         gender: normalizeGender(body.gender),
       },

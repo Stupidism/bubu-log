@@ -11,6 +11,7 @@ import {
 export type CurrentBaby = {
   id: string
   name: string
+  fullName: string | null
   avatarUrl: string | null
   birthDate: Date | null
   gender: 'BOY' | 'GIRL' | 'OTHER' | null
@@ -40,6 +41,7 @@ type SessionUser = {
 type BabyDoc = {
   id: string
   name?: string | null
+  fullName?: string | null
   avatarUrl?: string | null
   birthDate?: string | Date | null
   gender?: 'BOY' | 'GIRL' | 'OTHER' | null
@@ -113,6 +115,7 @@ function toCurrentBaby(doc: BabyDoc, isDefault: boolean): CurrentBaby | null {
   return {
     id,
     name: String(doc.name || ''),
+    fullName: doc.fullName ? String(doc.fullName) : null,
     avatarUrl: doc.avatarUrl ?? null,
     birthDate: toDate(doc.birthDate),
     gender: doc.gender ?? null,

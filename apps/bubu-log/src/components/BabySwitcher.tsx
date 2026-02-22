@@ -16,6 +16,7 @@ import { replaceBabyIdInPathname } from '@/lib/baby-scope'
 export type BabySwitcherItem = {
   id: string
   name: string
+  fullName?: string | null
   avatarUrl: string | null
   isDefault: boolean
 }
@@ -55,6 +56,7 @@ export function BabySwitcher({ babies, currentBabyId, isLoading = false }: BabyS
 
   const disabled = isLoading || babies.length === 0
   const showDropdown = babies.length > 1
+  const currentLabel = currentBaby?.name || currentBaby?.fullName || '宝宝'
 
   const handleSwitch = (targetBabyId: string) => {
     if (!targetBabyId || targetBabyId === currentBabyId) {
@@ -71,15 +73,12 @@ export function BabySwitcher({ babies, currentBabyId, isLoading = false }: BabyS
       <DropdownMenuTrigger asChild disabled={disabled || !showDropdown}>
         <button
           type="button"
-          className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/90 px-2.5 py-1.5 shadow-sm"
+          className="inline-flex items-center gap-1 rounded-full border border-white/80 bg-white/90 px-1.5 py-1.5 shadow-sm"
           data-testid="baby-switcher-trigger"
-          aria-label="切换宝宝"
+          aria-label={currentLabel ? `切换宝宝，当前：${currentLabel}` : '切换宝宝'}
         >
           <span className="relative inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white bg-gradient-to-br from-pink-100 to-orange-100">
             <AvatarContent avatarUrl={currentBaby?.avatarUrl ?? null} isLoading={isLoading} />
-          </span>
-          <span className="max-w-20 truncate text-sm font-medium text-gray-700">
-            {currentBaby?.name || '宝宝'}
           </span>
           {showDropdown && <ChevronDown size={16} className="text-gray-500" />}
         </button>
@@ -88,29 +87,32 @@ export function BabySwitcher({ babies, currentBabyId, isLoading = false }: BabyS
       <DropdownMenuContent align="start" className="w-56">
         <DropdownMenuLabel>切换宝宝</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {babies.map((baby) => (
-          <DropdownMenuItem
-            key={baby.id}
-            onClick={() => handleSwitch(baby.id)}
-            className="flex items-center justify-between gap-3"
-            data-testid={`baby-switcher-item-${baby.id}`}
-          >
-            <span className="flex min-w-0 items-center gap-2">
-              <span className="inline-flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-pink-100 to-orange-100">
-                {baby.avatarUrl ? (
-                  <img src={baby.avatarUrl} alt={baby.name} className="h-full w-full object-cover" />
-                ) : (
-                  <Baby size={14} className="text-primary" />
-                )}
+        {babies.map((baby) => {
+          const babyLabel = baby.name || baby.fullName || '宝宝'
+          return (
+            <DropdownMenuItem
+              key={baby.id}
+              onClick={() => handleSwitch(baby.id)}
+              className="flex items-center justify-between gap-3"
+              data-testid={`baby-switcher-item-${baby.id}`}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-pink-100 to-orange-100">
+                  {baby.avatarUrl ? (
+                    <img src={baby.avatarUrl} alt={babyLabel} className="h-full w-full object-cover" />
+                  ) : (
+                    <Baby size={14} className="text-primary" />
+                  )}
+                </span>
+                <span className="truncate text-sm">
+                  {babyLabel}
+                  {baby.isDefault ? '（默认）' : ''}
+                </span>
               </span>
-              <span className="truncate text-sm">
-                {baby.name}
-                {baby.isDefault ? '（默认）' : ''}
-              </span>
-            </span>
-            {baby.id === currentBabyId && <Check size={14} className="text-primary" />}
-          </DropdownMenuItem>
-        ))}
+              {baby.id === currentBabyId && <Check size={14} className="text-primary" />}
+            </DropdownMenuItem>
+          )
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   )

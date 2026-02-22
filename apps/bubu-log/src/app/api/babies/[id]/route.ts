@@ -5,6 +5,7 @@ import { getPayloadClient } from '@/lib/payload/client'
 type BabyDoc = {
   id: string
   name?: string | null
+  fullName?: string | null
   avatarUrl?: string | null
   birthDate?: string | null
   gender?: 'BOY' | 'GIRL' | 'OTHER' | null
@@ -18,6 +19,7 @@ type BabyUserDoc = {
 
 type UpdateBabyRequestBody = {
   name?: string
+  fullName?: string | null
   birthDate?: string | null
   gender?: 'BOY' | 'GIRL' | 'OTHER' | null
   isDefault?: boolean
@@ -171,6 +173,18 @@ export async function PATCH(
       updateData.name = normalizedName
     }
 
+    if (body.fullName !== undefined) {
+      if (body.fullName === null || body.fullName === '') {
+        updateData.fullName = null
+      } else {
+        const normalizedFullName = body.fullName.trim()
+        if (normalizedFullName.length > 60) {
+          return NextResponse.json({ error: '宝宝大名不能超过 60 个字符' }, { status: 400 })
+        }
+        updateData.fullName = normalizedFullName || null
+      }
+    }
+
     if (body.gender !== undefined) {
       updateData.gender = normalizeGender(body.gender)
     }
@@ -221,6 +235,7 @@ export async function PATCH(
       data: {
         id: String(updatedBaby.id),
         name: String(updatedBaby.name || ''),
+        fullName: updatedBaby.fullName ? String(updatedBaby.fullName) : null,
         avatarUrl: updatedBaby.avatarUrl ?? null,
         birthDate: updatedBaby.birthDate ?? null,
         gender: updatedBaby.gender ?? null,

@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       id: baby.id,
       name: baby.name,
+      fullName: baby.fullName,
       avatarUrl: baby.avatarUrl,
       birthDate: baby.birthDate,
     })
@@ -29,13 +30,22 @@ export async function PATCH(request: NextRequest) {
     const payload = await getPayloadClient()
 
     const body = await request.json()
-    const { name, avatarUrl, birthDate } = body
+    const { name, fullName, avatarUrl, birthDate } = body
+
+    const normalizedFullName =
+      fullName === undefined || fullName === null || fullName === ''
+        ? null
+        : String(fullName).trim()
+    if (normalizedFullName && normalizedFullName.length > 60) {
+      return NextResponse.json({ error: '宝宝大名不能超过 60 个字符' }, { status: 400 })
+    }
 
     const updatedBaby = await payload.update({
       collection: 'babies',
       id: baby.id,
       data: {
         ...(name !== undefined ? { name } : {}),
+        ...(fullName !== undefined ? { fullName: normalizedFullName } : {}),
         ...(avatarUrl !== undefined ? { avatarUrl } : {}),
         ...(birthDate !== undefined
           ? { birthDate: birthDate ? new Date(birthDate).toISOString() : null }

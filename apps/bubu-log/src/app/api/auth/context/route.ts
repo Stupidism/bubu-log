@@ -9,6 +9,7 @@ import {
 type ContextBaby = {
   id: string
   name: string
+  fullName: string | null
   avatarUrl: string | null
   isDefault: boolean
 }
@@ -16,12 +17,14 @@ type ContextBaby = {
 function toContextBaby(input: {
   id: string
   name: string
+  fullName: string | null
   avatarUrl: string | null
   isDefault: boolean
 }): ContextBaby {
   return {
     id: input.id,
     name: input.name,
+    fullName: input.fullName,
     avatarUrl: input.avatarUrl,
     isDefault: input.isDefault,
   }
