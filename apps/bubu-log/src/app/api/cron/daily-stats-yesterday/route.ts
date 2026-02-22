@@ -41,9 +41,9 @@ export async function GET(request: NextRequest) {
 
     const forcedDate = request.nextUrl.searchParams.get('date')
     const targetDateStr = forcedDate || dayjs().tz(CHINA_TIMEZONE).subtract(1, 'day').format('YYYY-MM-DD')
-    const targetDate = parseDailyStatDate(targetDateStr)
+    const parsedTargetDate = parseDailyStatDate(targetDateStr)
 
-    if (!targetDate) {
+    if (!parsedTargetDate) {
       return NextResponse.json(
         { error: 'Invalid date format, expected YYYY-MM-DD' },
         { status: 400 },
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
     for (const baby of babies) {
       try {
-        await upsertDailyStatsForBaby(payload, baby.id, targetDate)
+        await upsertDailyStatsForBaby(payload, baby.id, parsedTargetDate)
         successCount += 1
       } catch (error) {
         failures.push({

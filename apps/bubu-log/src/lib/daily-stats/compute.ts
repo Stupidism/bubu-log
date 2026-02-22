@@ -1,19 +1,26 @@
 import { ActivityType } from '@/types/activity'
 import type { ActivityDoc, DailyStatDoc } from '@/lib/payload/models'
 import { getPayloadClient } from '@/lib/payload/client'
+import { endOfDayChina, startOfDayChina } from '@/lib/dayjs'
 
 type PayloadClient = Awaited<ReturnType<typeof getPayloadClient>>
 
-type DailyStatMetrics = Omit<
-  DailyStatDoc,
-  'id' | 'date' | 'babyId' | 'createdAt' | 'updatedAt'
->
+type DailyStatMetrics = Omit<DailyStatDoc, 'id' | 'date' | 'babyId' | 'createdAt' | 'updatedAt'>
 
-function calculateDurationInDay(startTime: Date, endTime: Date, targetDate: Date): number {
-  const dayStart = new Date(targetDate)
-  dayStart.setHours(0, 0, 0, 0)
-  const dayEnd = new Date(targetDate)
-  dayEnd.setHours(23, 59, 59, 999)
+type DayRange = {
+  dayStart: Date
+  dayEnd: Date
+}
+
+function getChinaDayRange(dateStr: string): DayRange {
+  return {
+    dayStart: startOfDayChina(dateStr),
+    dayEnd: endOfDayChina(dateStr),
+  }
+}
+
+function calculateDurationInDay(startTime: Date, endTime: Date, dayRange: DayRange): number {
+  const { dayStart, dayEnd } = dayRange
 
   const effectiveStart = startTime < dayStart ? dayStart : startTime
   const effectiveEnd = endTime > dayEnd ? dayEnd : endTime
@@ -39,21 +46,22 @@ function toDate(value: string | null | undefined): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-export function parseDailyStatDate(dateStr: string): Date | null {
-  const date = new Date(dateStr)
-  date.setHours(0, 0, 0, 0)
-  return Number.isNaN(date.getTime()) ? null : date
+export function parseDailyStatDate(dateStr: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return null
+  }
+
+  const { dayStart } = getChinaDayRange(dateStr)
+  return Number.isNaN(dayStart.getTime()) ? null : dateStr
 }
 
 export async function computeDailyStatsForBaby(
   payload: PayloadClient,
   babyId: string,
-  date: Date,
+  dateStr: string,
 ): Promise<DailyStatMetrics> {
-  const dayStart = new Date(date)
-  dayStart.setHours(0, 0, 0, 0)
-  const dayEnd = new Date(date)
-  dayEnd.setHours(23, 59, 59, 999)
+  const dayRange = getChinaDayRange(dateStr)
+  const { dayStart, dayEnd } = dayRange
 
   const activitiesResult = await payload.find({
     collection: 'activities',
@@ -153,7 +161,7 @@ export async function computeDailyStatsForBaby(
     switch (activity.type) {
       case ActivityType.SLEEP:
         if (endTime) {
-          const duration = calculateDurationInDay(startTime, endTime, date)
+          const duration = calculateDurationInDay(startTime, endTime, dayRange)
           if (duration > 0) {
             stats.sleepCount += 1
             stats.totalSleepMinutes += duration
@@ -239,9 +247,10 @@ export async function computeDailyStatsForBaby(
 export async function upsertDailyStatsForBaby(
   payload: PayloadClient,
   babyId: string,
-  date: Date,
+  dateStr: string,
 ): Promise<DailyStatDoc> {
-  const stats = await computeDailyStatsForBaby(payload, babyId, date)
+  const dayRange = getChinaDayRange(dateStr)
+  const stats = await computeDailyStatsForBaby(payload, babyId, dateStr)
 
   const existing = await payload.find({
     collection: 'daily-stats',
@@ -254,7 +263,7 @@ export async function upsertDailyStatsForBaby(
         },
         {
           date: {
-            equals: date.toISOString(),
+            equals: dayRange.dayStart.toISOString(),
           },
         },
       ],
@@ -280,7 +289,7 @@ export async function upsertDailyStatsForBaby(
   const created = await payload.create({
     collection: 'daily-stats',
     data: {
-      date: date.toISOString(),
+      date: dayRange.dayStart.toISOString(),
       babyId,
       ...stats,
     },

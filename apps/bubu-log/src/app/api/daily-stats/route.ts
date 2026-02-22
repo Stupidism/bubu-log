@@ -3,6 +3,7 @@ import { type Where } from 'payload'
 import { requireAuth } from '@/lib/auth/get-current-baby'
 import { getPayloadClient } from '@/lib/payload/client'
 import { parseDailyStatDate, upsertDailyStatsForBaby } from '@/lib/daily-stats/compute'
+import { endOfDayChina, startOfDayChina } from '@/lib/dayjs'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,9 +23,9 @@ export async function GET(request: NextRequest) {
     ]
 
     if (startDateStr) {
-      const [year, month, day] = startDateStr.split('-').map(Number)
-      const startDate = new Date(year, month - 1, day, 0, 0, 0, 0)
-      if (!Number.isNaN(startDate.getTime())) {
+      const parsedStartDate = parseDailyStatDate(startDateStr)
+      if (parsedStartDate) {
+        const startDate = startOfDayChina(parsedStartDate)
         conditions.push({
           date: {
             greater_than_equal: startDate.toISOString(),
@@ -34,9 +35,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (endDateStr) {
-      const [year, month, day] = endDateStr.split('-').map(Number)
-      const endDate = new Date(year, month - 1, day, 0, 0, 0, 0)
-      if (!Number.isNaN(endDate.getTime())) {
+      const parsedEndDate = parseDailyStatDate(endDateStr)
+      if (parsedEndDate) {
+        const endDate = endOfDayChina(parsedEndDate)
         conditions.push({
           date: {
             less_than_equal: endDate.toISOString(),
@@ -76,12 +77,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '日期是必需的' }, { status: 400 })
     }
 
-    const date = parseDailyStatDate(dateStr)
-    if (!date) {
+    const parsedDate = parseDailyStatDate(dateStr)
+    if (!parsedDate) {
       return NextResponse.json({ error: '日期格式无效' }, { status: 400 })
     }
 
-    const dailyStat = await upsertDailyStatsForBaby(payload, baby.id, date)
+    const dailyStat = await upsertDailyStatsForBaby(payload, baby.id, parsedDate)
 
     return NextResponse.json(dailyStat)
   } catch (error) {
