@@ -23,6 +23,8 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
   type ChartConfig,
 } from '@bubu-log/ui'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
@@ -40,12 +42,16 @@ const sleepChartConfig = {
 
 const feedingChartConfig = {
   totalMilkAmount: {
-    label: '宝宝奶量',
+    label: '瓶喂量',
     color: 'hsl(var(--chart-2))',
   },
   totalPumpMilkAmount: {
     label: '妈妈吸奶量',
     color: 'hsl(var(--chart-4))',
+  },
+  comprehensiveFeedingAmount: {
+    label: '综合喂养量(估算)',
+    color: 'hsl(var(--chart-5))',
   },
 } satisfies ChartConfig
 
@@ -74,6 +80,11 @@ function formatMinutesToHours(minutes: number): string {
   if (hours === 0) return `${mins}m`
   if (mins === 0) return `${hours}h`
   return `${hours}h${mins}m`
+}
+
+function formatMilkAmount(value: number): string {
+  if (Number.isInteger(value)) return `${value}ml`
+  return `${value.toFixed(1)}ml`
 }
 
 // 获取颜色强度 (0-4)
@@ -111,10 +122,14 @@ function ChartView({
   chartData,
   daysToShow,
   setDaysToShow,
+  breastfeedRate,
+  setBreastfeedRate,
 }: {
-  chartData: Array<{ date: string; dateLabel: string; totalSleepMinutes: number; totalMilkAmount: number; totalPumpMilkAmount: number; diaperCount: number; hasData: boolean }>
+  chartData: Array<{ date: string; dateLabel: string; totalSleepMinutes: number; totalMilkAmount: number; totalPumpMilkAmount: number; comprehensiveFeedingAmount: number; diaperCount: number; hasData: boolean }>
   daysToShow: number
   setDaysToShow: (days: number) => void
+  breastfeedRate: number
+  setBreastfeedRate: (rate: number) => void
 }) {
   return (
     <div className="space-y-6">
@@ -157,16 +172,56 @@ function ChartView({
           <Milk size={20} className="text-pink-500" />
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">奶量趋势</h2>
         </div>
+        <div className="mb-4 rounded-xl bg-pink-50 dark:bg-pink-900/20 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-pink-700 dark:text-pink-300 font-medium">
+              亲喂换算系数：{breastfeedRate.toFixed(1)} ml/分钟
+            </p>
+            <p className="text-xs text-pink-600 dark:text-pink-400">
+              综合喂养量 = 瓶喂 + 亲喂分钟 × 系数
+            </p>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={5}
+            step={0.1}
+            value={breastfeedRate}
+            onChange={(e) => setBreastfeedRate(Number(e.target.value))}
+            className="mt-2 h-2 w-full cursor-pointer accent-pink-500"
+            aria-label="亲喂换算系数"
+          />
+        </div>
         <ChartContainer config={feedingChartConfig} className="h-[200px] w-full">
           <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} stroke="#9ca3af" />
-            <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => `${value}ml`} stroke="#9ca3af" />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            {/* 宝宝摄入奶量 - 粉色 */}
-            <Line type="linear" dataKey="totalMilkAmount" stroke="#ec4899" strokeWidth={2} dot={{ fill: '#ec4899', r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => formatMilkAmount(value as number)} stroke="#9ca3af" />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  className="rounded-xl px-3 py-2"
+                  labelFormatter={(value) => `日期：${value}`}
+                  formatter={(value, name) => (
+                    <div className="flex w-full min-w-[170px] items-center justify-between gap-3">
+                      <span className="text-muted-foreground">
+                        {String(name)}：
+                      </span>
+                      <span className="text-foreground font-mono font-medium tabular-nums">
+                        {formatMilkAmount(value as number)}
+                      </span>
+                    </div>
+                  )}
+                />
+              }
+            />
+            <ChartLegend content={<ChartLegendContent />} />
+            {/* 瓶喂量 - 粉色 */}
+            <Line name="瓶喂量" type="linear" dataKey="totalMilkAmount" stroke="#ec4899" strokeWidth={2} dot={{ fill: '#ec4899', r: 3 }} activeDot={{ r: 5 }} connectNulls />
             {/* 妈妈吸奶量 - 洋红 */}
-            <Line type="linear" dataKey="totalPumpMilkAmount" stroke="#d946ef" strokeWidth={2} dot={{ fill: '#d946ef', r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            <Line name="妈妈吸奶量" type="linear" dataKey="totalPumpMilkAmount" stroke="#d946ef" strokeWidth={2} dot={{ fill: '#d946ef', r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            {/* 综合喂养量（估算） - 橙色虚线 */}
+            <Line name="综合喂养量(估算)" type="linear" dataKey="comprehensiveFeedingAmount" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 3" dot={{ fill: '#f59e0b', r: 2.5 }} activeDot={{ r: 4.5 }} connectNulls />
           </LineChart>
         </ChartContainer>
       </section>
@@ -619,6 +674,7 @@ function MonthlyView({
 function TrendsPageContent() {
   const [activeTab, setActiveTab] = useState<TabType>('chart')
   const [daysToShow, setDaysToShow] = useState(7)
+  const [breastfeedRate, setBreastfeedRate] = useState(3)
   const [endDate, setEndDate] = useState(() => dayjs().startOf('day').toDate())
   // 使用 weekday(0) 获取本周周一 (zh-cn locale 下 weekday(0) = 周一)
   const [weeklyViewWeekStart, setWeeklyViewWeekStart] = useState(() =>
@@ -681,17 +737,22 @@ function TrendsPageContent() {
 
     return chartDateRange.map(date => {
       const stat = statsByDate.get(date)
+      const bottleMilkAmount = stat?.totalMilkAmount ?? 0
+      const breastfeedMinutes = stat?.totalBreastfeedMinutes ?? 0
+      const comprehensiveFeedingAmount = Number((bottleMilkAmount + breastfeedMinutes * breastfeedRate).toFixed(1))
+
       return {
         date,
         dateLabel: dayjs(date).format('M/D'),
         totalSleepMinutes: stat?.totalSleepMinutes ?? 0,
-        totalMilkAmount: stat?.totalMilkAmount ?? 0,
+        totalMilkAmount: bottleMilkAmount,
         totalPumpMilkAmount: stat?.totalPumpMilkAmount ?? 0,
+        comprehensiveFeedingAmount,
         diaperCount: stat?.diaperCount ?? 0,
         hasData: !!stat,
       }
     })
-  }, [chartDateRange, chartStats])
+  }, [chartDateRange, chartStats, breastfeedRate])
 
   // 月历周数据
   const weeksData = useMemo(() => {
@@ -775,16 +836,36 @@ function TrendsPageContent() {
         })
       }
 
-      for (const date of datesToCompute) {
-        await computeMutation.mutateAsync({ body: { date } })
+      const uniqueDatesToCompute = Array.from(new Set(datesToCompute))
+        .filter(date => !dayjs(date).isAfter(dayjs(), 'day'))
+
+      if (uniqueDatesToCompute.length === 0) {
+        toast.info('当前没有可重算的日期')
+        return
       }
 
-      toast.success(`已重新计算 ${datesToCompute.length} 天的统计数据`)
+      const failedDates: string[] = []
+
+      for (const date of uniqueDatesToCompute) {
+        try {
+          await computeMutation.mutateAsync({ body: { date } })
+        } catch {
+          failedDates.push(date)
+        }
+      }
+
+      if (failedDates.length === 0) {
+        toast.success(`已重新计算 ${uniqueDatesToCompute.length} 天的统计数据`)
+      } else if (failedDates.length === uniqueDatesToCompute.length) {
+        toast.error('统计失败，请重试')
+      } else {
+        toast.warning(`已完成 ${uniqueDatesToCompute.length - failedDates.length} 天，失败 ${failedDates.length} 天`)
+      }
 
       if (activeTab === 'chart') {
-        refetchChart()
+        await refetchChart()
       } else if (activeTab === 'monthly') {
-        refetchMonthly()
+        await refetchMonthly()
       }
     } catch {
       toast.error('统计失败，请重试')
@@ -891,6 +972,8 @@ function TrendsPageContent() {
               chartData={chartData}
               daysToShow={daysToShow}
               setDaysToShow={setDaysToShow}
+              breastfeedRate={breastfeedRate}
+              setBreastfeedRate={setBreastfeedRate}
             />
           )}
           {activeTab === 'weekly' && (

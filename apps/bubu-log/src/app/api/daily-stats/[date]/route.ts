@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth/get-current-baby'
 import { getPayloadClient } from '@/lib/payload/client'
+import { parseDailyStatDate } from '@/lib/daily-stats/compute'
+import { endOfDayChina, startOfDayChina } from '@/lib/dayjs'
 
 export async function GET(
   _request: NextRequest,
@@ -11,15 +13,13 @@ export async function GET(
     const payload = await getPayloadClient()
     const { date: dateStr } = await params
 
-    const date = new Date(dateStr)
-    date.setHours(0, 0, 0, 0)
-
-    if (Number.isNaN(date.getTime())) {
+    const parsedDate = parseDailyStatDate(dateStr)
+    if (!parsedDate) {
       return NextResponse.json({ error: '无效的日期格式' }, { status: 400 })
     }
 
-    const nextDate = new Date(date)
-    nextDate.setDate(nextDate.getDate() + 1)
+    const dayStart = startOfDayChina(parsedDate)
+    const dayEnd = endOfDayChina(parsedDate)
 
     const stat = await payload.find({
       collection: 'daily-stats',
@@ -32,12 +32,12 @@ export async function GET(
           },
           {
             date: {
-              greater_than_equal: date.toISOString(),
+              greater_than_equal: dayStart.toISOString(),
             },
           },
           {
             date: {
-              less_than: nextDate.toISOString(),
+              less_than_equal: dayEnd.toISOString(),
             },
           },
         ],
