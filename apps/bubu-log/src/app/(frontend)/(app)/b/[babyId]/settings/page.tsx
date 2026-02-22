@@ -1,12 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, CheckCircle2, Copy, Loader2, PlusCircle } from 'lucide-react'
+import { CheckCircle2, Copy, Loader2, PlusCircle } from 'lucide-react'
 import { AvatarUpload } from '@/components/AvatarUpload'
 import { AppDrawerMenu } from '@/components/AppDrawerMenu'
-import { buildBabyScopedPath } from '@/lib/baby-scope'
 
 const DEFAULT_SHORTCUT_INSTALL_URL = 'https://www.icloud.com/shortcuts/18673668cfaa4d1bac3f1ecac4646224'
 const ENV_SHORTCUT_INSTALL_URL = process.env.NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL?.trim() || ''
@@ -34,7 +32,6 @@ function buildTokenUrl(babyId: string): string {
 export default function SettingsPage() {
   const routeParams = useParams<{ babyId: string }>()
   const babyId = routeParams?.babyId || ''
-  const homePath = buildBabyScopedPath(babyId)
 
   const [isPreparing, setIsPreparing] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -126,14 +123,7 @@ export default function SettingsPage() {
 
   return (
     <main className="min-h-screen pb-10">
-      <header className="px-4 py-3 flex items-center gap-3 border-b border-gray-100 dark:border-gray-800">
-        <Link
-          href={homePath}
-          className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center"
-          aria-label="返回首页"
-        >
-          <ArrowLeft size={18} />
-        </Link>
+      <header className="px-4 py-3 flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex-1">
           <h1 className="text-lg font-semibold">设置</h1>
           <p className="text-xs text-gray-500">头像与快捷指令</p>

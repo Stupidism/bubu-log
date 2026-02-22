@@ -1,13 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
+import { useCallback, useEffect, useState } from 'react'
 import { usePathname, useRouter, useParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { ArrowLeft, Baby, CheckCircle2, Loader2, Pencil, Plus, Star } from 'lucide-react'
+import { Baby, CheckCircle2, Loader2, Pencil, Plus, Star } from 'lucide-react'
 import { AppDrawerMenu } from '@/components/AppDrawerMenu'
 import {
-  buildBabyScopedPath,
   replaceBabyIdInPathname,
   withCurrentBabyIdOnApiPath,
 } from '@/lib/baby-scope'
@@ -73,8 +71,6 @@ export default function BabiesPage() {
   const [createForm, setCreateForm] = useState<BabyFormState>(INITIAL_FORM)
   const [editingBabyId, setEditingBabyId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<BabyFormState>(INITIAL_FORM)
-
-  const homePath = useMemo(() => buildBabyScopedPath(babyId), [babyId])
 
   const loadBabies = useCallback(async () => {
     setLoading(true)
@@ -242,14 +238,7 @@ export default function BabiesPage() {
 
   return (
     <main className="min-h-screen pb-10">
-      <header className="px-4 py-3 flex items-center gap-3 border-b border-gray-100 dark:border-gray-800">
-        <Link
-          href={homePath}
-          className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center"
-          aria-label="返回首页"
-        >
-          <ArrowLeft size={18} />
-        </Link>
+      <header className="px-4 py-3 flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex-1">
           <h1 className="text-lg font-semibold">宝宝管理</h1>
           <p className="text-xs text-gray-500">新增、编辑和默认宝宝切换</p>

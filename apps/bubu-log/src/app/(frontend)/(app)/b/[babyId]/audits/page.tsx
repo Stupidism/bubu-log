@@ -1,13 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { dayjs } from '@/lib/dayjs'
 import { useAudits, type AuditLog } from '@/lib/api/hooks'
 import { 
   History,
-  ArrowLeft, 
   Mic,
   Keyboard,
   Plus,
@@ -17,7 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
-import { buildBabyScopedPath } from '@/lib/baby-scope'
+import { AppDrawerMenu } from '@/components/AppDrawerMenu'
 
 // 操作类型标签
 const actionLabels: Record<string, string> = {
@@ -206,7 +204,6 @@ export default function AuditsPage() {
   const [offset, setOffset] = useState(0)
   const routeParams = useParams<{ babyId: string }>()
   const babyId = routeParams?.babyId || ''
-  const statsPath = buildBabyScopedPath(babyId, '/stats')
   const limit = 30
   
   const { data: auditsData, isLoading } = useAudits({ limit, offset })
@@ -224,18 +221,11 @@ export default function AuditsPage() {
       {/* 顶部导航 */}
       <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-100 dark:border-gray-800">
         <div className="px-4 py-3 flex items-center justify-between">
-          <Link
-            href={statsPath}
-            className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-base flex items-center gap-1"
-          >
-            <ArrowLeft size={18} />
-            返回
-          </Link>
           <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
             <History size={22} />
             操作记录
           </h1>
-          <div className="w-16" />
+          <AppDrawerMenu babyId={babyId} />
         </div>
       </header>
 

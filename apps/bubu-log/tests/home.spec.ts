@@ -17,6 +17,18 @@ test.describe('Homepage Features', () => {
       await expect(page.getByTestId('baby-switcher-item-e2e-test-baby-id-2')).toBeVisible()
     })
 
+    test('should render drawer at top and keep close text visually hidden', async ({ page }) => {
+      await page.getByTestId('drawer-trigger').click()
+
+      const drawer = page.getByTestId('drawer-content')
+      const closeText = drawer.locator('span.sr-only', { hasText: 'Close' })
+      await expect(drawer).toBeVisible()
+      await expect(drawer).toHaveCSS('top', '0px')
+      await expect(closeText).toHaveCSS('position', 'absolute')
+      await expect(closeText).toHaveCSS('width', '1px')
+      await expect(closeText).toHaveCSS('height', '1px')
+    })
+
     test('should open settings from drawer and show avatar upload input', async ({ page }) => {
       await page.getByTestId('drawer-trigger').click()
       const settingsLink = page.getByTestId('drawer-link-settings')

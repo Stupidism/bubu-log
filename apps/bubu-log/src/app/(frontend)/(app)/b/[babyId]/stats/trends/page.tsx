@@ -1,14 +1,12 @@
 'use client'
 
 import { useState, useMemo, useCallback, Suspense } from 'react'
-import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { dayjs, formatDateChinese } from '@/lib/dayjs'
 import { useDailyStats, useComputeDailyStat, useActivities, type DailyStat, type Activity } from '@/lib/api/hooks'
 import { toast } from 'sonner'
 import {
   TrendingUp,
-  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
@@ -26,6 +24,7 @@ import {
   type ChartConfig,
 } from '@bubu-log/ui'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { AppDrawerMenu } from '@/components/AppDrawerMenu'
 import { buildBabyScopedPath } from '@/lib/baby-scope'
 
 // Tab 类型
@@ -422,7 +421,7 @@ function MonthlyView({
   onNavigate,
   canGoForward,
   weeksToShow,
-  homePath,
+  statsPath,
 }: {
   weeksData: Array<{
     weekLabel: string
@@ -433,17 +432,17 @@ function MonthlyView({
   onNavigate: (direction: number) => void
   canGoForward: boolean
   weeksToShow: number
-  homePath: string
+  statsPath: string
 }) {
   const router = useRouter()
 
-  // 点击日期跳转到首页，带上日期和过滤类型
+  // 点击日期跳转到统计页，带上日期和过滤类型
   const handleDateClick = useCallback((date: string, filterType: 'sleep' | 'feeding') => {
     const params = new URLSearchParams()
     params.set('date', date)
     params.set('filter', filterType)
-    router.push(`${homePath}?${params.toString()}`)
-  }, [homePath, router])
+    router.push(`${statsPath}?${params.toString()}`)
+  }, [statsPath, router])
   return (
     <div className="space-y-6">
       {/* 周导航 */}
@@ -622,7 +621,6 @@ function MonthlyView({
 function TrendsPageContent() {
   const routeParams = useParams<{ babyId: string }>()
   const babyId = routeParams?.babyId || ''
-  const homePath = buildBabyScopedPath(babyId)
   const statsPath = buildBabyScopedPath(babyId, '/stats')
   const [activeTab, setActiveTab] = useState<TabType>('chart')
   const [daysToShow, setDaysToShow] = useState(7)
@@ -810,24 +808,20 @@ function TrendsPageContent() {
       {/* 顶部导航 */}
       <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-100 dark:border-gray-800">
         <div className="px-4 py-3 flex items-center justify-between">
-          <Link
-            href={statsPath}
-            className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-base flex items-center gap-1"
-          >
-            <ArrowLeft size={18} />
-            返回
-          </Link>
           <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
             <TrendingUp size={22} />
             数据趋势
           </h1>
-          <button
-            onClick={handleRefresh}
-            disabled={computeMutation.isPending}
-            className="px-4 py-2 rounded-full bg-primary/10 text-primary font-medium text-base flex items-center gap-1 disabled:opacity-50"
-          >
-            <RefreshCw size={18} className={computeMutation.isPending ? 'animate-spin' : ''} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              disabled={computeMutation.isPending}
+              className="px-4 py-2 rounded-full bg-primary/10 text-primary font-medium text-base flex items-center gap-1 disabled:opacity-50"
+            >
+              <RefreshCw size={18} className={computeMutation.isPending ? 'animate-spin' : ''} />
+            </button>
+            <AppDrawerMenu babyId={babyId} />
+          </div>
         </div>
 
         {/* Tab 切换 */}
@@ -914,7 +908,7 @@ function TrendsPageContent() {
               onNavigate={navigateMonthlyWeek}
               canGoForward={canMonthlyGoForward}
               weeksToShow={weeksToShow}
-              homePath={homePath}
+              statsPath={statsPath}
             />
           )}
         </div>

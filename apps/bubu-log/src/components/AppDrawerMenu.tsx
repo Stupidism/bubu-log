@@ -86,7 +86,7 @@ export function AppDrawerMenu({ babyId }: AppDrawerMenuProps) {
           <Menu size={18} />
         </button>
       </SheetTrigger>
-      <SheetContent side="right" className="max-w-[320px]">
+      <SheetContent side="right" className="max-w-[320px]" data-testid="drawer-content">
         <SheetHeader className="border-b border-gray-100 px-5 py-4">
           <SheetTitle>导航菜单</SheetTitle>
           <SheetDescription className="text-xs text-gray-500">

@@ -17,7 +17,6 @@ import { useActivities, useBatchDeleteActivities, useBatchUpdateActivityDate, ty
 import { useModalParams } from '@/hooks/useModalParams'
 import {
   BarChart3,
-  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -33,6 +32,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { StatsCardList, type StatFilter, type DaySummary } from '@/components/StatsCardList'
+import { AppDrawerMenu } from '@/components/AppDrawerMenu'
 import { buildBabyScopedPath } from '@/lib/baby-scope'
 
 // 排序字段类型
@@ -85,7 +85,6 @@ function StatsPageContent() {
   const router = useRouter()
   const routeParams = useParams<{ babyId: string }>()
   const babyId = routeParams?.babyId || ''
-  const homePath = buildBabyScopedPath(babyId)
   const statsPath = buildBabyScopedPath(babyId, '/stats')
   const trendsPath = buildBabyScopedPath(babyId, '/stats/trends')
   const auditsPath = buildBabyScopedPath(babyId, '/audits')
@@ -590,14 +589,6 @@ function StatsPageContent() {
             </>
           ) : (
             <>
-              <Link
-                href={isToday ? homePath : `${homePath}?date=${selectedDateStr}`}
-                className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-base flex items-center gap-1"
-                data-testid="stats-back-link"
-              >
-                <ArrowLeft size={18} />
-                返回
-              </Link>
               <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
                 <BarChart3 size={22} />
                 数据统计
@@ -619,6 +610,7 @@ function StatsPageContent() {
                 >
                   <History size={18} />
                 </Link>
+                <AppDrawerMenu babyId={babyId} />
               </div>
             </>
           )}
