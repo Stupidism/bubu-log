@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [shortcutTemplateText, setShortcutTemplateText] = useState<string | null>(null)
+  const [authorizationValue, setAuthorizationValue] = useState<string | null>(null)
 
   const copyText = async (text: string): Promise<boolean> => {
     try {
@@ -50,13 +50,13 @@ export default function SettingsPage() {
   }
 
   const handleManualCopy = async () => {
-    if (!shortcutTemplateText) {
+    if (!authorizationValue) {
       return
     }
 
-    const didCopy = await copyText(shortcutTemplateText)
+    const didCopy = await copyText(authorizationValue)
     setCopied(didCopy)
-    setError(didCopy ? null : '复制失败，请长按下方配置文本手动复制')
+    setError(didCopy ? null : '复制失败，请长按下方 Authorization 文本手动复制')
   }
 
   const prepareShortcut = async () => {
@@ -67,7 +67,7 @@ export default function SettingsPage() {
 
     setIsPreparing(true)
     setCopied(false)
-    setShortcutTemplateText(null)
+    setAuthorizationValue(null)
     setError(null)
 
     try {
@@ -82,40 +82,13 @@ export default function SettingsPage() {
 
       const data = (await response.json()) as WebhookTokenResponse
       setExpiresAt(data.expiresAt)
+      const authorization = `Bearer ${data.token}`
+      setAuthorizationValue(authorization)
 
-      const shortcutTemplate = {
-        name: '记录宝宝活动',
-        description: 'Siri 听写后调用 bubu-log webhook 创建活动（当前用户自动绑定）',
-        request: {
-          url: data.webhookUrl,
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${data.token}`,
-            'Content-Type': 'application/json',
-          },
-          json: {
-            text: '{{Dictated Text}}',
-            localTime: '{{Current Date:yyyy-MM-dd HH:mm}}',
-          },
-        },
-        response: {
-          displayField: 'message',
-        },
-        meta: {
-          babyId: data.babyId,
-          babyName: data.babyName,
-          userId: data.userId,
-          expiresAt: data.expiresAt,
-        },
-      }
-
-      const text = JSON.stringify(shortcutTemplate, null, 2)
-      setShortcutTemplateText(text)
-
-      const didCopy = await copyText(text)
+      const didCopy = await copyText(authorization)
       setCopied(didCopy)
       if (!didCopy) {
-        setError('已生成配置，但自动复制失败，请点击“手动复制配置”')
+        setError('已生成 Authorization，但自动复制失败，请点击“手动复制 Authorization”')
       }
     } catch (err) {
       console.error(err)
@@ -153,17 +126,16 @@ export default function SettingsPage() {
         <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/80 dark:bg-gray-900/60 p-5 shadow-sm space-y-3">
           <h2 className="text-sm font-medium text-gray-500">Siri 快捷指令</h2>
           <ol className="list-decimal pl-5 space-y-2 text-sm text-gray-600 dark:text-gray-300">
-            <li>点击下方「新建快捷指令」。系统会为当前登录用户生成专属 token，并复制配置 JSON 到剪贴板。</li>
+            <li>点击下方「新建快捷指令」。系统会为当前登录用户生成专属 token，并复制 Authorization 值到剪贴板。</li>
             <li>会自动打开 iCloud 快捷指令模板。先在快捷指令里找到动作「Get Contents of URL（获取 URL 内容）」。</li>
             <li>在这个动作里确认：Method = POST，Request Body = JSON，并保留 `text` 与 `localTime` 字段。</li>
-            <li>把复制配置里的 `request.headers.Authorization` 值，粘贴到「Get Contents of URL → Headers → Authorization」。</li>
+            <li>把刚复制的值直接粘贴到「Get Contents of URL → Headers → Authorization」。</li>
           </ol>
 
           <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20 p-3">
             <p className="text-xs font-medium text-amber-700 dark:text-amber-300">最重要：token 粘贴位置</p>
             <p className="text-xs text-amber-700/90 dark:text-amber-200/90 mt-1">
-              在「Get Contents of URL」动作的 Headers 里，键填 `Authorization`，值粘贴 `Bearer v1...`。这个值来自复制 JSON 的
-              `request.headers.Authorization`，不要只粘贴 `v1...` 主体。
+              在「Get Contents of URL」动作的 Headers 里，键填 `Authorization`，值粘贴完整 `Bearer v1...`，不要只粘贴 `v1...` 主体。
             </p>
           </div>
 
@@ -180,11 +152,11 @@ export default function SettingsPage() {
           {copied && (
             <p className="text-xs text-green-600 dark:text-green-400 inline-flex items-center gap-1">
               <CheckCircle2 size={14} />
-              已复制快捷指令配置到剪贴板（请按上面第 4 步粘贴 Authorization）
+              已复制 Authorization 到剪贴板（请按上面第 4 步粘贴）
             </p>
           )}
 
-          {shortcutTemplateText && !copied && (
+          {authorizationValue && !copied && (
             <div className="space-y-2">
               <button
                 type="button"
@@ -192,12 +164,12 @@ export default function SettingsPage() {
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs"
               >
                 <Copy size={14} />
-                手动复制配置
+                手动复制 Authorization
               </button>
               <textarea
-                value={shortcutTemplateText}
+                value={authorizationValue}
                 readOnly
-                className="w-full h-32 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 p-2 text-xs font-mono"
+                className="w-full h-20 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 p-2 text-xs font-mono"
               />
             </div>
           )}
