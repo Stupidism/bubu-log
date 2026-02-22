@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import configPromise from '@payload-config'
-import { REST_GET } from '@payloadcms/next/routes'
 import { authFailureResponse, requireUser } from '@/lib/auth/get-current-baby'
 import { getPayloadClient } from '@/lib/payload/client'
 
@@ -122,17 +120,6 @@ async function listUserBabyIds(userId: string): Promise<string[]> {
   return bindings
     .map((item) => relationId(item.baby))
     .filter((item): item is string => Boolean(item))
-}
-
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params
-  const handler = REST_GET(configPromise)
-  return handler(request, {
-    params: Promise.resolve({ slug: ['babies', String(id)] }),
-  } as never)
 }
 
 export async function PATCH(
