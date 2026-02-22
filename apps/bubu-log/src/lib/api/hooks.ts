@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import type { components } from "./openapi-types";
 import { toast } from "sonner";
+import { withCurrentBabyIdOnApiPath } from '@/lib/baby-scope'
 
 // Re-export types for convenience
 export type Activity = components["schemas"]["Activity"];
@@ -76,7 +77,7 @@ export function useCreateActivityWithConflictCheck() {
   ) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/activities', {
+      const response = await fetch(withCurrentBabyIdOnApiPath('/api/activities'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

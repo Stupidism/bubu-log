@@ -6,6 +6,7 @@ import { ActivityType } from '@/types/activity'
 import { useQueryClient } from '@tanstack/react-query'
 import { useModalParams, activityTypeToModalType, type ModalType } from '@/hooks/useModalParams'
 import { dayjs } from '@/lib/dayjs'
+import { withCurrentBabyIdOnApiPath } from '@/lib/baby-scope'
 
 // Parsed voice input data for confirmation
 export interface VoiceParsedData {
@@ -156,7 +157,7 @@ export function ActivityFAB({
       }
       const localTime = `${dateToUse.getFullYear()}-${String(dateToUse.getMonth() + 1).padStart(2, '0')}-${String(dateToUse.getDate()).padStart(2, '0')} ${String(dateToUse.getHours()).padStart(2, '0')}:${String(dateToUse.getMinutes()).padStart(2, '0')}:${String(dateToUse.getSeconds()).padStart(2, '0')}`
       
-      const response = await fetch('/api/voice-input', {
+      const response = await fetch(withCurrentBabyIdOnApiPath('/api/voice-input'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: textToSubmit.trim(), localTime }),

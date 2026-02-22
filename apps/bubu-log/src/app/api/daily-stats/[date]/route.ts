@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/get-current-baby'
+import { authFailureResponse, getRequestedBabyId, requireAuth } from '@/lib/auth/get-current-baby'
 import { getPayloadClient } from '@/lib/payload/client'
 import { parseDailyStatDate } from '@/lib/daily-stats/compute'
 import { endOfDayChina, startOfDayChina } from '@/lib/dayjs'
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ date: string }> }
 ) {
   try {
-    const { baby } = await requireAuth()
+    const { baby } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const payload = await getPayloadClient()
     const { date: dateStr } = await params
 
@@ -54,6 +54,11 @@ export async function GET(
 
     return NextResponse.json(stat.docs[0])
   } catch (error) {
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
+    }
+
     console.error('Failed to fetch daily stat:', error)
     return NextResponse.json({ error: 'Failed to fetch daily stat' }, { status: 500 })
   }

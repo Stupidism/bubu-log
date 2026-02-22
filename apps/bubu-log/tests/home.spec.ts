@@ -5,16 +5,39 @@ test.describe('Homepage Features', () => {
     await login(page)
   })
 
-  test.describe('Feature 2: Baby Avatar Settings Entry', () => {
-    test('should show avatar entry in header and open settings', async ({ page }) => {
-      const settingsLink = page.locator('a[href="/settings"]').first()
-      await expect(settingsLink).toBeVisible()
-      await settingsLink.click()
-      await expect(page).toHaveURL(/\/settings$/)
+  test.describe('Feature 2: Baby Switcher + Drawer', () => {
+    test('should display baby switcher and drawer trigger in header', async ({ page }) => {
+      await expect(page.getByTestId('baby-switcher-trigger')).toBeVisible()
+      await expect(page.getByTestId('drawer-trigger')).toBeVisible()
     })
 
-    test('should have file input for avatar upload in settings page', async ({ page }) => {
-      await page.goto('/settings')
+    test('should open baby switcher dropdown list', async ({ page }) => {
+      await page.getByTestId('baby-switcher-trigger').click()
+      await expect(page.getByTestId('baby-switcher-item-e2e-test-baby-id')).toBeVisible()
+      await expect(page.getByTestId('baby-switcher-item-e2e-test-baby-id-2')).toBeVisible()
+    })
+
+    test('should render drawer at top and keep close text visually hidden', async ({ page }) => {
+      await page.getByTestId('drawer-trigger').click()
+
+      const drawer = page.getByTestId('drawer-content')
+      const closeText = drawer.locator('span.sr-only', { hasText: 'Close' })
+      await expect(drawer).toBeVisible()
+      await expect(drawer).toHaveCSS('top', '0px')
+      await expect(closeText).toHaveCSS('position', 'absolute')
+      await expect(closeText).toHaveCSS('width', '1px')
+      await expect(closeText).toHaveCSS('height', '1px')
+    })
+
+    test('should open settings from drawer and show avatar upload input', async ({ page }) => {
+      await page.getByTestId('drawer-trigger').click()
+      const settingsLink = page.getByTestId('drawer-link-settings')
+      await settingsLink.evaluate((element) => {
+        ;(element as HTMLAnchorElement).click()
+      })
+
+      await expect(page).toHaveURL(/\/b\/[^/?#]+\/settings$/)
+
       const fileInput = page.locator('input[type="file"][accept="image/*"]')
       await expect(fileInput).toBeAttached()
     })

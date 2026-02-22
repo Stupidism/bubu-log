@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/get-current-baby'
+import { authFailureResponse, getRequestedBabyId, requireAuth } from '@/lib/auth/get-current-baby'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { getPayloadClient } from '@/lib/payload/client'
 import { createAuditLog } from '@/lib/payload/audit'
@@ -39,9 +39,9 @@ async function findActivityByIdForBaby(id: string, babyId: string): Promise<Acti
   return (result.docs[0] as ActivityDoc | undefined) ?? null
 }
 
-export async function GET(_request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { baby } = await requireAuth()
+    const { baby } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const { id } = await params
 
     const activity = await findActivityByIdForBaby(id, baby.id)
@@ -52,8 +52,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(activity)
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
     }
 
     console.error('Failed to fetch activity:', error)
@@ -63,7 +64,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const { baby, user } = await requireAuth()
+    const { baby, user } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const { id } = await params
 
     const payload = await getPayloadClient()
@@ -164,8 +165,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(activity)
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
     }
 
     console.error('Failed to update activity:', error)
@@ -173,9 +175,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const { baby, user } = await requireAuth()
+    const { baby, user } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const { id } = await params
 
     const payload = await getPayloadClient()
@@ -210,8 +212,9 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
     }
 
     console.error('Failed to delete activity:', error)

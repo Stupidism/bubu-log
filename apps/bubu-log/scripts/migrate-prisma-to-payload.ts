@@ -27,6 +27,8 @@ type ColumnRename = {
   to: string
 }
 
+const BASELINE_PAYLOAD_MIGRATIONS = ['20260220_045727_payload_init', '20260220_114214'] as const
+
 const COLUMN_RENAMES: ColumnRename[] = [
   { table: 'User', from: 'emailVerified', to: 'email_verified' },
   { table: 'User', from: 'createdAt', to: 'created_at' },
@@ -466,6 +468,39 @@ async function ensurePayloadSystemTablesWithoutDataLoss() {
   return executed
 }
 
+async function syncBaselinePayloadMigrationHistory() {
+  if (!(await tableExists('payload_migrations'))) {
+    return 0
+  }
+
+  let inserted = 0
+  for (const migrationName of BASELINE_PAYLOAD_MIGRATIONS) {
+    const result = await pool.query<{ inserted: string }>(
+      `
+        WITH inserted AS (
+          INSERT INTO "payload_migrations" ("name", "batch", "created_at", "updated_at")
+          SELECT $1::varchar, 1::numeric, NOW(), NOW()
+          WHERE NOT EXISTS (
+            SELECT 1 FROM "payload_migrations" WHERE "name" = $1::varchar
+          )
+          RETURNING 1
+        )
+        SELECT COUNT(*)::int AS inserted FROM inserted
+      `,
+      [migrationName]
+    )
+
+    inserted += Number(result.rows[0]?.inserted ?? 0)
+  }
+
+  return inserted
+}
+
+async function runPendingPayloadMigrations() {
+  payloadClient = await getPayloadForScript()
+  await payloadClient.db.migrate()
+}
+
 async function cleanupTmpProbeActivities() {
   if (!(await tableExists('Activity'))) {
     return
@@ -474,7 +509,9 @@ async function cleanupTmpProbeActivities() {
 }
 
 async function verifyPayloadCollections() {
-  payloadClient = await getPayloadForScript()
+  if (!payloadClient) {
+    payloadClient = await getPayloadForScript()
+  }
 
   const collections: CollectionSlug[] = [
     'app-users',
@@ -513,6 +550,14 @@ async function main() {
 
   const ddlCount = await ensurePayloadSystemTablesWithoutDataLoss()
   console.log(`✅ Ensured Payload system tables/indexes (${ddlCount} DDL statements).`)
+
+  const baselineCount = await syncBaselinePayloadMigrationHistory()
+  if (baselineCount > 0) {
+    console.log(`✅ Synced Payload migration baseline (${baselineCount} rows).`)
+  }
+
+  await runPendingPayloadMigrations()
+  console.log('✅ Applied pending Payload migrations.')
 
   await cleanupTmpProbeActivities()
   await verifyPayloadCollections()

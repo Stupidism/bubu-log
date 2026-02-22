@@ -8,6 +8,14 @@ export const TEST_USER = {
 }
 
 export const TEST_ACTIVITY_ID = 'e2e-test-activity-id'
+export const TEST_ACTIVITY_ID_BABY2 = 'e2e-test-activity-id-baby2'
+export const TEST_BABY_ID = 'e2e-test-baby-id'
+export const TEST_BABY_ID_2 = 'e2e-test-baby-id-2'
+
+export function extractCurrentBabyId(url: string): string | null {
+  const match = url.match(/\/b\/([^/?#]+)/)
+  return match?.[1] ?? null
+}
 
 /**
  * 登录到应用
@@ -30,11 +38,11 @@ export async function login(
   // 点击登录按钮
   await page.getByTestId('login-submit-btn').click()
 
-  // 等待登录完成并跳转到首页
-  await page.waitForURL('/', { timeout: 10000 })
+  // 等待登录完成并跳转到 baby-scope 首页
+  await expect(page).toHaveURL(/\/b\/[^/?#]+(?:\?.*)?$/, { timeout: 10000 })
   
-  // 确认已登录（检查页面上是否有数据链接）
-  await expect(page.getByRole('link', { name: /数据/ })).toBeVisible({ timeout: 5000 })
+  // 确认已登录（检查页面上是否有抽屉菜单入口）
+  await expect(page.getByTestId('drawer-trigger')).toBeVisible({ timeout: 5000 })
 }
 
 /**

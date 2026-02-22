@@ -23,7 +23,7 @@ test.describe('Activity Modal', () => {
     await expect(dialog).toBeVisible({ timeout: 10000 })
 
     const editButton = dialog.getByRole('button', { name: '编辑' })
-    await expect(editButton).toBeVisible()
+    await expect(editButton).toBeVisible({ timeout: 10000 })
     await editButton.click()
 
     await expect(page).toHaveURL(/edit=true/)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/get-current-baby'
+import { authFailureResponse, getRequestedBabyId, requireAuth } from '@/lib/auth/get-current-baby'
 import { processVoiceInput } from '@/lib/voice-input/process'
 
 // POST: Parse voice input and create activity (session-authenticated)
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     inputText = typeof body.text === 'string' ? body.text : ''
     const localTime = typeof body.localTime === 'string' ? body.localTime : null
 
-    const { baby, user } = await requireAuth()
+    const { baby, user } = await requireAuth({ babyId: getRequestedBabyId(request) })
 
     const result = await processVoiceInput({
       text: inputText,
@@ -23,6 +23,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result.body, { status: result.status })
   } catch (error) {
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
 
     console.warn('[voice-input][non-success]', {

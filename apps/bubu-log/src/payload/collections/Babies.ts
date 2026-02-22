@@ -43,9 +43,14 @@ export const Babies: CollectionConfig = {
     },
     {
       name: 'name',
-      label: '宝宝姓名',
+      label: '宝宝小名（昵称）',
       type: 'text',
       required: true,
+    },
+    {
+      name: 'fullName',
+      label: '宝宝大名',
+      type: 'text',
     },
     {
       name: 'avatarUrl',
