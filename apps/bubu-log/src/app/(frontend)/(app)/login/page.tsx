@@ -1,15 +1,24 @@
 'use client'
 
-import { useState } from "react"
+import { Suspense, useMemo, useState } from "react"
 import { signIn } from "next-auth/react"
 import { Baby, Eye, EyeOff } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const callbackUrl = useMemo(() => {
+    const value = searchParams.get("callbackUrl")
+    if (!value || !value.startsWith("/")) {
+      return "/"
+    }
+    return value
+  }, [searchParams])
 
   const handleCredentialsLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,12 +30,13 @@ export default function LoginPage() {
         username,
         password,
         redirect: false,
+        callbackUrl,
       })
 
       if (result?.error) {
         setError("用户名或密码错误")
       } else {
-        window.location.href = "/"
+        window.location.href = result?.url || callbackUrl
       }
     } catch {
       setError("登录失败，请重试")
@@ -110,7 +120,7 @@ export default function LoginPage() {
         {/* 第三方登录按钮 */}
         <div className="space-y-3">
           <button
-            onClick={() => signIn("google", { callbackUrl: "/" })}
+            onClick={() => signIn("google", { callbackUrl })}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
             data-testid="login-google-btn"
           >
@@ -138,7 +148,7 @@ export default function LoginPage() {
           </button>
 
           <button
-            onClick={() => signIn("github", { callbackUrl: "/" })}
+            onClick={() => signIn("github", { callbackUrl })}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gray-900 dark:bg-gray-700 rounded-xl shadow-sm hover:shadow-md transition-shadow"
             data-testid="login-github-btn"
           >
@@ -155,7 +165,7 @@ export default function LoginPage() {
           </button>
 
           <button
-            onClick={() => signIn("wechat", { callbackUrl: "/" })}
+            onClick={() => signIn("wechat", { callbackUrl })}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#07C160] rounded-xl shadow-sm hover:shadow-md transition-shadow"
             data-testid="login-wechat-btn"
           >
@@ -174,5 +184,13 @@ export default function LoginPage() {
         </p>
       </div>
     </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   )
 }

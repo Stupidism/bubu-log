@@ -14,6 +14,8 @@
 
 ## 方案一：iPhone Siri Shortcuts（推荐）
 
+> 最新版本建议使用「用户专属 Bearer Token webhook」：自动绑定当前登录用户和宝宝。
+
 ### 设置步骤
 
 1. **打开快捷指令 App**
@@ -29,10 +31,17 @@
 4. **添加「获取 URL 内容」动作**
    - 搜索并添加「获取 URL 内容」
    - 配置如下：
-     - **URL**: `https://你的域名.vercel.app/api/voice-input`
+     - **URL**: `https://你的域名.vercel.app/api/webhooks/voice-input`
      - **方法**: POST
+     - **请求头**:
+       - `Authorization`: `Bearer 你的 SIGNED_WEBHOOK_TOKEN`
      - **请求体**: JSON
-     - **JSON 内容**: 添加键 `text`，值选择「听写文本」变量
+     - **JSON 内容**:
+       - `text`: 选择「听写文本」变量
+       - `localTime`: 建议传当前时间（格式示例：`2026-02-20 21:30`）
+
+> 注意：`shortcuts://create-shortcut` 只能打开空白编辑器，不能自动填充动作。
+> 若要一键安装模板，需使用 iCloud 快捷指令分享链接。
 
 5. **添加「显示结果」动作**
    - 显示 API 返回的确认信息
@@ -69,7 +78,7 @@
     {
       "WFWorkflowActionIdentifier": "is.workflow.actions.downloadurl",
       "WFWorkflowActionParameters": {
-        "WFURL": "https://你的域名.vercel.app/api/voice-input",
+        "WFURL": "https://你的域名.vercel.app/api/webhooks/voice-input",
         "WFHTTPMethod": "POST",
         "WFHTTPBodyType": "Json",
         "WFJSONValues": {
@@ -126,14 +135,33 @@
 
 ## API 参考
 
+### 环境变量
+
+- `DEEPSEEK_API_KEY`: 语音文本解析模型 key
+- `AUTH_SECRET`（或 `NEXTAUTH_SECRET`）: 签名当前用户 webhook token
+- `VOICE_WEBHOOK_PUBLIC_BASE_URL`（建议）: 快捷指令调用的公开域名（如 `https://bubu.sunmer.xyz`），用于避免预览域名受 Vercel 认证拦截
+- `VOICE_WEBHOOK_API_KEY`（可选）: 全局兼容模式鉴权 key（非当前用户自动绑定模式）
+- `VOICE_WEBHOOK_DEFAULT_BABY_ID`（可选）: 全局兼容模式下默认宝宝
+- `VOICE_WEBHOOK_AUDIT_USER_ID`（可选）: 全局兼容模式下审计日志用户
+- `NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL`（可选）: `/settings` 一键安装快捷指令链接（推荐 iCloud 分享链接）
+
+### 先获取当前用户 token（推荐）
+
+```bash
+GET /api/webhooks/voice-input/token
+Cookie: <登录态 cookie>
+```
+
 ### 请求
 
 ```bash
-POST /api/voice-input
+POST /api/webhooks/voice-input
+Authorization: Bearer <SIGNED_WEBHOOK_TOKEN>
 Content-Type: application/json
 
 {
-  "text": "宝宝刚才喝了60毫升奶"
+  "text": "宝宝刚才喝了60毫升奶",
+  "localTime": "2026-02-20 21:30"
 }
 ```
 
@@ -220,7 +248,14 @@ A: 目前优化为中文，英文可能识别不准。
 
 语音解析使用 Deepseek AI 模型，成本极低（每月约 ¥0.01）。
 
-API 端点: `/api/voice-input`
-源代码: `src/app/api/voice-input/route.ts`
+API 端点:
+- `/api/webhooks/voice-input/token`（登录态，生成当前用户 token）
+- `/api/webhooks/voice-input`（Bearer token / session / API Key 兼容）
+- `/api/voice-input`（登录态）
 
+设置入口:
+- `/settings` 页面可一键打开/安装快捷指令（取决于 `NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL` 配置）
 
+源代码:
+- `src/app/api/webhooks/voice-input/route.ts`
+- `src/app/api/voice-input/route.ts`

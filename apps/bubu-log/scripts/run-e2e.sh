@@ -48,7 +48,13 @@ docker run \
   -d postgres:16-alpine >/dev/null
 
 echo "⏳ Waiting for test database to be ready..."
-for _ in {1..30}; do
+for _ in $(seq 1 60); do
+  if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    echo "❌ Test database container exited unexpectedly."
+    docker logs "${CONTAINER_NAME}" || true
+    exit 1
+  fi
+
   if docker exec "${CONTAINER_NAME}" pg_isready -U "${DB_USER}" -d "${DB_NAME}" >/dev/null 2>&1; then
     break
   fi
@@ -57,6 +63,7 @@ done
 
 if ! docker exec "${CONTAINER_NAME}" pg_isready -U "${DB_USER}" -d "${DB_NAME}" >/dev/null 2>&1; then
   echo "❌ Test database failed to start."
+  docker logs "${CONTAINER_NAME}" || true
   exit 1
 fi
 

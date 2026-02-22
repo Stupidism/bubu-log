@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, search } = request.nextUrl
 
   // 公开路由，不需要认证
   const publicRoutes = ["/login", "/admin", "/api", "/manifest.json"]
@@ -22,7 +22,7 @@ export function proxy(request: NextRequest) {
   // 如果没有 session cookie，重定向到登录页
   if (!sessionToken) {
     const loginUrl = new URL("/login", request.url)
-    loginUrl.searchParams.set("callbackUrl", pathname)
+    loginUrl.searchParams.set("callbackUrl", `${pathname}${search}`)
     return NextResponse.redirect(loginUrl)
   }
 

@@ -3,13 +3,13 @@
 import { useCallback, useMemo, useEffect, useRef, Suspense, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { AvatarUpload } from '@/components/AvatarUpload'
+import { BabyAvatarLink } from '@/components/BabyAvatarLink'
 import { PullToRefresh } from '@/components/PullToRefresh'
 import { ActivityFAB } from '@/components/ActivityFAB'
 import { DayTimeline, type DayTimelineRef } from '@/components/DayTimeline'
 import { UpdatePrompt } from '@/components/UpdatePrompt'
 import { useVersionCheck } from '@/hooks/useVersionCheck'
-import { useModalParams, activityTypeToModalType } from '@/hooks/useModalParams'
+import { useModalParams, activityTypeToModalType, type ModalType } from '@/hooks/useModalParams'
 import Link from 'next/link'
 import { calculateDurationMinutes, calculateDurationInDay, formatDateChinese, formatWeekday, formatTime, dayjs } from '@/lib/dayjs'
 import { BarChart3, Loader2 } from 'lucide-react'
@@ -62,6 +62,29 @@ type AuthContextPayload = {
   hasBaby: boolean
 }
 
+type SubmissionParsedData = {
+  type: ActivityType
+  startTime: string
+  endTime: string | null
+  milkAmount: number | null
+  milkSource: 'BREAST_MILK' | 'FORMULA' | null
+  hasPoop: boolean | null
+  hasPee: boolean | null
+  poopColor: string | null
+  peeAmount: string | null
+  spitUpType: 'NORMAL' | 'PROJECTILE' | null
+  count: number | null
+  notes: string | null
+  confidence: number
+  originalText: string | null
+}
+
+type VoiceSubmissionResponse = {
+  success?: boolean
+  parsed?: SubmissionParsedData
+  error?: string
+}
+
 function NoBabyPrompt() {
   return (
     <main className="min-h-screen px-4 py-8 flex items-center">
@@ -80,6 +103,7 @@ function HomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const timelineRef = useRef<DayTimelineRef>(null)
+  const handledSubmissionRef = useRef<string | null>(null)
   
   const activeFilters = useMemo<StatFilter[]>(() => {
     const filtersParam = searchParams.get('filters')
@@ -101,6 +125,90 @@ function HomeContent() {
   
   // URL 参数管理（包括日期）
   const { openActivityDetail, openModal, selectedDate, selectedDateStr, setSelectedDate } = useModalParams()
+  const submissionId = searchParams.get('submission_id')
+
+  const clearSubmissionIdFromUrl = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('submission_id')
+    const queryString = params.toString()
+    router.replace(queryString ? `?${queryString}` : '/', { scroll: false })
+  }, [router, searchParams])
+
+  const openSubmissionConfirmation = useCallback((parsed: SubmissionParsedData) => {
+    let modalType: ModalType
+    if (parsed.type === ActivityType.SLEEP) {
+      modalType = parsed.endTime ? 'sleep_end' : 'sleep_start'
+    } else {
+      modalType = activityTypeToModalType[parsed.type]
+    }
+
+    const params: Record<string, string> = {
+      startTime: parsed.startTime,
+    }
+
+    if (parsed.endTime !== null) params.endTime = parsed.endTime
+    if (parsed.milkAmount !== null) params.milkAmount = parsed.milkAmount.toString()
+    if (parsed.milkSource !== null) params.milkSource = parsed.milkSource
+    if (parsed.hasPoop !== null) params.hasPoop = parsed.hasPoop.toString()
+    if (parsed.hasPee !== null) params.hasPee = parsed.hasPee.toString()
+    if (parsed.poopColor !== null) params.poopColor = parsed.poopColor
+    if (parsed.peeAmount !== null) params.peeAmount = parsed.peeAmount
+    if (parsed.spitUpType !== null) params.spitUpType = parsed.spitUpType
+    if (parsed.count !== null) params.count = parsed.count.toString()
+    if (parsed.notes !== null) params.notes = parsed.notes
+
+    openModal(modalType, { params })
+  }, [openModal])
+
+  useEffect(() => {
+    if (!submissionId) {
+      handledSubmissionRef.current = null
+      return
+    }
+
+    if (handledSubmissionRef.current === submissionId) {
+      return
+    }
+
+    handledSubmissionRef.current = submissionId
+    let cancelled = false
+
+    const loadSubmission = async () => {
+      try {
+        const response = await fetch(`/api/voice-submissions/${encodeURIComponent(submissionId)}`, {
+          cache: 'no-store',
+        })
+        const data = (await response.json().catch(() => ({}))) as VoiceSubmissionResponse
+
+        if (!response.ok || !data.success || !data.parsed) {
+          const message = data.error || '待确认记录加载失败'
+          if (!cancelled) {
+            toast.error(message)
+            clearSubmissionIdFromUrl()
+          }
+          return
+        }
+
+        if (cancelled) {
+          return
+        }
+
+        openSubmissionConfirmation(data.parsed)
+        toast.info('已打开待确认记录，请确认后保存')
+      } catch {
+        if (!cancelled) {
+          toast.error('加载待确认记录失败，请稍后重试')
+          clearSubmissionIdFromUrl()
+        }
+      }
+    }
+
+    void loadSubmission()
+
+    return () => {
+      cancelled = true
+    }
+  }, [submissionId, clearSubmissionIdFromUrl, openSubmissionConfirmation])
 
   // 获取当天活动数据（包括跨夜活动）
   const { data: todayActivities = [], isLoading: activitiesLoading } = useActivities({
@@ -381,7 +489,7 @@ function HomeContent() {
         {/* 头部 */}
         <header className="px-4 py-3 flex items-center gap-3">
           {/* 头像 */}
-          <AvatarUpload />
+          <BabyAvatarLink />
           
           {/* 日期切换器 */}
           <DateNavigator

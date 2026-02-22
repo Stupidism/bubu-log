@@ -5,13 +5,16 @@ test.describe('Homepage Features', () => {
     await login(page)
   })
 
-  test.describe('Feature 2: Baby Avatar Upload', () => {
-    test('should display avatar upload button in header', async ({ page }) => {
-      const avatarArea = page.locator('header').locator('button, [class*="rounded-full"]').first()
-      await expect(avatarArea).toBeVisible()
+  test.describe('Feature 2: Baby Avatar Settings Entry', () => {
+    test('should show avatar entry in header and open settings', async ({ page }) => {
+      const settingsLink = page.locator('a[href="/settings"]').first()
+      await expect(settingsLink).toBeVisible()
+      await settingsLink.click()
+      await expect(page).toHaveURL(/\/settings$/)
     })
 
-    test('should have file input for avatar upload', async ({ page }) => {
+    test('should have file input for avatar upload in settings page', async ({ page }) => {
+      await page.goto('/settings')
       const fileInput = page.locator('input[type="file"][accept="image/*"]')
       await expect(fileInput).toBeAttached()
     })
