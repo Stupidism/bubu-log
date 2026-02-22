@@ -47,7 +47,7 @@ pnpm lint
 ### 技术栈
 
 - Next.js 16 + Tailwind CSS 4
-- PostgreSQL + Prisma ORM
+- PostgreSQL + Payload CMS（@payloadcms/db-postgres）
 - Vercel (Blob Storage + 部署)
 - Turborepo (monorepo 管理)
 
@@ -59,7 +59,7 @@ cp apps/bubu-log/.env.example apps/bubu-log/.env.local
 # 编辑 .env.local 添加数据库连接
 
 # 初始化数据库
-cd apps/bubu-log && pnpm db:push
+cd apps/bubu-log && pnpm db:migrate
 ```
 
 ### E2E 测试
@@ -93,7 +93,7 @@ import { Drawer, DrawerContent } from '@bubu-log/ui'
 
 ### 数据库迁移
 
-当修改了 Prisma schema 后，需要在生产环境运行迁移：
+当修改了 Payload collections / 数据模型后，需要在生产环境运行迁移：
 
 ```bash
 # 方法 1: 使用脚本（推荐）
@@ -104,9 +104,11 @@ cd apps/bubu-log && pnpm db:migrate:prod
 vercel env pull .env.production
 
 # 2. 设置环境变量并运行迁移
-export DATABASE_URL=$(grep DATABASE_URL .env.production | cut -d '=' -f2-)
-export DATABASE_URL_UNPOOLED=$(grep DATABASE_URL_UNPOOLED .env.production | cut -d '=' -f2-)
-cd apps/bubu-log && pnpm prisma db push
+export DATABASE_URL=$(grep "^DATABASE_URL=" .env.production | cut -d '=' -f2-)
+export DATABASE_URL_UNPOOLED=$(grep "^DATABASE_URL_UNPOOLED=" .env.production | cut -d '=' -f2-)
+export PAYLOAD_DATABASE_URL=$(grep "^PAYLOAD_DATABASE_URL=" .env.production | cut -d '=' -f2-)
+[ -z "$PAYLOAD_DATABASE_URL" ] && export PAYLOAD_DATABASE_URL="$DATABASE_URL"
+cd apps/bubu-log && pnpm db:migrate
 
 # 3. 清理临时文件
 rm .env.production
