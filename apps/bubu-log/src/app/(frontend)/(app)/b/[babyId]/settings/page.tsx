@@ -159,6 +159,13 @@ export default function SettingsPage() {
             <li>把刚复制的值直接粘贴到「Get Contents of URL → Headers → Authorization」。</li>
           </ol>
 
+          <div className="rounded-xl border border-orange-200 bg-orange-50 dark:border-orange-800/60 dark:bg-orange-900/20 p-3">
+            <p className="text-xs font-medium text-orange-700 dark:text-orange-300">多宝宝提示（暂不支持）</p>
+            <p className="text-xs text-orange-700/90 dark:text-orange-200/90 mt-1">
+              webhook 语音输入暂不支持在同一个快捷指令中切换宝宝。当前 token 会固定绑定创建时选中的宝宝，多宝宝家庭请为每个宝宝分别创建一条快捷指令。
+            </p>
+          </div>
+
           <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20 p-3">
             <p className="text-xs font-medium text-amber-700 dark:text-amber-300">最重要：token 粘贴位置</p>
             <p className="text-xs text-amber-700/90 dark:text-amber-200/90 mt-1">

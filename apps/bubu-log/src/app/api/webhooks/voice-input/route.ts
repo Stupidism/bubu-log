@@ -71,6 +71,9 @@ export async function POST(request: NextRequest) {
     let identity: ResolvedIdentity | null = null
     let authMode: AuthMode | null = null
 
+    // TODO(BBL-019): Support selecting baby scope dynamically for one shortcut workflow.
+    // Current webhook tokens are intentionally bound to a single baby to avoid cross-baby writes.
+
     // Mode 1: signed user token
     if (bearerToken) {
       const payload = verifyVoiceWebhookToken(bearerToken)
