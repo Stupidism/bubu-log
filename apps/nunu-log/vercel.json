@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "npx -y turbo-ignore",
   "regions": ["sin1"],
   "installCommand": "pnpm install",
   "headers": [
@@ -22,4 +23,3 @@
     }
   ]
 }
-
