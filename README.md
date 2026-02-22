@@ -91,6 +91,13 @@ import { Drawer, DrawerContent } from '@bubu-log/ui'
 
 ## 部署到 Vercel
 
+### 定时任务（每日统计自动计算）
+
+- 已配置 Vercel Cron：每天 `03:00`（Asia/Shanghai）执行一次
+- 路径：`/api/cron/daily-stats-yesterday`
+- 功能：自动计算所有宝宝“前一天”的统计数据
+- 必须在 Vercel 环境变量中设置：`CRON_SECRET`
+
 ### 数据库迁移
 
 当修改了 Payload collections / 数据模型后，需要在生产环境运行迁移：
