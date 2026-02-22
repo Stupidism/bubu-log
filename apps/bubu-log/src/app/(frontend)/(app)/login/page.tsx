@@ -54,7 +54,7 @@ function LoginContent() {
             <Baby size={40} className="text-primary" />
           </div>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
-            卜卜日志
+            卜卜日记
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2">
             记录宝宝的每一天
