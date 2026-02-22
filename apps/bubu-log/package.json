@@ -11,7 +11,7 @@
     "generate:api": "openapi-typescript openapi.yaml -o src/lib/api/openapi-types.d.ts",
     "db:reset": "tsx scripts/reset-db.ts",
     "db:push": "pnpm db:migrate",
-    "db:migrate": "PAYLOAD_DB_PUSH=false payload migrate",
+    "db:migrate": "PAYLOAD_DB_PUSH=false NODE_OPTIONS='-r ./scripts/shims/next-env-default.cjs' tsx scripts/migrate-payload.ts",
     "db:seed:test": "NODE_OPTIONS='-r ./scripts/shims/next-env-default.cjs' tsx scripts/seed-test-data.ts",
     "db:pull:preview-branch-env": "bash scripts/pull-neon-branch-env.sh",
     "db:migrate:prod": "bash scripts/migrate-production.sh",
