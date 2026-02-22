@@ -2,12 +2,22 @@ import { loadScriptEnv } from './utils/load-env'
 import { getPayloadForScript } from './utils/payload-script'
 import { Pool } from 'pg'
 
-loadScriptEnv({ preferPayloadDatabase: true })
+loadScriptEnv()
 
-const databaseURL = process.env.DATABASE_URL
+const databaseURL =
+  process.env.PAYLOAD_DATABASE_URL ||
+  process.env.DATABASE_URL ||
+  process.env.DATABASE_URL_UNPOOLED ||
+  process.env.POSTGRES_URL_NON_POOLING ||
+  process.env.POSTGRES_URL
+
 if (!databaseURL) {
   throw new Error('DATABASE_URL is required')
 }
+
+process.env.DATABASE_URL = databaseURL
+process.env.DATABASE_URL_UNPOOLED = process.env.DATABASE_URL_UNPOOLED || databaseURL
+process.env.PAYLOAD_DATABASE_URL = process.env.PAYLOAD_DATABASE_URL || databaseURL
 
 async function columnExists(pool: Pool, table: string, column: string) {
   const result = await pool.query<{ exists: boolean }>(
