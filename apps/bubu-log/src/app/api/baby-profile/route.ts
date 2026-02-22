@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/get-current-baby'
+import { authFailureResponse, getRequestedBabyId, requireAuth } from '@/lib/auth/get-current-baby'
 import { getPayloadClient } from '@/lib/payload/client'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { baby } = await requireAuth()
+    const { baby } = await requireAuth({ babyId: getRequestedBabyId(request) })
 
     return NextResponse.json({
       id: baby.id,
@@ -13,6 +13,11 @@ export async function GET() {
       birthDate: baby.birthDate,
     })
   } catch (error) {
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
+    }
+
     console.error('Failed to get baby profile:', error)
     return NextResponse.json({ error: 'Failed to get baby profile' }, { status: 500 })
   }
@@ -20,7 +25,7 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const { baby } = await requireAuth()
+    const { baby } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const payload = await getPayloadClient()
 
     const body = await request.json()
@@ -42,6 +47,11 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(updatedBaby)
   } catch (error) {
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
+    }
+
     console.error('Failed to update baby profile:', error)
     return NextResponse.json({ error: 'Failed to update baby profile' }, { status: 500 })
   }

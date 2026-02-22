@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { PoopColor, PeeAmount, PoopColorLabels, PeeAmountLabels, PoopColorStyles } from '@/types/activity'
 import { TimeAdjuster } from '../TimeAdjuster'
 import { Droplet, Circle, Camera, X, Loader2, Check } from 'lucide-react'
+import { withCurrentBabyIdOnApiPath } from '@/lib/baby-scope'
 
 const STORAGE_KEY = 'diaper_form_preferences'
 
@@ -113,7 +114,7 @@ export function DiaperForm({ onSubmit, onCancel, initialValues, isEditing, hideT
       formData.append('file', file)
       formData.append('category', 'poop')
 
-      const res = await fetch('/api/activities/upload-photo', {
+      const res = await fetch(withCurrentBabyIdOnApiPath('/api/activities/upload-photo'), {
         method: 'POST',
         body: formData,
       })
@@ -139,7 +140,7 @@ export function DiaperForm({ onSubmit, onCancel, initialValues, isEditing, hideT
     if (!poopPhotoUrl) return
 
     try {
-      await fetch('/api/activities/upload-photo', {
+      await fetch(withCurrentBabyIdOnApiPath('/api/activities/upload-photo'), {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: poopPhotoUrl }),

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { del, put } from '@vercel/blob'
-import { requireAuth } from '@/lib/auth/get-current-baby'
+import { authFailureResponse, getRequestedBabyId, requireAuth } from '@/lib/auth/get-current-baby'
 import { getPayloadClient } from '@/lib/payload/client'
 
 type BabyDoc = {
@@ -10,7 +10,7 @@ type BabyDoc = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { baby } = await requireAuth()
+    const { baby } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const payload = await getPayloadClient()
 
     const formData = await request.formData()
@@ -61,14 +61,19 @@ export async function POST(request: NextRequest) {
       profile: updatedBaby,
     })
   } catch (error) {
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
+    }
+
     console.error('Failed to upload avatar:', error)
     return NextResponse.json({ error: 'Failed to upload avatar' }, { status: 500 })
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
-    const { baby } = await requireAuth()
+    const { baby } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const payload = await getPayloadClient()
 
     const currentBaby = (await payload.findByID({
@@ -96,6 +101,11 @@ export async function DELETE() {
 
     return NextResponse.json({ success: true })
   } catch (error) {
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
+    }
+
     console.error('Failed to delete avatar:', error)
     return NextResponse.json({ error: 'Failed to delete avatar' }, { status: 500 })
   }

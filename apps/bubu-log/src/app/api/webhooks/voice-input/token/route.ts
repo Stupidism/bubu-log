@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth/get-current-baby'
+import { authFailureResponse, getRequestedBabyId, requireAuth } from '@/lib/auth/get-current-baby'
 import { createVoiceWebhookToken } from '@/lib/voice-input/webhook-token'
 
-// GET: Create a signed webhook token bound to current user + current baby
+// GET: Create a signed webhook token bound to current user + scoped baby
 export async function GET(request: NextRequest) {
   try {
-    const { user, baby } = await requireAuth()
+    const { user, baby } = await requireAuth({ babyId: getRequestedBabyId(request) })
 
     const daysParam = request.nextUrl.searchParams.get('days')
     const days = daysParam ? Number.parseInt(daysParam, 10) : 180
@@ -36,17 +36,19 @@ export async function GET(request: NextRequest) {
       userId: user.id,
     })
   } catch (error) {
-    console.error('Failed to create voice webhook token:', error)
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
+    }
 
-    const message = error instanceof Error ? error.message : 'Unknown error'
-    const isUnauthorized = message === 'Unauthorized'
+    console.error('Failed to create voice webhook token:', error)
 
     return NextResponse.json(
       {
-        error: isUnauthorized ? 'Unauthorized' : 'Failed to create webhook token',
-        code: isUnauthorized ? 'UNAUTHORIZED' : 'TOKEN_CREATE_FAILED',
+        error: 'Failed to create webhook token',
+        code: 'TOKEN_CREATE_FAILED',
       },
-      { status: isUnauthorized ? 401 : 500 },
+      { status: 500 },
     )
   }
 }

@@ -1,95 +1,87 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { getPayloadClient } from '@/lib/payload/client'
+import { NextRequest, NextResponse } from 'next/server'
+import {
+  asAuthFailure,
+  getCurrentBaby,
+  getRequestedBabyId,
+  requireAuth,
+} from '@/lib/auth/get-current-baby'
 
-type BabyUserDoc = {
-  babyId: string | {
-    id: string
-    name: string
-    avatarUrl?: string | null
+type ContextBaby = {
+  id: string
+  name: string
+  avatarUrl: string | null
+  isDefault: boolean
+}
+
+function toContextBaby(input: {
+  id: string
+  name: string
+  avatarUrl: string | null
+  isDefault: boolean
+}): ContextBaby {
+  return {
+    id: input.id,
+    name: input.name,
+    avatarUrl: input.avatarUrl,
+    isDefault: input.isDefault,
   }
 }
 
-export async function GET() {
-  let session
-
+export async function GET(request: NextRequest) {
   try {
-    session = await auth()
+    const context = await requireAuth({ babyId: getRequestedBabyId(request) })
+
+    return NextResponse.json({
+      authenticated: true,
+      hasBaby: true,
+      baby: toContextBaby(context.baby),
+      babies: context.babies.map(toContextBaby),
+      defaultBabyId: context.babies.find((item) => item.isDefault)?.id ?? context.babies[0]?.id ?? null,
+    })
   } catch (error) {
-    console.error('Failed to parse auth session for auth context:', error)
-    return NextResponse.json({ authenticated: false, hasBaby: false }, { status: 401 })
-  }
+    const failure = asAuthFailure(error)
+    if (!failure) {
+      console.error('Failed to fetch auth context:', error)
+      return NextResponse.json(
+        { authenticated: false, hasBaby: false, error: 'Failed to fetch auth context' },
+        { status: 500 }
+      )
+    }
 
-  try {
-    const userId = session?.user && (session.user as { id?: string }).id
-
-    if (!userId) {
+    if (failure.code === 'UNAUTHORIZED') {
       return NextResponse.json({ authenticated: false, hasBaby: false }, { status: 401 })
     }
 
-    const payload = await getPayloadClient()
-
-    const result = await payload.find({
-      collection: 'baby-users',
-      where: {
-        userId: {
-          equals: userId,
-        },
-      },
-      sort: '-isDefault,createdAt',
-      limit: 1,
-      pagination: false,
-      depth: 1,
-      overrideAccess: true,
-    })
-
-    const babyUser = (result.docs[0] as BabyUserDoc | undefined) ?? null
-
-    if (!babyUser) {
+    if (failure.code === 'NO_BABY_BINDING') {
       return NextResponse.json({
         authenticated: true,
         hasBaby: false,
         baby: null,
+        babies: [],
+        defaultBabyId: null,
       })
     }
 
-    let baby: { id: string; name: string; avatarUrl: string | null } | null = null
-
-    if (typeof babyUser.babyId === 'object' && babyUser.babyId) {
-      baby = {
-        id: babyUser.babyId.id,
-        name: babyUser.babyId.name,
-        avatarUrl: babyUser.babyId.avatarUrl ?? null,
-      }
-    } else if (typeof babyUser.babyId === 'string') {
-      try {
-        const babyDoc = await payload.findByID({
-          collection: 'babies',
-          id: babyUser.babyId,
-          depth: 0,
-          overrideAccess: true,
-        })
-
-        baby = {
-          id: String(babyDoc.id),
-          name: String((babyDoc as { name?: string }).name || ''),
-          avatarUrl: ((babyDoc as { avatarUrl?: string | null }).avatarUrl ?? null),
-        }
-      } catch {
-        baby = null
-      }
+    if (failure.code === 'BABY_FORBIDDEN') {
+      const fallbackContext = await getCurrentBaby()
+      return NextResponse.json(
+        {
+          authenticated: true,
+          hasBaby: Boolean(fallbackContext),
+          error: failure.message,
+          code: failure.code,
+          baby: fallbackContext ? toContextBaby(fallbackContext.baby) : null,
+          babies: fallbackContext ? fallbackContext.babies.map(toContextBaby) : [],
+          defaultBabyId:
+            fallbackContext?.babies.find((item) => item.isDefault)?.id ?? fallbackContext?.babies[0]?.id ?? null,
+        },
+        { status: failure.status }
+      )
     }
 
-    return NextResponse.json({
-      authenticated: true,
-      hasBaby: Boolean(baby),
-      baby,
-    })
-  } catch (error) {
-    console.error('Failed to fetch auth context:', error)
     return NextResponse.json(
-      { authenticated: false, hasBaby: false, error: 'Failed to fetch auth context' },
-      { status: 500 }
+      { authenticated: true, hasBaby: false, error: failure.message, code: failure.code },
+      { status: failure.status }
     )
   }
 }

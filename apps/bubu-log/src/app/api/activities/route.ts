@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { type Where } from 'payload'
-import { requireAuth } from '@/lib/auth/get-current-baby'
+import { authFailureResponse, getRequestedBabyId, requireAuth } from '@/lib/auth/get-current-baby'
 import { ActivityType, ActivityTypeLabels } from '@/types/activity'
 import { startOfDayChina, endOfDayChina } from '@/lib/dayjs'
 import { getPayloadClient } from '@/lib/payload/client'
@@ -306,7 +306,7 @@ async function checkTimeOverlap(params: {
 
 export async function GET(request: NextRequest) {
   try {
-    const { baby } = await requireAuth()
+    const { baby } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const payload = await getPayloadClient()
 
     const searchParams = request.nextUrl.searchParams
@@ -469,8 +469,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(activities.docs)
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
     }
 
     console.error('Failed to fetch activities:', error)
@@ -480,7 +481,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { baby, user } = await requireAuth()
+    const { baby, user } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const payload = await getPayloadClient()
 
     const body = await request.json()
@@ -582,8 +583,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(activity, { status: 201 })
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
     }
 
     console.error('Failed to create activity:', error)
@@ -593,7 +595,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { baby, user } = await requireAuth()
+    const { baby, user } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const payload = await getPayloadClient()
 
     const body = await request.json()
@@ -719,8 +721,9 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, count: updatedCount })
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
     }
 
     console.error('Failed to batch update activity dates:', error)
@@ -730,7 +733,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { baby, user } = await requireAuth()
+    const { baby, user } = await requireAuth({ babyId: getRequestedBabyId(request) })
     const payload = await getPayloadClient()
 
     const body = await request.json()
@@ -792,8 +795,9 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, count: deletedCount })
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authError = authFailureResponse(error)
+    if (authError) {
+      return authError
     }
 
     console.error('Failed to batch delete activities:', error)
