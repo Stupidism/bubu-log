@@ -5,7 +5,10 @@ import Link from 'next/link'
 import { ArrowLeft, CheckCircle2, Copy, Loader2, PlusCircle } from 'lucide-react'
 import { AvatarUpload } from '@/components/AvatarUpload'
 
-const SHORTCUT_INSTALL_URL = 'https://www.icloud.com/shortcuts/18673668cfaa4d1bac3f1ecac4646224'
+const DEFAULT_SHORTCUT_INSTALL_URL = 'https://www.icloud.com/shortcuts/18673668cfaa4d1bac3f1ecac4646224'
+const ENV_SHORTCUT_INSTALL_URL = process.env.NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL?.trim() || ''
+const SHORTCUT_INSTALL_URL = ENV_SHORTCUT_INSTALL_URL || DEFAULT_SHORTCUT_INSTALL_URL
+const isUsingEnvShortcutUrl = ENV_SHORTCUT_INSTALL_URL.length > 0
 
 type WebhookTokenResponse = {
   token: string
@@ -179,6 +182,11 @@ export default function SettingsPage() {
           )}
 
           {error && <p className="text-xs text-red-500">{error}</p>}
+          {!isUsingEnvShortcutUrl && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              未配置 `NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL`，当前使用默认 iCloud 模板链接。要区分测试/生产环境，请在对应环境配置此变量。
+            </p>
+          )}
         </div>
       </section>
     </main>
