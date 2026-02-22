@@ -23,6 +23,8 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
   type ChartConfig,
 } from '@bubu-log/ui'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
@@ -195,13 +197,31 @@ function ChartView({
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} stroke="#9ca3af" />
             <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => formatMilkAmount(value as number)} stroke="#9ca3af" />
-            <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatMilkAmount(value as number)} />} />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  className="rounded-xl px-3 py-2"
+                  labelFormatter={(value) => `日期：${value}`}
+                  formatter={(value, name) => (
+                    <div className="flex w-full min-w-[170px] items-center justify-between gap-3">
+                      <span className="text-muted-foreground">
+                        {String(name)}：
+                      </span>
+                      <span className="text-foreground font-mono font-medium tabular-nums">
+                        {formatMilkAmount(value as number)}
+                      </span>
+                    </div>
+                  )}
+                />
+              }
+            />
+            <ChartLegend content={<ChartLegendContent />} />
             {/* 瓶喂量 - 粉色 */}
-            <Line type="linear" dataKey="totalMilkAmount" stroke="#ec4899" strokeWidth={2} dot={{ fill: '#ec4899', r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            <Line name="瓶喂量" type="linear" dataKey="totalMilkAmount" stroke="#ec4899" strokeWidth={2} dot={{ fill: '#ec4899', r: 3 }} activeDot={{ r: 5 }} connectNulls />
             {/* 妈妈吸奶量 - 洋红 */}
-            <Line type="linear" dataKey="totalPumpMilkAmount" stroke="#d946ef" strokeWidth={2} dot={{ fill: '#d946ef', r: 3 }} activeDot={{ r: 5 }} connectNulls />
+            <Line name="妈妈吸奶量" type="linear" dataKey="totalPumpMilkAmount" stroke="#d946ef" strokeWidth={2} dot={{ fill: '#d946ef', r: 3 }} activeDot={{ r: 5 }} connectNulls />
             {/* 综合喂养量（估算） - 橙色虚线 */}
-            <Line type="linear" dataKey="comprehensiveFeedingAmount" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 3" dot={{ fill: '#f59e0b', r: 2.5 }} activeDot={{ r: 4.5 }} connectNulls />
+            <Line name="综合喂养量(估算)" type="linear" dataKey="comprehensiveFeedingAmount" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 3" dot={{ fill: '#f59e0b', r: 2.5 }} activeDot={{ r: 4.5 }} connectNulls />
           </LineChart>
         </ChartContainer>
       </section>
