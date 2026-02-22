@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo, useCallback, useRef, Suspense } from 'react'
-import Link from 'next/link'
 import { useSearchParams, useRouter, useParams } from 'next/navigation'
 import { dayjs, calculateDurationMinutes, calculateDurationInDay, formatDuration as formatDurationUtil, formatDateChinese, formatWeekday } from '@/lib/dayjs'
 import {
@@ -26,9 +25,7 @@ import {
   X,
   CheckSquare,
   Square,
-  History,
   ArrowUpDown,
-  TrendingUp,
   Calendar,
 } from 'lucide-react'
 import { StatsCardList, type StatFilter, type DaySummary } from '@/components/StatsCardList'
@@ -87,8 +84,6 @@ function ActivitiesPageContent() {
   const routeParams = useParams<{ babyId: string }>()
   const babyId = routeParams?.babyId || ''
   const activitiesPath = buildBabyScopedPath(babyId, '/activities')
-  const dailyStatsPath = buildBabyScopedPath(babyId, '/daily-stats')
-  const auditsPath = buildBabyScopedPath(babyId, '/audits')
 
   const activeFilters = useMemo<StatFilter[]>(() => {
     const filtersParam = searchParams.get('filters')
@@ -597,25 +592,7 @@ function ActivitiesPageContent() {
                   记录明细
                 </h1>
               </div>
-              <div className="flex items-center gap-2">
-                <Link
-                  href={dailyStatsPath}
-                  className="p-2 rounded-full bg-primary/10 text-primary"
-                  title="数据趋势"
-                  data-testid="stats-trends-link"
-                >
-                  <TrendingUp size={18} />
-                </Link>
-                <Link
-                  href={auditsPath}
-                  className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                  title="操作记录"
-                  data-testid="stats-audits-link"
-                >
-                  <History size={18} />
-                </Link>
-                <AppDrawerMenu babyId={babyId} />
-              </div>
+              <AppDrawerMenu babyId={babyId} />
             </>
           )}
         </div>
