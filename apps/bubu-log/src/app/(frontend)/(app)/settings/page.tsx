@@ -2,11 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, Loader2, PlusCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Copy, Loader2, PlusCircle } from 'lucide-react'
 import { AvatarUpload } from '@/components/AvatarUpload'
 
-const DEFAULT_SHORTCUT_INSTALL_URL = 'https://www.icloud.com/shortcuts/d8a6aa919e0f49d1a1fb465949c36416'
-const SHORTCUT_INSTALL_URL = process.env.NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL?.trim() || DEFAULT_SHORTCUT_INSTALL_URL
+const SHORTCUT_INSTALL_URL = 'https://www.icloud.com/shortcuts/18673668cfaa4d1bac3f1ecac4646224'
 
 type WebhookTokenResponse = {
   token: string
@@ -22,13 +21,53 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [shortcutTemplateText, setShortcutTemplateText] = useState<string | null>(null)
+
+  const copyText = async (text: string): Promise<boolean> => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+        return true
+      }
+    } catch {
+      // Fallback to execCommand below.
+    }
+
+    try {
+      const textArea = document.createElement('textarea')
+      textArea.value = text
+      textArea.setAttribute('readonly', '')
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-9999px'
+      document.body.appendChild(textArea)
+      textArea.select()
+      const success = document.execCommand('copy')
+      document.body.removeChild(textArea)
+      return success
+    } catch {
+      return false
+    }
+  }
+
+  const handleManualCopy = async () => {
+    if (!shortcutTemplateText) {
+      return
+    }
+
+    const didCopy = await copyText(shortcutTemplateText)
+    setCopied(didCopy)
+    setError(didCopy ? null : '复制失败，请长按下方配置文本手动复制')
+  }
 
   const prepareShortcut = async () => {
-    const shortcutWindow = window.open('', '_blank', 'noopener,noreferrer')
-    let shouldCloseWindow = true
+    const openedWindow = window.open(SHORTCUT_INSTALL_URL, '_blank', 'noopener,noreferrer')
+    if (!openedWindow) {
+      setError('浏览器拦截了新窗口，请允许弹窗后重试')
+    }
 
     setIsPreparing(true)
     setCopied(false)
+    setShortcutTemplateText(null)
     setError(null)
 
     try {
@@ -71,21 +110,16 @@ export default function SettingsPage() {
       }
 
       const text = JSON.stringify(shortcutTemplate, null, 2)
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
+      setShortcutTemplateText(text)
 
-      if (shortcutWindow && !shortcutWindow.closed) {
-        shortcutWindow.location.href = SHORTCUT_INSTALL_URL
-        shouldCloseWindow = false
-      } else {
-        window.open(SHORTCUT_INSTALL_URL, '_blank', 'noopener,noreferrer')
+      const didCopy = await copyText(text)
+      setCopied(didCopy)
+      if (!didCopy) {
+        setError('已生成配置，但自动复制失败，请点击“手动复制配置”')
       }
     } catch (err) {
       console.error(err)
       setError('无法生成配置，请稍后重试')
-      if (shortcutWindow && !shortcutWindow.closed && shouldCloseWindow) {
-        shortcutWindow.close()
-      }
     } finally {
       setIsPreparing(false)
     }
@@ -150,14 +184,29 @@ export default function SettingsPage() {
             </p>
           )}
 
+          {shortcutTemplateText && !copied && (
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleManualCopy}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs"
+              >
+                <Copy size={14} />
+                手动复制配置
+              </button>
+              <textarea
+                value={shortcutTemplateText}
+                readOnly
+                className="w-full h-32 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 p-2 text-xs font-mono"
+              />
+            </div>
+          )}
+
           {expiresAt && (
             <p className="text-xs text-gray-500">Token 过期时间：{new Date(expiresAt).toLocaleString()}</p>
           )}
 
           {error && <p className="text-xs text-red-500">{error}</p>}
-          <p className="text-xs text-gray-500">
-            如需替换模板，可配置 `NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL` 覆盖默认 iCloud 快捷指令链接。
-          </p>
         </div>
       </section>
     </main>
