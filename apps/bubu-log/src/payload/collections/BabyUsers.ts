@@ -52,13 +52,15 @@ export const BabyUsers: CollectionConfig = {
     {
       name: 'babyId',
       label: '宝宝 ID',
-      type: 'text',
+      type: 'relationship',
+      relationTo: 'babies',
       required: true,
     },
     {
       name: 'userId',
       label: '用户 ID',
-      type: 'text',
+      type: 'relationship',
+      relationTo: 'app-users',
       required: true,
     },
     {
