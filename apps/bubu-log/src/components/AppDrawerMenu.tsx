@@ -19,6 +19,7 @@ type DrawerItem = {
   key: string
   label: string
   href: string
+  exact?: boolean
   icon: ComponentType<{ size?: number; className?: string }>
 }
 
@@ -26,9 +27,13 @@ interface AppDrawerMenuProps {
   babyId: string
 }
 
-function isActive(pathname: string, href: string): boolean {
+function isActive(pathname: string, href: string, exact = false): boolean {
   if (pathname === href) {
     return true
+  }
+
+  if (exact) {
+    return false
   }
 
   return pathname.startsWith(`${href}/`)
@@ -44,18 +49,19 @@ export function AppDrawerMenu({ babyId }: AppDrawerMenuProps) {
         key: 'home',
         label: '首页',
         href: buildBabyScopedPath(babyId),
+        exact: true,
         icon: House,
       },
       {
         key: 'records',
         label: '记录明细',
-        href: buildBabyScopedPath(babyId, '/stats'),
+        href: buildBabyScopedPath(babyId, '/activities'),
         icon: ClipboardList,
       },
       {
         key: 'trends',
         label: '查看趋势',
-        href: buildBabyScopedPath(babyId, '/stats/trends'),
+        href: buildBabyScopedPath(babyId, '/daily-stats'),
         icon: TrendingUp,
       },
       {
@@ -102,7 +108,7 @@ export function AppDrawerMenu({ babyId }: AppDrawerMenuProps) {
         <nav className="flex flex-col gap-2 p-4">
           {items.map((item) => {
             const Icon = item.icon
-            const active = isActive(pathname, item.href)
+            const active = isActive(pathname, item.href, item.exact)
             return (
               <SheetClose key={item.key} asChild>
                 <Link

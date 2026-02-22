@@ -5,6 +5,7 @@ import { usePathname, useRouter, useParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Baby, Camera, CheckCircle2, Loader2, Pencil, Plus, Star, Trash2 } from 'lucide-react'
 import { AppDrawerMenu } from '@/components/AppDrawerMenu'
+import { BackHomeButton } from '@/components/BackHomeButton'
 import {
   replaceBabyIdInPathname,
   withBabyIdOnApiPath,
@@ -321,9 +322,12 @@ export default function BabiesPage() {
   return (
     <main className="min-h-screen pb-10">
       <header className="px-4 py-3 flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex-1">
-          <h1 className="text-lg font-semibold">宝宝管理</h1>
-          <p className="text-xs text-gray-500">头像、大名小名与默认宝宝切换</p>
+        <div className="flex flex-1 items-start gap-2.5">
+          <BackHomeButton babyId={babyId} />
+          <div>
+            <h1 className="text-lg font-semibold">宝宝管理</h1>
+            <p className="text-xs text-gray-500">头像、大名小名与默认宝宝切换</p>
+          </div>
         </div>
         <AppDrawerMenu babyId={babyId} />
       </header>

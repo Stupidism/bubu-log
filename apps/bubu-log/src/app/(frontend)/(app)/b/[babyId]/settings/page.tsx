@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { CheckCircle2, Copy, Loader2, PlusCircle } from 'lucide-react'
 import { AvatarUpload } from '@/components/AvatarUpload'
 import { AppDrawerMenu } from '@/components/AppDrawerMenu'
+import { BackHomeButton } from '@/components/BackHomeButton'
 
 const DEFAULT_SHORTCUT_INSTALL_URL = 'https://www.icloud.com/shortcuts/18673668cfaa4d1bac3f1ecac4646224'
 const ENV_SHORTCUT_INSTALL_URL = process.env.NEXT_PUBLIC_IOS_SHORTCUT_INSTALL_URL?.trim() || ''
@@ -124,9 +125,12 @@ export default function SettingsPage() {
   return (
     <main className="min-h-screen pb-10">
       <header className="px-4 py-3 flex items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex-1">
-          <h1 className="text-lg font-semibold">设置</h1>
-          <p className="text-xs text-gray-500">头像与快捷指令</p>
+        <div className="flex flex-1 items-start gap-2.5">
+          <BackHomeButton babyId={babyId} />
+          <div>
+            <h1 className="text-lg font-semibold">设置</h1>
+            <p className="text-xs text-gray-500">头像与快捷指令</p>
+          </div>
         </div>
         <AppDrawerMenu babyId={babyId} />
       </header>

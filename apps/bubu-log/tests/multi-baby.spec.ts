@@ -45,7 +45,12 @@ test.describe('Multi Baby URL Scope', () => {
     await trendsLink.evaluate((element) => {
       ;(element as HTMLAnchorElement).click()
     })
-    await expect(page).toHaveURL(new RegExp(`/b/${TEST_BABY_ID_2}/stats/trends$`))
+    await expect(page).toHaveURL(new RegExp(`/b/${TEST_BABY_ID_2}/daily-stats$`))
+
+    await page.goto(`/b/${TEST_BABY_ID_2}/audits`)
+    await page.getByTestId('drawer-trigger').click()
+    await expect(page.getByTestId('drawer-link-audits')).toHaveClass(/bg-primary\/10/)
+    await expect(page.getByTestId('drawer-link-home')).not.toHaveClass(/bg-primary\/10/)
   })
 
   test('baby management page should support create edit and default switch', async ({ page }) => {

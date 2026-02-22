@@ -7,5 +7,5 @@ type LegacyStatsPageProps = {
 
 export default async function LegacyStatsPage({ searchParams }: LegacyStatsPageProps) {
   const resolvedSearchParams = await Promise.resolve(searchParams ?? {})
-  redirect(await resolveDefaultScopedUrl('/stats', resolvedSearchParams))
+  redirect(await resolveDefaultScopedUrl('/activities', resolvedSearchParams))
 }

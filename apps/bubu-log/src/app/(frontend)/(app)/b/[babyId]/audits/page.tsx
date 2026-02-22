@@ -16,6 +16,7 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import { AppDrawerMenu } from '@/components/AppDrawerMenu'
+import { BackHomeButton } from '@/components/BackHomeButton'
 
 // 操作类型标签
 const actionLabels: Record<string, string> = {
@@ -221,10 +222,13 @@ export default function AuditsPage() {
       {/* 顶部导航 */}
       <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-100 dark:border-gray-800">
         <div className="px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
-            <History size={22} />
-            操作记录
-          </h1>
+          <div className="flex items-center gap-2.5">
+            <BackHomeButton babyId={babyId} />
+            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1.5">
+              <History size={22} />
+              操作记录
+            </h1>
+          </div>
           <AppDrawerMenu babyId={babyId} />
         </div>
       </header>
