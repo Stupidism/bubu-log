@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-if [[ "${VERCEL:-}" == "1" || "${RUN_DB_MIGRATE_ON_BUILD:-}" == "1" ]]; then
+if [[ "${RUN_DB_MIGRATE_ON_BUILD:-}" == "1" ]]; then
   echo "🔧 Running DB migration before build..."
   pnpm db:migrate
 else
