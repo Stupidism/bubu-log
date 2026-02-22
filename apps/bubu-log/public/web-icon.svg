@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">卜卜日记 Web Icon</title>
+  <desc id="desc">Circular web icon for browser usage.</desc>
+  <defs>
+    <linearGradient id="bg-web" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF8F0"/>
+      <stop offset="100%" stop-color="#FFE3D0"/>
+    </linearGradient>
+    <linearGradient id="ring-web" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFC8AF"/>
+      <stop offset="100%" stop-color="#FF957E"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="512" cy="512" r="448" fill="url(#bg-web)"/>
+  <circle cx="512" cy="512" r="416" fill="none" stroke="url(#ring-web)" stroke-width="24"/>
+
+  <path d="M472 214 C454 340 450 566 470 808" fill="none" stroke="#5A3A2E" stroke-width="90" stroke-linecap="round"/>
+  <circle cx="536" cy="344" r="72" fill="#5A3A2E"/>
+  <path d="M560 366 C604 396 638 430 676 480" fill="none" stroke="#5A3A2E" stroke-width="60" stroke-linecap="round"/>
+  <circle cx="516" cy="324" r="16" fill="#FFF5ED" opacity="0.82"/>
+  <path d="M474 516 C560 474 606 470 650 500" fill="none" stroke="#E7987D" stroke-width="28" stroke-linecap="round" opacity="0.86"/>
+</svg>

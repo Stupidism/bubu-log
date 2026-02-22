@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">卜卜日记 Web Preview Icon</title>
+  <desc id="desc">Circular blue preview web icon with Vercel mark at bottom-right.</desc>
+  <defs>
+    <linearGradient id="bg-web-preview" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EFF6FF"/>
+      <stop offset="100%" stop-color="#DBEAFE"/>
+    </linearGradient>
+    <linearGradient id="ring-web-preview" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93C5FD"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="512" cy="512" r="448" fill="url(#bg-web-preview)"/>
+  <circle cx="512" cy="512" r="416" fill="none" stroke="url(#ring-web-preview)" stroke-width="24"/>
+
+  <path d="M472 214 C454 340 450 566 470 808" fill="none" stroke="#1E3A8A" stroke-width="90" stroke-linecap="round"/>
+  <circle cx="536" cy="344" r="72" fill="#1E3A8A"/>
+  <path d="M560 366 C604 396 638 430 676 480" fill="none" stroke="#1E3A8A" stroke-width="60" stroke-linecap="round"/>
+  <circle cx="516" cy="324" r="16" fill="#EFF6FF" opacity="0.9"/>
+  <path d="M474 516 C560 474 606 470 650 500" fill="none" stroke="#60A5FA" stroke-width="28" stroke-linecap="round" opacity="0.9"/>
+
+  <circle cx="812" cy="812" r="92" fill="#1E40AF"/>
+  <circle cx="812" cy="812" r="78" fill="none" stroke="#93C5FD" stroke-width="8"/>
+  <path d="M577.3 0 1154.7 1000H0z" fill="#FFFFFF" transform="translate(766 772) scale(0.08)"/>
+</svg>

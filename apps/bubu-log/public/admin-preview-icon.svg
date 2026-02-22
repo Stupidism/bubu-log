@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
   <title id="title">卜卜日记后台管理 Preview Icon</title>
-  <desc id="desc">Gray admin preview icon with Payload mark at top-right and Vercel mark at bottom-right.</desc>
+  <desc id="desc">Circular gray admin preview icon with Payload top-right and Vercel bottom-right marks.</desc>
   <defs>
     <linearGradient id="bg-admin-preview" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#F3F4F6"/>
@@ -12,14 +12,13 @@
     </linearGradient>
   </defs>
 
-  <rect x="64" y="64" width="896" height="896" rx="212" fill="url(#bg-admin-preview)"/>
-  <rect x="96" y="96" width="832" height="832" rx="180" fill="none" stroke="url(#ring-admin-preview)" stroke-width="24"/>
+  <circle cx="512" cy="512" r="448" fill="url(#bg-admin-preview)"/>
+  <circle cx="512" cy="512" r="416" fill="none" stroke="url(#ring-admin-preview)" stroke-width="24"/>
 
   <path d="M472 214 C454 340 450 566 470 808" fill="none" stroke="#4B5563" stroke-width="90" stroke-linecap="round"/>
   <circle cx="536" cy="344" r="72" fill="#4B5563"/>
   <path d="M560 366 C604 396 638 430 676 480" fill="none" stroke="#4B5563" stroke-width="60" stroke-linecap="round"/>
   <circle cx="516" cy="324" r="16" fill="#F9FAFB" opacity="0.9"/>
-
   <path d="M474 516 C560 474 606 470 650 500" fill="none" stroke="#9CA3AF" stroke-width="28" stroke-linecap="round" opacity="0.9"/>
 
   <circle cx="812" cy="216" r="92" fill="#4B5563"/>

@@ -7,9 +7,8 @@ import {
   APP_DESCRIPTION,
   DARK_THEME_COLOR,
   appAppleTouchIcon,
-  appFavicon,
-  appIcon192,
-  appIconSvg,
+  webFavicon,
+  webIconSvg,
   themeColor,
 } from '@/lib/branding'
 
@@ -19,9 +18,8 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: appFavicon, sizes: '32x32', type: 'image/png' },
-      { url: appIcon192, sizes: '192x192', type: 'image/png' },
-      { url: appIconSvg, sizes: 'any', type: 'image/svg+xml' },
+      { url: webFavicon, sizes: '32x32', type: 'image/png' },
+      { url: webIconSvg, sizes: 'any', type: 'image/svg+xml' },
     ],
     apple: appAppleTouchIcon,
   },

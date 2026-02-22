@@ -12,10 +12,14 @@ export const themeColor = isPreviewEnvironment
   ? PREVIEW_THEME_COLOR
   : PRODUCTION_THEME_COLOR
 
+export const webIconSvg = isPreviewEnvironment ? '/web-preview-icon.svg' : '/web-icon.svg'
+export const webFavicon = isPreviewEnvironment
+  ? '/web-preview-favicon.png'
+  : '/web-favicon.png'
+
 export const appIconSvg = isPreviewEnvironment ? '/preview-icon.svg' : '/icon.svg'
 export const appIcon192 = isPreviewEnvironment ? '/preview-icon-192.png' : '/icon-192.png'
 export const appIcon512 = isPreviewEnvironment ? '/preview-icon-512.png' : '/icon-512.png'
-export const appFavicon = isPreviewEnvironment ? '/preview-favicon.png' : '/favicon.png'
 export const appAppleTouchIcon = isPreviewEnvironment
   ? '/preview-apple-touch-icon.png'
   : '/apple-touch-icon.png'
