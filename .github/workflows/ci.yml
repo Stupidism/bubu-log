@@ -13,7 +13,7 @@ jobs:
     env:
       AUTH_SECRET: test-secret
       AUTH_TRUST_HOST: true
-      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:3210
       GOOGLE_CLIENT_ID: test
       GOOGLE_CLIENT_SECRET: test
       GITHUB_CLIENT_ID: test
